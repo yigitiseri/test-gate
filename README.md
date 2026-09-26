@@ -15,6 +15,8 @@ Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. 
 - **Olaylar:** Veba, kervanlar, ayaklanmalar, paralı askerler, Urban'ın topları, 1501'de Safevîlerin doğuşu.
 - **Zafer:** Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla.
 
+- **Ses:** Hicaz makamında ney, ud, davul ve def ile çalan fon müziği; savaşta mehter havasına döner. Yürüyüş, kılıç, top, zafer borusu, gong ve çan efektleri. Hepsi Web Audio ile kodla üretilir, ses dosyası yoktur. Üst çubuktaki düğmeyle kapatılır; menüde müzik, efekt ve ses düzeyi ayarları var.
+
 Oyun her turun sonunda tarayıcıya otomatik kaydedilir.
 
 ## Teknik

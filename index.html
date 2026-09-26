@@ -224,6 +224,7 @@ input[type=range]{width:100%;accent-color:var(--brass)}
     <button class="nb" data-act="diplo">⚖<span class="lbl"> Diplomasi</span></button>
     <button class="nb" data-act="missions">✦<span class="lbl"> Hedefler</span></button>
     <button class="nb" data-act="chron">❧<span class="lbl"> Vakayiname</span></button>
+    <button class="nb" data-act="snd" id="sndBtn" aria-label="Sesi aç/kapat">🔊</button>
     <button class="nb" data-act="menu">☰</button>
   </nav>
   <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
@@ -239,7 +240,7 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 <div id="start" hidden>
   <div class="side">
     <div class="hero">
-      <div class="eyebrow">Büyük strateji · Sıra tabanlı</div>
+      <div class="eyebrow">Büyük strateji · Sıra tabanlı · Sesli</div>
       <h1>Kızıl Elma<span>MİLÂDÎ 1451</span></h1>
       <p>Genç bir sultan tahta çıktı, Konstantiniyye surları hâlâ ayakta. Bir devlet seç, ordunu topla, eyalet eyalet genişle. 1531 yılına kadar tarihin akışını değiştir.</p>
     </div>
@@ -942,13 +943,13 @@ function checkMissions(){
   else if(m.hold)ok=S.turn>=m.until&&S.prov[PK[m.hold]].o===pl;
   if(ok){S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
    if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
-   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');}});
+   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');}});
 }
 function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
 
 let busy=false;
 function endTurn(){
- if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();
+ if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
  $('#endTurn').textContent='Hamleler…';
  setTimeout(()=>{
   S.news=[];S.report=[];
@@ -964,6 +965,7 @@ function endTurn(){
    addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
   $('#endTurn').textContent='Turu Bitir';$('#endTurn').disabled=false;busy=false;
   if(S.over){queueModal(showEnd);return;}
+  if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);
   if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
  },30);
 }
@@ -1182,12 +1184,104 @@ function mapClick(sx,sy){
  if(id<0){clearSel();return;}
  if(sel>=0&&S.prov[sel].o===S.player&&id!==sel&&PD[sel].adj.includes(id)){
   const o=S.prov[id].o;
-  if(o===S.player||atWar(S.player,o)){if(avail(sel)<100){toast('Bu eyaletteki askerler bu tur zaten hareket etti.');return;}tgt=id;amt=Math.round(avail(sel)*(o===S.player?1:1)/100)*100;renderPanel();req();return;}
+  if(o===S.player||atWar(S.player,o)){if(avail(sel)<100){toast('Bu eyaletteki askerler bu tur zaten hareket etti.');return;}tgt=id;amt=Math.round(avail(sel)/100)*100;SND.play('select');renderPanel();req();return;}
  }
  if(id===sel&&tgt<0){clearSel();return;}
- sel=id;tgt=-1;confirmKey='';renderPanel();req();
+ sel=id;tgt=-1;confirmKey='';SND.play('select');renderPanel();req();
 }
 function clearSel(){sel=-1;tgt=-1;confirmKey='';$('#panel').hidden=true;req();}
+
+/* =====================================================================
+   SOUND (Web Audio, fully synthesized)
+   ===================================================================== */
+const SND=(()=>{
+ const st={on:true,music:true,sfx:true,vol:.7};
+ try{Object.assign(st,JSON.parse(localStorage.getItem('ke-snd')||'{}'));}catch(e){}
+ const saveSt=()=>{try{localStorage.setItem('ke-snd',JSON.stringify(st));}catch(e){}};
+ let ac=null,master,mus,sfx,rev,nb,mood='peace',timer=null,next=0,step=0,ph=null,rest=2,drone=false;
+ const T=()=>ac.currentTime;
+ function impulse(sec,decay){const r=ac.sampleRate,l=r*sec|0,b=ac.createBuffer(2,l,r);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/l,decay);}return b;}
+ function init(){
+  if(ac){if(ac.state==='suspended')ac.resume();return;}
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  try{ac=new C();}catch(e){return;}
+  master=ac.createGain();master.gain.value=st.on?st.vol:0;
+  const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;master.connect(comp);comp.connect(ac.destination);
+  rev=ac.createConvolver();rev.buffer=impulse(2.4,2.8);const rg=ac.createGain();rg.gain.value=.3;rev.connect(rg);rg.connect(master);
+  mus=ac.createGain();mus.gain.value=st.music?.5:0;mus.connect(master);const ms=ac.createGain();ms.gain.value=.7;mus.connect(ms);ms.connect(rev);
+  sfx=ac.createGain();sfx.gain.value=st.sfx?.9:0;sfx.connect(master);const ss=ac.createGain();ss.gain.value=.3;sfx.connect(ss);ss.connect(rev);
+  nb=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend();else ac.resume();});
+  apply();
+ }
+ function env(g,t,a,d,peak){g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d);}
+ function osc(type,f,t,dur,peak,{a=.005,dest=sfx,f2=null,filt=null,detune=0}={}){const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);o.detune.value=detune;
+  const g=ac.createGain();env(g,t,a,dur,peak);let n=o;if(filt){const bf=ac.createBiquadFilter();bf.type=filt[0];bf.frequency.value=filt[1];bf.Q.value=filt[2]||.7;o.connect(bf);n=bf;}n.connect(g);g.connect(dest);o.start(t);o.stop(t+a+dur+.05);}
+ function noise(t,dur,peak,type,freq,Q=1,dest=sfx,a=.002){const s=ac.createBufferSource();s.buffer=nb;s.loop=true;const f=ac.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=Q;const g=ac.createGain();env(g,t,a,dur,peak);s.connect(f);f.connect(g);g.connect(dest);s.start(t,Math.random()*1.5);s.stop(t+a+dur+.05);}
+ function davul(t,g=.5,dest=sfx){osc('sine',95,t,.45,g,{f2:42,dest});noise(t,.08,g*.5,'lowpass',400,1,dest);}
+ function tek(t,g=.3,dest=sfx){osc('triangle',250,t,.08,g*.6,{f2:170,dest});noise(t,.05,g*.6,'bandpass',2300,1.2,dest);}
+ function clash(t,g=.25){[523,811,1237,1789,2417].forEach((f,k)=>osc('square',f*(.97+Math.random()*.06),t,.16+k*.03,g*.1,{filt:['highpass',700]}));noise(t,.12,g*.7,'highpass',2600,.7);}
+ function cannon(t,g=.8){osc('sine',70,t,.9,g,{f2:28});noise(t,1.1,g*.9,'lowpass',520,.8);noise(t,.05,g*.5,'bandpass',1500,1);}
+ function horn(f,t,d,g=.16,dest=sfx,bright=2600){const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f*.97,t);o.frequency.linearRampToValueAtTime(f,t+.05);
+  const v=ac.createOscillator();v.frequency.value=6;const vg=ac.createGain();vg.gain.value=f*.008;v.connect(vg);vg.connect(o.frequency);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(800,t);lp.frequency.linearRampToValueAtTime(bright,t+.08);lp.Q.value=2;
+  const g2=ac.createGain();g2.gain.setValueAtTime(.0001,t);g2.gain.linearRampToValueAtTime(g,t+.04);g2.gain.setValueAtTime(g*.9,t+d*.8);g2.gain.linearRampToValueAtTime(.0001,t+d+.1);
+  o.connect(lp);lp.connect(g2);g2.connect(dest);o.start(t);v.start(t);o.stop(t+d+.2);v.stop(t+d+.2);}
+ function bell(f,t,g=.25,dur=2.4,dest=sfx){[1,2.76,5.4,8.93].forEach((m,k)=>osc('sine',f*m,t,dur/(k+1),g/(k+1.2),{a:.002,dest}));}
+ const N=s=>293.66*Math.pow(2,s/12);
+ const sounds={
+  click:t=>{osc('triangle',1500,t,.035,.05);},
+  select:t=>{osc('sine',520,t,.08,.12,{f2:360});noise(t,.03,.05,'bandpass',1800,2);},
+  coin:t=>{osc('sine',1900,t,.25,.09);osc('sine',2530,t+.07,.35,.08);osc('sine',3100,t+.13,.3,.05);},
+  recruit:t=>{davul(t,.45);davul(t+.22,.35);tek(t+.33,.25);},
+  build:t=>{for(let k=0;k<3;k++){noise(t+k*.17,.06,.35,'bandpass',1400,3);osc('sine',310,t+k*.17,.07,.18,{f2:220});}},
+  march:t=>{for(let k=0;k<4;k++){davul(t+k*.14,.26+k*.04);noise(t+k*.14+.07,.05,.08,'lowpass',900);}},
+  battle:(t,o={})=>{for(let k=0;k<7;k++)clash(t+k*.11+Math.random()*.06,.3);noise(t,.9,.1,'bandpass',700,.6);if(o.cannon)cannon(t+.05,.7);
+   const r=t+.95;if(o.win===true){horn(N(0),r,.16);horn(N(4),r+.18,.16);horn(N(7),r+.36,.55,.18);horn(N(-5),r+.36,.55,.1);davul(r,.4);davul(r+.36,.45);}
+   else if(o.win===false){horn(N(7),r,.3,.13);horn(N(5),r+.32,.3,.13);horn(N(1),r+.64,.8,.13);}},
+  turn:t=>{bell(146.8,t,.22,3);},
+  war:t=>{for(let k=0;k<8;k++)davul(t+k*.11,.2+k*.05);horn(N(-12),t+.9,1.2,.18);horn(N(-5),t+.9,1.2,.12);cannon(t+.9,.5);},
+  peace:t=>{[0,4,7,12].forEach((s,k)=>osc('triangle',N(s+12),t+k*.12,1.2,.07));},
+  event:t=>{noise(t,.35,.07,'bandpass',3000,.8,sfx,.12);bell(587.3,t+.2,.1,1.6);},
+  fanfare:t=>{const sq=[[0,.16],[0,.16],[4,.16],[7,.5],[5,.2],[7,.9]];let c=t;sq.forEach(([s,d])=>{horn(N(s),c,d,.17);horn(N(s-12),c,d,.1);c+=d+.02;});for(let k=0;k<6;k++)davul(t+k*.3,.45);noise(c-.9,1.5,.1,'highpass',5000,.5,sfx,.01);},
+  defeat:t=>{horn(N(-5),t,.8,.14);horn(N(-7),t+.8,.8,.14);horn(N(-11),t+1.6,1.8,.14);davul(t,.4);davul(t+1.6,.4);}
+ };
+ function play(name,o){if(!ac||!st.on||!st.sfx)return;try{sounds[name](T()+.01,o);}catch(e){}}
+ // ---- music: Hicaz on D, düyek usul ----
+ const SC=[0,1,4,5,7,8,10,12,13,16,17,19];
+ function newPhrase(){const len=5+Math.floor(Math.random()*5);let dg=3+Math.floor(Math.random()*3);const notes=[];
+  for(let k=0;k<len;k++){const r=Math.random();dg+=r<.35?-1:r<.7?1:r<.82?-2:r<.92?2:0;dg=clamp(dg,0,SC.length-1);notes.push({dg,L:[1,1,2,2,2,3,4][Math.floor(Math.random()*7)]});}
+  notes.push({dg:Math.random()<.6?0:4,L:5+Math.floor(Math.random()*3)});return {notes,i:0,rem:0};}
+ function ney(f,t,d,g){const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(f*.985,t);o.frequency.linearRampToValueAtTime(f,t+.07);
+  const o2=ac.createOscillator();o2.type='triangle';o2.frequency.setValueAtTime(f*2,t);const g2=ac.createGain();g2.gain.value=.12;
+  const v=ac.createOscillator();v.frequency.value=5.2;const vg=ac.createGain();vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(f*.012,t+Math.min(d*.6,.45));v.connect(vg);vg.connect(o.frequency);
+  const e=ac.createGain();e.gain.setValueAtTime(.0001,t);e.gain.linearRampToValueAtTime(g,t+.09);e.gain.setValueAtTime(g*.85,t+d*.75);e.gain.linearRampToValueAtTime(.0001,t+d+.15);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2400;o.connect(e);o2.connect(g2);g2.connect(e);e.connect(lp);lp.connect(mus);
+  [o,o2,v].forEach(x=>{x.start(t);x.stop(t+d+.3);});noise(t,Math.max(.1,d*.5),g*.09,'bandpass',f*3,1.4,mus,.05);}
+ function oud(f,t,g){osc('triangle',f,t,.8,g,{a:.003,dest:mus});osc('sawtooth',f*1.004,t,.35,g*.35,{a:.003,dest:mus,filt:['lowpass',1500]});}
+ function tick(){if(!ac)return;const e8=60/(mood==='war'?96:80)/2;if(next<T())next=T()+.05;
+  while(next<T()+.5){const t=next,p=step%8,war=mood==='war';
+   const dv=war?.3:.16,tk=war?.2:.1;
+   if(p===0||p===4)davul(t,p===0?dv:dv*.8,mus);if(p===2||p===3||p===6)tek(t,tk,mus);if(war&&p===7)tek(t,tk*.7,mus);
+   if(p===0)oud(146.83,t,.07);if(p===4)oud(110,t,.05);if(!war&&p===6&&Math.random()<.4)oud(N(SC[2+Math.floor(Math.random()*3)])/2,t,.04);
+   if(rest>0){if(p===0)rest--;}
+   else{if(!ph)ph=newPhrase();if(ph.rem<=0){if(ph.i>=ph.notes.length){ph=null;rest=1+Math.floor(Math.random()*3);}
+     else{const n=ph.notes[ph.i++];ph.rem=n.L;const f=N(SC[n.dg]);if(war)horn(f,t,n.L*e8*.95,.055,mus,2000);else ney(f,t,n.L*e8*1.05,.12);}}
+    if(ph)ph.rem--;}
+   next+=e8;step++;}}
+ function startMusic(){if(!ac||timer)return;next=T()+.15;
+  if(!drone){drone=true;const dg=ac.createGain();dg.gain.value=.04;const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;
+   const lfo=ac.createOscillator();lfo.frequency.value=.07;const lg=ac.createGain();lg.gain.value=170;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+   [73.42,110,146.83].forEach((f,k)=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=(k-1)*5;o.connect(lp);o.start();});lp.connect(dg);dg.connect(mus);}
+  timer=setInterval(tick,120);tick();}
+ function stopMusic(){clearInterval(timer);timer=null;}
+ function apply(){if(!ac)return;const t=T();master.gain.setTargetAtTime(st.on?st.vol:0,t,.05);mus.gain.setTargetAtTime(st.music?.5:0,t,.3);sfx.gain.setTargetAtTime(st.sfx?.9:0,t,.05);
+  if(st.music&&st.on)startMusic();else stopMusic();}
+ return {init,play,st,set(k,v){st[k]=v;saveSt();apply();},setMood(m){mood=m;}};
+})();
+document.addEventListener('pointerdown',()=>SND.init(),{passive:true});
+document.addEventListener('keydown',()=>SND.init());
+function sndIcon(){const b=$('#sndBtn');if(b)b.textContent=SND.st.on?'🔊':'🔇';}
 
 /* =====================================================================
    UI
@@ -1206,7 +1300,7 @@ function renderTop(){
  const net=income(f)-upkeep(f);$('#gold').textContent=Math.floor(F.gold);const gd=$('#goldd');gd.textContent=(net>=0?'+':'')+net.toFixed(0);gd.className=net>=0?'pos':'neg';
  $('#mp').textContent=fmtK(F.mp);$('#army').textContent=fmtK(strength(f));$('#provs').textContent=facProvs(f).length;
  const w=warsOf(f).length;$('#wars').textContent=w;$('#wars').className=w?'neg':'';
- $('#season').textContent=SEASONS[S.turn%4];$('#year').textContent=START_YEAR+Math.floor(S.turn/4)+` · tur ${S.turn+1}`;
+ SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];$('#year').textContent=START_YEAR+Math.floor(S.turn/4)+` · tur ${S.turn+1}`;
 }
 function renderPanel(){
  const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;
@@ -1255,16 +1349,16 @@ function act(a,t){
   case 'close':clearSel();break;
   case 'cancel':tgt=-1;renderPanel();req();break;
   case 'go':{const n=Math.min(amt,avail(sel));if(n<=0)break;const o=S.prov[tgt].o;
-   if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});const to=tgt;sel=to;tgt=-1;}
-   else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
+   if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});SND.play('march');const to=tgt;sel=to;tgt=-1;}
+   else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){SND.play('march');const cn=!!S.fac[f].cannon,w=rep.win;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[b0].fort>=2}),420);addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
      if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
    renderAll();break;}
-  case 'rec1':case 'rec5':{const n=a==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)break;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;renderAll();break;}
-  case 'bdev':{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)break;F.gold-=c;p.dev++;renderAll();break;}
-  case 'bmkt':{const p=S.prov[sel];if(p.mkt||F.gold<60)break;F.gold-=60;p.mkt=1;renderAll();break;}
-  case 'bbrk':{const p=S.prov[sel];if(p.brk||F.gold<50)break;F.gold-=50;p.brk=1;renderAll();break;}
-  case 'bfort':{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)break;F.gold-=c;p.fort++;renderAll();break;}
-  case 'dwar':{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();break;}confirmKey='';declareWar(f,o);toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();break;}
+  case 'rec1':case 'rec5':{const n=a==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)break;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;SND.play('recruit');renderAll();break;}
+  case 'bdev':{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)break;F.gold-=c;p.dev++;SND.play('build');renderAll();break;}
+  case 'bmkt':{const p=S.prov[sel];if(p.mkt||F.gold<60)break;F.gold-=60;p.mkt=1;SND.play('build');renderAll();break;}
+  case 'bbrk':{const p=S.prov[sel];if(p.brk||F.gold<50)break;F.gold-=50;p.brk=1;SND.play('build');renderAll();break;}
+  case 'bfort':{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)break;F.gold-=c;p.fort++;SND.play('build');renderAll();break;}
+  case 'dwar':{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();break;}confirmKey='';declareWar(f,o);SND.play('war');toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();break;}
   case 'end':endTurn();break;
   case 'diplo':showDiplo();break;
   case 'missions':showMissions();break;
@@ -1276,23 +1370,27 @@ function act(a,t){
   case 'zout':zoomAt(vw/2,vh/2,cam.s/1.35);break;
   case 'fit':cam.s=fitS;clampCam();req();break;
   case 'mode':mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?'Arazi haritası':'Siyasi harita';toast(mapMode==='pol'?'Siyasi harita':'Arazi haritası');polDirty=true;req();break;
-  case 'dp-war':{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();break;}confirmKey='';declareWar(f,o);renderAll();showDiplo();break;}
-  case 'dp-peace':{const o=t.dataset.f;if(aiAcceptPeace(o,f)){makePeace(f,o);toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
-  case 'dp-trib':{const o=t.dataset.f;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold-=g;F.gold+=g;makePeace(f,o);news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
-  case 'dp-ally':{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();break;}
-  case 'dp-gift':{const o=t.dataset.f;if(F.gold<50)break;F.gold-=50;addOp(f,o,20);toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();break;}
+  case 'dp-war':{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();break;}confirmKey='';declareWar(f,o);SND.play('war');renderAll();showDiplo();break;}
+  case 'dp-peace':{const o=t.dataset.f;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
+  case 'dp-trib':{const o=t.dataset.f;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold-=g;F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
+  case 'dp-ally':{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();break;}
+  case 'dp-gift':{const o=t.dataset.f;if(F.gold<50)break;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();break;}
   case 'dp-break':{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();break;}
   case 'off':{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)break;S.offers.splice(k,1);
-   if(ok&&atWar(of.f,f)){makePeace(of.f,f);toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();break;}
+   if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();break;}
   case 'ev':{const c=evChoices[+t.dataset.k];closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();break;}
   case 'pick':{startPick=t.dataset.f;renderStart();hlKey='';startCenter(startPick);break;}
-  case 'begin':beginGame(startPick);break;
+  case 'begin':SND.play('fanfare');beginGame(startPick);break;
+  case 'snd':SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');break;
+  case 'snd-music':SND.set('music',!SND.st.music);showMenu();break;
+  case 'snd-sfx':SND.set('sfx',!SND.st.sfx);showMenu();break;
   case 'continue':loadGame();break;
   case 'newgame':closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
   case 'help':showHelp();break;
  }
 }
-document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;act(t.dataset.act,t);});
+const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begin','ev','dp-peace','dp-trib','dp-ally','dp-gift','off','snd']);
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else clearSel();}});
 
 function renderAll(){renderTop();renderPanel();polDirty=true;req();}
@@ -1303,7 +1401,7 @@ function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><d
 function closeModal(){$('#modal').hidden=true;confirmKey='';if(modalQ.length){const m=modalQ.shift();setTimeout(m,60);}}
 function queueModal(fn){if($('#modal').hidden)fn();else modalQ.push(fn);}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev'))closeModal();});
-function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;
+function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;SND.play(/Fethedildi/.test(ev.t)?'fanfare':'event');
  openModal(`<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
  <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
 function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
@@ -1358,10 +1456,13 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
 function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
  <p class="lead" style="font-size:14px">Oyun her turun sonunda bu tarayıcıya otomatik kaydedilir.</p>
+ <div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
+ <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>
  <div class="choices"><button class="btn" style="justify-content:center" data-act="help">Nasıl oynanır</button>
  <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
- <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);}
-function showEnd(){const pl=S.player;const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
+ <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
+ const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}
+function showEnd(){const pl=S.player;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
  const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
  const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Kızıl Elma'ya ulaştın.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
  openModal(`<div class="eyebrow">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
