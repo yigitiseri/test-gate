@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>Kızıl Elma 1451</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700;800&family=Alegreya+Sans:wght@400;500;700;800&family=Alegreya:ital,wght@1,500&display=swap">
+<style>
+:root{
+  --ink:#0d1830;--ink2:#132342;--ink3:#1b3058;--line:#2b4677;--line2:#3c5d96;
+  --paper:#f0e5c9;--paper2:#cfc3a3;--muted:#98a6c0;
+  --brass:#d9ad55;--tile:#23898a;--tile2:#2fb0aa;--war:#c7432e;--war2:#e35a41;--ok:#6cb57a;
+  --sea:#86a8a2;
+  --display:'Alegreya SC',Georgia,'Times New Roman',serif;
+  --body:'Alegreya Sans','Segoe UI',system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--paper);font:15px/1.4 var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+#map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+#map.dragging{cursor:grabbing}
+
+/* Iznik tile band used on panels */
+.band{height:6px;background:
+  radial-gradient(circle at 6px 3px,var(--tile2) 2px,transparent 2.5px) 0 0/12px 6px,
+  linear-gradient(90deg,var(--ink3),var(--line) 50%,var(--ink3));border-bottom:1px solid var(--brass)}
+
+/* ---------- top bar ---------- */
+#top{position:fixed;left:0;right:0;top:0;z-index:10;display:flex;align-items:center;gap:14px;
+  padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px;background:linear-gradient(180deg,rgba(13,24,48,.97),rgba(13,24,48,.9));
+  border-bottom:1px solid var(--brass);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#top[hidden]{display:none!important}
+.brand{font:800 20px/1 var(--display);color:var(--brass);letter-spacing:.04em;white-space:nowrap}
+.brand small{display:block;font:500 11px/1.2 var(--body);letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.facbtn{display:flex;align-items:center;gap:8px;background:none;border:0;padding:4px 6px;border-radius:6px;cursor:pointer}
+.facbtn:hover{background:var(--ink3)}
+.facbtn b{font:700 16px/1 var(--display);white-space:nowrap}
+.res{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.res::-webkit-scrollbar{display:none}
+.stat{display:flex;flex-direction:column;padding:2px 10px;border-left:1px solid var(--line);min-width:64px}
+.stat label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.stat b{font:700 17px/1.1 var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat b small{font-size:12px;font-weight:600;margin-left:4px}
+.pos{color:var(--ok)}.neg{color:var(--war2)}
+.date{text-align:right;white-space:nowrap}
+.date b{display:block;font:700 17px/1 var(--display);color:var(--paper)}
+.date span{font-size:12px;color:var(--muted);letter-spacing:.06em}
+nav.tabs{display:flex;gap:4px}
+.nb{background:var(--ink2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;cursor:pointer;font-weight:600;font-size:13.5px;white-space:nowrap}
+.nb:hover{border-color:var(--line2);background:var(--ink3)}
+.nb .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--war2);margin-left:5px;vertical-align:middle}
+#endTurn{background:linear-gradient(180deg,#b33a28,#8e2a1c);border:1px solid #e06a50;border-radius:7px;padding:9px 16px;font:800 15px/1 var(--display);letter-spacing:.04em;cursor:pointer;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+#endTurn:hover{filter:brightness(1.1)}
+#endTurn:disabled{opacity:.5;cursor:wait}
+
+/* ---------- shields ---------- */
+.shield{--c:#888;width:22px;height:26px;flex:none;background:var(--c);clip-path:polygon(0 0,100% 0,100% 62%,50% 100%,0 62%);
+  display:grid;place-items:center;font:800 10px/1 var(--display);color:rgba(255,255,255,.92);position:relative;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+.shield.lt{color:rgba(20,20,20,.8)}
+.shield.big{width:40px;height:48px;font-size:15px}
+
+/* ---------- side panel ---------- */
+#panel{position:fixed;z-index:9;right:16px;top:84px;width:350px;max-height:calc(100% - 104px);overflow:auto;background:var(--ink);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+#panel .in{padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.ph{display:flex;gap:12px;align-items:flex-start}
+.ph h2{margin:0;font:700 23px/1.05 var(--display);text-wrap:balance}
+.ph .sub{font-size:13px;color:var(--muted);margin-top:3px}
+.x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:2px 4px}
+.x:hover{color:var(--paper)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--ink3);border:1px solid var(--line);color:var(--paper2)}
+.chip.war{background:rgba(199,67,46,.2);border-color:var(--war);color:#ffb3a3}
+.chip.ally{background:rgba(35,137,138,.22);border-color:var(--tile2);color:#9fe7e0}
+.chip.truce{background:rgba(217,173,85,.14);border-color:#8c7033;color:var(--brass)}
+.chip.un{background:rgba(227,90,65,.12);border-color:#7d3a2d;color:#f2a08e}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.grid4>div{background:var(--ink2);padding:7px 8px}
+.grid4 label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.grid4 b{font:700 17px/1.2 var(--body);font-variant-numeric:tabular-nums}
+.sec h3{margin:0 0 7px;font:700 13px/1 var(--body);text-transform:uppercase;letter-spacing:.14em;color:var(--brass)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{background:var(--ink3);border:1px solid var(--line);border-radius:7px;padding:8px 10px;cursor:pointer;font-weight:700;font-size:13.5px;text-align:left;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.btn:hover:not(:disabled){border-color:var(--line2);background:#223a68}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn .c{font-weight:600;font-size:12px;color:var(--brass);white-space:nowrap}
+.btn.primary{background:var(--tile);border-color:var(--tile2);justify-content:center}
+.btn.primary:hover:not(:disabled){background:#2a9d9d}
+.btn.danger{background:#8e2a1c;border-color:var(--war2);justify-content:center}
+.btn.danger:hover:not(:disabled){background:#a8321f}
+.btn.full{grid-column:1/-1}
+.btn:focus-visible,.nb:focus-visible,#endTurn:focus-visible,.fcard:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.hint{font-size:13px;color:var(--muted);line-height:1.45}
+.hint b{color:var(--paper)}
+.odds{display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;border-radius:8px;background:var(--ink2);border:1px solid var(--line)}
+.odds b{font:800 18px/1 var(--display)}
+input[type=range]{width:100%;accent-color:var(--brass)}
+.amt{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.amt b{color:var(--paper);font-size:16px}
+
+/* ---------- modal ---------- */
+#modal{position:fixed;inset:0;z-index:30;background:rgba(5,10,22,.62);display:grid;place-items:center;padding:16px;backdrop-filter:blur(2px)}
+#modal .card{width:min(600px,100%);max-height:calc(100% - 32px);overflow:auto;background:var(--ink);border:1px solid var(--brass);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.card .in{padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.card h2{margin:0;font:800 26px/1.1 var(--display);color:var(--brass);text-wrap:balance}
+.card .lead{margin:0;font-size:15.5px;line-height:1.55;color:var(--paper);max-width:62ch}
+.card .eyebrow{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.choices{display:flex;flex-direction:column;gap:8px}
+.rows{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.row{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:9px 12px;background:var(--ink2);border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .nm{font-weight:700}
+.row .nm small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.row .ra{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.row .ra .btn{padding:5px 8px;font-size:12.5px}
+.row.sub{grid-template-columns:1fr;padding-top:0;border-top:0}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta b{color:var(--paper)}
+.logl{display:flex;flex-direction:column;gap:0;font-size:14px}
+.logl div{padding:7px 0;border-top:1px solid var(--ink3);display:grid;grid-template-columns:92px 1fr;gap:10px}
+.logl time{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;padding-top:2px}
+.logl .war{color:#ffb3a3}.logl .good{color:#a9e3b3}.logl .cap{color:var(--brass)}
+.mis{display:grid;grid-template-columns:22px 1fr auto;gap:10px;padding:10px 12px;background:var(--ink2);border-top:1px solid var(--line);align-items:start}
+.mis:first-child{border-top:0}
+.mis .ck{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:12px;margin-top:2px}
+.mis.done .ck{background:var(--tile);border-color:var(--tile2)}
+.mis.done .t{color:var(--muted);text-decoration:line-through}
+.mis .t{font-weight:700}
+.mis .d{font-size:13px;color:var(--muted)}
+.mis .r{font-size:12px;color:var(--brass);white-space:nowrap}
+.btl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:9px 12px;background:var(--ink2);border-top:1px solid var(--line);font-size:14px}
+.btl:first-child{border-top:0}
+.btl .res2{font-weight:800;font-family:var(--display)}
+.btl .meta{grid-column:1/-1}
+.foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.foot .btn{justify-content:center;min-width:120px}
+.ledger{display:grid;grid-template-columns:1fr auto;gap:6px 16px;font-variant-numeric:tabular-nums;font-size:14.5px}
+.ledger .tot{border-top:1px solid var(--line);padding-top:6px;font-weight:800}
+
+/* ---------- toasts ---------- */
+#toasts{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,calc(100% - 32px))}
+.toast{background:var(--ink);border:1px solid var(--line2);border-left:4px solid var(--brass);padding:9px 14px;border-radius:8px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.45);animation:tin .25s ease-out}
+.toast.war{border-left-color:var(--war2)}.toast.good{border-left-color:var(--ok)}
+@keyframes tin{from{transform:translateY(8px);opacity:.3}to{transform:none;opacity:1}}
+
+/* ---------- tooltip ---------- */
+#tip{position:fixed;z-index:8;pointer-events:none;background:rgba(13,24,48,.94);border:1px solid var(--line2);border-radius:6px;padding:5px 9px;font-size:13px;white-space:nowrap;transform:translate(14px,14px)}
+#tip b{font-family:var(--display)}
+
+/* ---------- zoom ---------- */
+#zoom{position:fixed;z-index:8;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:4px}
+#zoom button{width:38px;height:38px;border-radius:8px;background:var(--ink);border:1px solid var(--line2);font:700 20px/1 var(--body);cursor:pointer}
+#zoom button:hover{background:var(--ink3)}
+
+/* ---------- start screen ---------- */
+#start{position:fixed;inset:0;z-index:20;display:grid;grid-template-columns:minmax(0,470px) 1fr;pointer-events:none}
+#start .side{pointer-events:auto;background:linear-gradient(90deg,rgba(13,24,48,.98) 80%,rgba(13,24,48,.9));border-right:1px solid var(--brass);display:flex;flex-direction:column;min-height:0;box-shadow:12px 0 40px rgba(0,0,0,.4)}
+.hero{padding:calc(26px + env(safe-area-inset-top,0px)) 24px 16px}
+.hero .eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+.hero h1{margin:6px 0 0;font:800 clamp(44px,8vw,64px)/.9 var(--display);color:var(--brass);letter-spacing:.01em}
+.hero h1 span{display:block;font-size:.42em;color:var(--paper);letter-spacing:.2em;margin-top:8px}
+.hero p{margin:12px 0 0;font-size:15px;line-height:1.55;color:var(--paper2);max-width:52ch}
+.flist{flex:1;min-height:0;overflow:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:14px}
+.fgroup h4{margin:0 0 6px 8px;font:700 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fcard{display:flex;gap:9px;align-items:center;text-align:left;background:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;min-width:0}
+.fcard:hover{border-color:var(--line2)}
+.fcard.on{border-color:var(--brass);background:#1d2f52;box-shadow:inset 0 0 0 1px var(--brass)}
+.fcard .nm{font-weight:700;font-size:14px;line-height:1.15;overflow:hidden;text-overflow:ellipsis}
+.fcard .nm small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.pick{border-top:1px solid var(--line);padding:14px 20px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;background:var(--ink)}
+.pick .ph h2{font-size:24px}
+.pick p{margin:0;font-size:14px;line-height:1.5;color:var(--paper2)}
+.pick .row2{display:flex;gap:8px}
+.pick .row2 .btn{flex:1;justify-content:center;padding:11px}
+#loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font:700 22px var(--display);color:var(--brass)}
+#loading small{display:block;font:500 13px var(--body);color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.1em}
+
+@media (max-width:1100px){
+  nav.tabs .lbl{display:none}
+  .brand small{display:none}
+}
+@media (max-width:760px){
+  #top{flex-wrap:wrap;gap:6px 10px;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px}
+  .brand{font-size:17px}
+  .res{order:5;flex-basis:100%}
+  .stat{min-width:0;padding:0 8px}
+  .stat b{font-size:15px}
+  .date{margin-left:auto}
+  nav.tabs{order:4}
+  #endTurn{padding:8px 12px;font-size:14px}
+  #panel{left:8px;right:8px;width:auto;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:52%}
+  #zoom{display:none}
+  #start{grid-template-columns:1fr;grid-template-rows:1fr}
+  #start .side{border-right:0}
+  .hero{padding-bottom:10px}
+  .hero p{display:none}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .grid4 b{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="map" aria-label="Strateji haritası"></canvas>
+
+<header id="top" hidden>
+  <div class="brand">Kızıl Elma<small>1451 · Rumeli ve Anadolu</small></div>
+  <button class="facbtn" id="facBtn" data-act="state" title="Devlet defteri"><span class="shield" id="pShield"></span><b id="pName"></b></button>
+  <div class="res">
+    <div class="stat"><label>Hazine</label><b><span id="gold">0</span><small id="goldd"></small></b></div>
+    <div class="stat"><label>İnsan gücü</label><b id="mp">0</b></div>
+    <div class="stat"><label>Ordu</label><b id="army">0</b></div>
+    <div class="stat"><label>Eyalet</label><b id="provs">0</b></div>
+    <div class="stat"><label>Savaş</label><b id="wars">0</b></div>
+  </div>
+  <nav class="tabs">
+    <button class="nb" data-act="diplo">⚖<span class="lbl"> Diplomasi</span></button>
+    <button class="nb" data-act="missions">✦<span class="lbl"> Hedefler</span></button>
+    <button class="nb" data-act="chron">❧<span class="lbl"> Vakayiname</span></button>
+    <button class="nb" data-act="menu">☰</button>
+  </nav>
+  <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
+  <button id="endTurn" data-act="end">Turu Bitir</button>
+</header>
+
+<aside id="panel" hidden><div class="band"></div><div class="in" id="panelIn"></div></aside>
+<div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır">+</button><button data-act="zout" aria-label="Uzaklaştır">−</button><button data-act="fit" aria-label="Haritayı sığdır" style="font-size:15px">⤢</button></div>
+<div id="tip" hidden></div>
+<div id="toasts"></div>
+<div id="modal" hidden><div class="card" role="dialog" aria-modal="true"></div></div>
+
+<div id="start" hidden>
+  <div class="side">
+    <div class="hero">
+      <div class="eyebrow">Büyük strateji · Sıra tabanlı</div>
+      <h1>Kızıl Elma<span>MİLÂDÎ 1451</span></h1>
+      <p>Genç bir sultan tahta çıktı, Konstantiniyye surları hâlâ ayakta. Bir devlet seç, ordunu topla, eyalet eyalet genişle. 1531 yılına kadar tarihin akışını değiştir.</p>
+    </div>
+    <div class="flist" id="flist"></div>
+    <div class="pick" id="pick"></div>
+  </div>
+</div>
+
+<div id="loading">Harita çiziliyor…<small>Sınırlar, nehirler ve dağlar hazırlanıyor</small></div>
+
+<script>
+(()=>{
+'use strict';
+/* =====================================================================
+   GEOGRAPHY
+   ===================================================================== */
+const LON0=12,LON1=48,LAT0=28.5,LAT1=49;
+const COSL=Math.cos(39*Math.PI/180);
+const W=1500;
+const K=W/((LON1-LON0)*COSL);
+const H=Math.round((LAT1-LAT0)*K);
+const P=(lon,lat)=>[(lon-LON0)*COSL*K,(LAT1-lat)*K];
+
+// Sea polygons (lon,lat). Land is everything else.
+const SEAS=[
+ // Mediterranean with Adriatic, Ionian, Aegean, Marmara and part of the Tyrrhenian
+ [[12.2,45.55],[12.6,45.6],[13.1,45.72],[13.75,45.68],[13.55,45.3],[13.6,45.0],[13.9,44.8],[14.1,45.1],[14.4,45.32],[14.9,45.05],[15.2,44.5],[15.25,44.1],[15.9,43.62],[16.45,43.48],[17.1,43.2],[17.45,43.0],[18.1,42.62],[18.55,42.4],[18.9,42.25],[19.1,41.95],[19.5,41.75],[19.45,41.3],[19.35,40.85],[19.45,40.45],[19.8,40.1],[20.1,39.65],[20.3,39.35],[20.7,39.05],[20.95,38.8],[21.1,38.45],[21.35,38.2],[21.1,37.85],[21.3,37.6],[21.6,37.2],[21.7,36.8],[22.1,36.85],[22.4,36.4],[22.6,36.8],[22.8,36.5],[23.15,36.45],[23.05,36.9],[22.75,37.45],[23.1,37.5],[23.4,37.35],[23.2,37.75],[23.6,37.95],[24.0,37.65],[24.05,38.0],[23.7,38.35],[23.2,38.75],[22.8,38.85],[23.0,39.05],[22.95,39.35],[23.25,39.15],[23.3,39.4],[22.9,39.7],[22.6,40.05],[22.6,40.35],[22.95,40.6],[23.25,40.3],[23.7,40.05],[23.85,40.35],[24.35,40.15],[24.1,40.5],[24.0,40.75],[24.4,40.92],[25.0,40.95],[25.6,40.9],[25.95,40.8],[26.05,40.7],[26.6,40.6],[26.2,40.35],[26.2,40.05],[26.4,40.22],[26.68,40.42],[27.2,40.65],[27.5,40.95],[28.2,41.05],[28.6,41.0],[28.98,41.02],[29.05,40.97],[29.3,40.82],[29.9,40.75],[29.4,40.68],[29.05,40.45],[28.85,40.38],[28.0,40.38],[27.7,40.5],[27.3,40.4],[26.7,40.36],[26.4,40.12],[26.15,39.98],[26.1,39.5],[26.5,39.52],[26.95,39.55],[26.7,39.3],[26.85,39.0],[26.75,38.65],[27.0,38.45],[26.55,38.4],[26.3,38.3],[26.6,38.1],[27.25,37.9],[27.2,37.45],[27.4,37.05],[28.2,37.05],[27.6,36.9],[27.4,36.68],[28.1,36.75],[28.3,36.8],[28.9,36.65],[29.3,36.25],[29.7,36.15],[30.2,36.3],[30.55,36.55],[30.7,36.85],[31.3,36.8],[32.0,36.52],[32.6,36.1],[32.9,36.05],[33.5,36.15],[34.0,36.3],[34.6,36.78],[35.2,36.65],[35.6,36.58],[36.15,36.62],[35.9,36.2],[35.8,35.6],[35.9,35.0],[35.85,34.45],[35.6,34.1],[35.45,33.85],[35.2,33.3],[35.05,32.85],[34.9,32.4],[34.7,31.9],[34.45,31.52],[34.2,31.3],[33.8,31.12],[33.1,31.1],[32.3,31.25],[31.9,31.5],[31.5,31.55],[31.0,31.55],[30.4,31.45],[29.9,31.2],[29.4,30.95],[28.9,30.85],[28.0,31.1],[27.25,31.35],[26.2,31.55],[25.15,31.6],[24.6,31.95],[23.95,32.1],[23.1,32.6],[22.6,32.8],[21.7,32.9],[20.8,32.7],[20.05,32.15],[19.9,31.6],[19.6,30.6],[19.0,30.3],[18.4,30.55],[17.6,30.95],[16.6,31.2],[15.8,31.6],[15.2,32.3],[14.5,32.55],[13.6,32.8],[13.0,32.87],[11.5,32.9],[11.5,38.0],[11.5,41.8],[12.2,41.7],[12.9,41.3],[13.6,41.25],[14.0,40.95],[14.3,40.8],[14.5,40.6],[14.9,40.5],[15.3,40.05],[15.7,39.95],[15.9,39.55],[16.1,39.0],[15.85,38.65],[15.65,38.25],[15.63,38.0],[16.05,37.93],[16.25,38.3],[16.6,38.45],[17.1,38.9],[17.15,39.4],[16.6,39.7],[16.85,40.35],[17.3,40.45],[17.9,40.3],[18.35,39.8],[18.5,40.15],[18.0,40.65],[17.3,40.95],[16.9,41.15],[16.2,41.4],[15.95,41.65],[16.2,41.9],[15.8,41.95],[15.2,41.95],[14.7,42.1],[14.2,42.45],[13.9,42.85],[13.6,43.55],[13.2,43.75],[12.6,44.05],[12.35,44.4],[12.25,44.9],[12.35,45.3]],
+ // Black Sea and Sea of Azov
+ [[29.05,41.2],[29.6,41.18],[30.3,41.2],[31.4,41.3],[32.3,41.75],[33.3,42.0],[34.2,41.95],[34.9,42.05],[35.2,42.05],[35.5,41.65],[36.1,41.7],[36.4,41.3],[37.0,41.1],[37.6,41.05],[38.4,40.95],[39.7,41.0],[40.4,41.0],[41.1,41.3],[41.6,41.55],[41.65,42.15],[41.5,42.65],[41.0,43.0],[40.2,43.3],[39.7,43.5],[38.9,44.1],[38.2,44.4],[37.7,44.7],[37.3,44.95],[36.85,45.25],[37.4,45.35],[37.9,45.6],[38.2,46.05],[38.3,46.7],[38.9,47.15],[39.25,47.2],[38.3,47.12],[37.5,47.05],[36.8,46.75],[35.9,46.6],[35.2,46.35],[34.85,46.15],[35.3,45.65],[35.5,45.35],[36.1,45.45],[36.45,45.35],[36.5,45.15],[36.0,45.05],[35.4,45.0],[34.8,44.8],[34.3,44.5],[33.8,44.4],[33.4,44.55],[33.55,44.9],[33.3,45.2],[32.5,45.35],[32.8,45.7],[33.6,46.05],[32.8,46.1],[32.1,46.4],[31.5,46.6],[31.0,46.6],[30.7,46.45],[30.4,46.05],[29.9,45.6],[29.65,45.2],[29.6,44.8],[29.0,44.5],[28.65,44.15],[28.5,43.6],[28.1,43.4],[27.9,43.0],[27.5,42.5],[27.95,42.1],[28.0,41.65],[28.6,41.35]],
+ // Caspian edge
+ [[48.3,42.0],[47.5,42.98],[47.6,43.5],[47.3,44.0],[46.8,44.6],[47.1,45.3],[47.7,45.9],[48.5,46.3],[49,46.3],[49,41.5],[48.6,41.6]],
+ // Gulf of Suez, Gulf of Aqaba, Persian Gulf corner
+ [[32.55,30.0],[32.35,29.6],[32.6,29.0],[32.9,28.3],[33.3,28.3],[33.0,29.0],[32.7,29.6]],
+ [[34.9,29.55],[35.02,29.5],[34.8,28.3],[34.55,28.3]],
+ [[48.0,30.1],[47.95,29.4],[48.3,28.3],[49,28.3],[49,30.2],[48.6,30.0]],
+ // Lakes
+ [[42.3,38.85],[42.8,39.0],[43.3,38.75],[43.25,38.45],[42.8,38.35],[42.4,38.5]],
+ [[45.2,38.2],[45.55,38.15],[45.85,37.6],[45.6,37.15],[45.35,37.4],[45.2,37.85]],
+ [[33.2,39.05],[33.55,38.95],[33.5,38.65],[33.28,38.7]],
+ [[35.45,31.78],[35.58,31.78],[35.58,31.1],[35.42,31.1]],
+ [[17.2,46.75],[17.6,46.97],[18.12,47.07],[18.05,46.97],[17.45,46.73]]
+];
+const ISLES=[
+ [[15.55,38.27],[15.25,37.9],[15.1,37.5],[15.3,37.05],[15.1,36.68],[14.5,36.78],[14.25,37.06],[13.6,37.28],[12.6,37.65],[12.45,38.0],[12.75,38.18],[13.35,38.2],[14.0,38.04],[14.6,38.05],[15.25,38.26]],
+ [[23.55,35.3],[23.6,35.6],[24.1,35.55],[24.47,35.37],[25.13,35.35],[25.75,35.28],[26.3,35.3],[26.2,35.0],[25.73,35.0],[24.8,34.93],[24.5,35.15],[23.6,35.22]],
+ [[32.3,35.08],[32.9,35.18],[33.3,35.35],[34.0,35.45],[34.6,35.7],[33.95,35.2],[33.95,35.05],[33.63,34.9],[33.05,34.65],[32.6,34.72],[32.4,34.78]],
+ [[27.72,36.2],[28.0,36.45],[28.25,36.42],[28.2,36.1],[28.05,35.9],[27.75,35.95]],
+ [[25.85,39.28],[26.2,39.38],[26.6,39.25],[26.45,38.98],[26.0,39.05]],
+ [[25.85,38.5],[26.15,38.58],[26.15,38.25],[25.95,38.2]],
+ [[19.65,39.78],[19.95,39.8],[20.1,39.5],[19.85,39.45]],
+ [[23.3,39.02],[23.6,38.8],[24.15,38.65],[24.25,38.4],[24.6,38.0],[24.45,37.98],[24.0,38.25],[23.6,38.45],[23.2,38.8]]
+];
+const RIVERS=[
+ [[13.46,48.57],[14.29,48.31],[15.3,48.23],[16.37,48.21],[17.1,48.12],[18.1,47.75],[18.75,47.8],[19.1,47.75],[19.05,47.5],[18.95,46.9],[18.68,45.99],[19.0,45.35],[19.85,45.25],[20.45,44.82],[20.93,44.66],[22.4,44.72],[22.65,44.62],[22.87,44.0],[23.25,43.83],[24.0,43.72],[24.9,43.7],[25.35,43.62],[25.95,43.85],[27.26,44.12],[27.95,44.6],[27.97,45.27],[28.05,45.43],[28.8,45.17],[29.65,45.2]],
+ [[14.5,46.05],[15.97,45.8],[17.0,45.3],[18.0,45.15],[19.0,44.95],[20.45,44.82]],
+ [[13.8,46.7],[15.64,46.55],[16.8,46.2],[18.0,45.8],[18.9,45.55]],
+ [[23.9,48.0],[22.4,48.3],[21.4,48.12],[20.8,47.6],[20.2,47.18],[20.15,46.25],[20.2,45.5],[20.3,45.1]],
+ [[24.5,49.0],[26.0,48.6],[27.5,48.2],[28.8,47.4],[29.5,46.8],[30.1,46.4]],
+ [[33.4,49.0],[35.0,48.45],[35.15,47.85],[34.0,47.3],[32.6,46.63],[31.9,46.55]],
+ [[41.2,49.0],[42.2,48.4],[43.0,48.1],[42.2,47.6],[41.0,47.45],[40.2,47.4],[39.25,47.2]],
+ [[42.0,43.8],[41.2,44.9],[40.0,45.1],[38.9,45.05],[37.9,45.3],[37.5,45.3]],
+ [[38.2,39.8],[37.0,39.75],[35.5,38.95],[34.8,39.1],[34.0,39.4],[33.6,39.9],[34.1,40.6],[35.0,41.3],[35.95,41.7]],
+ [[31.2,38.8],[31.5,39.4],[31.0,40.0],[30.4,40.2],[30.4,40.75],[30.6,41.15]],
+ [[37.8,40.2],[36.55,40.31],[35.9,40.65],[36.3,40.95],[36.7,41.35]],
+ [[39.5,39.75],[38.75,38.8],[38.3,37.9],[37.95,37.03],[38.0,36.8],[39.0,35.95],[40.15,35.33],[40.9,34.45],[41.95,34.4],[42.8,33.65],[43.8,33.35],[44.4,32.5],[45.2,31.7],[46.25,31.05],[47.4,30.95],[47.8,30.5],[48.1,30.1]],
+ [[39.9,38.4],[40.22,37.91],[41.4,37.6],[42.2,37.3],[43.13,36.34],[43.4,35.4],[43.68,34.6],[43.87,34.2],[44.4,33.3],[45.8,32.5],[47.15,31.85],[47.43,31.0]],
+ [[41.0,40.0],[42.5,40.1],[43.6,40.1],[44.8,39.7],[45.6,39.0],[46.5,39.4],[47.5,39.7],[48.0,39.9]],
+ [[42.9,41.6],[44.0,41.9],[45.0,41.4],[46.5,41.0],[47.5,40.3],[48.0,39.95]],
+ [[30.8,28.5],[31.1,29.1],[31.25,30.05],[31.1,30.4]],[[31.1,30.4],[30.7,30.9],[30.4,31.45]],[[31.1,30.4],[31.4,30.9],[31.8,31.5]],
+ [[36.4,34.1],[36.7,34.7],[36.75,35.3],[36.4,35.9],[36.16,36.2],[35.95,36.05]],
+ [[35.6,33.2],[35.57,32.7],[35.55,31.78]],
+ [[23.6,42.3],[24.75,42.15],[25.9,42.0],[26.55,41.68],[26.35,41.2],[26.05,40.75]],
+ [[20.9,41.8],[21.43,42.0],[21.8,41.6],[22.3,41.2],[22.7,40.65]],
+ [[12.9,43.1],[12.4,42.4],[12.25,41.75]],
+ [[21.9,43.3],[21.35,43.6],[21.1,44.1],[21.0,44.6]],
+ [[25.2,48.3],[26.8,48.1],[27.5,47.6],[28.1,46.9],[28.2,45.45]],
+ [[25.9,48.0],[26.4,47.1],[27.0,46.2],[27.6,45.45]]
+];
+const MOUNTAINS=[
+ [[12.0,46.6],[13.5,46.6],[14.5,47.2],[15.8,47.6]],
+ [[14.5,45.5],[15.8,44.5],[17.0,43.9],[18.5,43.0],[19.8,42.5],[20.5,41.8]],
+ [[20.8,41.0],[21.2,40.0],[21.6,39.0],[22.0,38.6]],
+ [[22.5,43.5],[23.5,42.9],[24.8,42.7],[26.0,42.7],[27.2,42.8]],
+ [[23.5,41.8],[24.5,41.6],[25.5,41.5]],
+ [[18.8,49.0],[20.0,49.1],[21.5,49.0],[22.8,48.8],[24.0,48.2],[25.2,47.6],[25.8,46.5],[26.2,45.6],[25.3,45.4],[24.0,45.4],[22.8,45.3],[22.2,44.8]],
+ [[22.3,46.9],[23.0,46.3],[22.8,45.7]],
+ [[12.3,43.8],[13.2,42.8],[14.2,41.8],[15.5,40.7],[16.2,39.5]],
+ [[31.0,40.9],[33.0,41.0],[35.5,40.8],[38.0,40.5],[40.5,40.6],[42.0,41.2]],
+ [[29.5,37.0],[31.0,37.2],[32.5,36.9],[34.0,37.1],[35.5,37.4],[36.8,37.8],[38.5,38.2],[40.5,38.5],[42.5,38.3]],
+ [[37.5,44.8],[39.5,43.8],[41.5,43.3],[43.5,42.8],[45.5,42.3],[47.5,41.7]],
+ [[44.0,37.5],[45.5,36.2],[46.5,35.0],[47.5,33.8],[48.0,33.0]],
+ [[35.9,34.6],[35.8,33.8],[35.6,33.2]],
+ [[41.0,39.6],[42.5,39.8],[43.8,39.7]],
+ [[44.2,40.8],[45.5,40.0],[46.5,39.2]],
+ [[29.2,40.05],[30.0,39.8]]
+];
+const REGION_LABELS=[
+ ['KARADENİZ',34.4,43.35,22,'sea'],['AKDENİZ',25.6,33.6,26,'sea'],['ADALAR DENİZİ',25.2,37.3,12,'sea'],
+ ['ADRİYATİK',15.9,42.55,12,'sea'],['İYON DENİZİ',18.4,37.8,13,'sea'],['AZAK',37.2,46.35,10,'sea'],
+ ['Deşt-i Kıpçak',44.2,46.8,17,'land'],['Sahrâ-yı Libya',24.4,30.2,18,'land'],['Şam Çölü',39.6,32.3,16,'land'],['Vahşi Topraklar',33.2,48.2,13,'land']
+];
+
+/* =====================================================================
+   FACTIONS AND PROVINCES (1451)
+   ===================================================================== */
+const FAC={
+ OSM:{n:'Osmanlı Devleti',s:'Osmanlı',c:'#b8352a',r:'II. Mehmed',rel:'İslam',cap:'edirne',m:1.3,dif:1,d:'Genç Sultan II. Mehmed tahta çıktı. Rumeli ile Anadolu arasında tek bir engel kaldı: Konstantiniyye surları. Karaman batıdan fırsat kolluyor, Macarlar Tuna boyunda bekliyor.'},
+ BYZ:{n:'Bizans İmparatorluğu',s:'Bizans',c:'#6a2c7a',r:'XI. Konstantinos',rel:'Ortodoks',cap:'istanbul',m:1,dif:3,d:'Bin yıllık imparatorluktan geriye bir şehir ve Mora kaldı. Theodosius surlarını tut, Venedik ile ittifakını koru ve kaybedilen toprakları geri al.'},
+ VEN:{n:'Venedik Cumhuriyeti',s:'Venedik',c:'#2e7f73',r:'Francesco Foscari',rel:'Katolik',cap:'venedik',m:1,dif:2,d:'Adriyatik ve Ege\'nin tüccar cumhuriyeti. Kaleleri ve adaları zengin ama dağınık. Deniz yolları seni Girit\'ten Mora\'ya taşır.'},
+ HUN:{n:'Macar Krallığı',s:'Macar',c:'#7d8f3c',r:'Hunyadi Yanoş',rel:'Katolik',cap:'budin',m:1.25,dif:1,d:'Varna yenilgisinin yarası taze. Hunyadi Yanoş Tuna boyunda Hıristiyan dünyasının kalkanı. Belgrad kalesi ülkenin kapısı.'},
+ SRB:{n:'Sırp Despotluğu',s:'Sırbistan',c:'#a4505f',r:'Đurađ Branković',rel:'Ortodoks',cap:'semendire',m:1,dif:3,d:'Gümüş madenleriyle zengin ama iki büyük gücün arasında sıkışmış bir despotluk. Semendire kalesi son sığınak.'},
+ BOS:{n:'Bosna Krallığı',s:'Bosna',c:'#35598f',r:'Stjepan Tomaš',rel:'Katolik',cap:'yayce',m:1,dif:3,d:'Dağlık ve bölünmüş bir krallık. Macar desteği olmadan ayakta kalmak zor.'},
+ WAL:{n:'Eflak Voyvodalığı',s:'Eflak',c:'#5f8fb8',r:'II. Vladislav',rel:'Ortodoks',cap:'tergoviste',m:1,dif:2,d:'Tuna\'nın kuzeyinde, Macar ve Osmanlı arasında denge kuran bir voyvodalık.'},
+ MOL:{n:'Boğdan Voyvodalığı',s:'Boğdan',c:'#8a6440',r:'Alexăndrel',rel:'Ortodoks',cap:'sucava',m:1,dif:2,d:'Akkerman ve Kili limanları Karadeniz ticaretinin anahtarı. Kuzeyde Lehistan, doğuda bozkır.'},
+ ALB:{n:'Lezhë Birliği',s:'Arnavutluk',c:'#57504a',r:'İskender Bey',rel:'Katolik',cap:'kroya',m:1.2,dif:3,d:'İskender Bey dağlarda direniyor ve Osmanlı ile savaş hâlinde. Kroya düşmedikçe Arnavutluk yenilmez.'},
+ KRM:{n:'Kırım Hanlığı',s:'Kırım',c:'#78b0a8',r:'I. Hacı Giray',rel:'İslam',cap:'bahcesaray',m:1.1,dif:2,d:'Altın Orda\'dan yeni kopmuş genç bir hanlık. Büyük Orda ile savaştasın, Kefe\'deki Cenevizliler komşun.'},
+ GEN:{n:'Ceneviz Cumhuriyeti',s:'Ceneviz',c:'#9aa8bd',r:'Pietro Fregoso',rel:'Katolik',cap:'kefe',m:1,dif:3,d:'Kefe\'den Sakız\'a uzanan ticaret kolonileri. Kaleler güçlü ama topraklar birbirinden kopuk.'},
+ KAR:{n:'Karamanoğulları',s:'Karaman',c:'#4f7f45',r:'İbrahim Bey',rel:'İslam',cap:'konya',m:1.1,dif:2,d:'Selçuklu mirasının iddiacısı. Konya\'dan Osmanlı\'ya meydan okumak için Akkoyunlu ile ittifakın var.'},
+ CAN:{n:'Candaroğulları',s:'Candar',c:'#c08a45',r:'İsmail Bey',rel:'İslam',cap:'kastamonu',m:1,dif:3,d:'Kastamonu ve Sinop\'tan ibaret, bakır madenleriyle zengin küçük bir beylik.'},
+ DUL:{n:'Dulkadiroğulları',s:'Dulkadir',c:'#a69457',r:'Süleyman Bey',rel:'İslam',cap:'maras',m:1,dif:3,d:'Memlüklerin himayesinde, Toroslar\'da bir Türkmen beyliği.'},
+ MAM:{n:'Memlük Sultanlığı',s:'Memlük',c:'#dcb54f',r:'Seyfeddin Çakmak',rel:'İslam',cap:'kahire',m:1.2,dif:1,d:'Kahire\'den Halep\'e uzanan kadim sultanlık. Nil\'in bereketiyle zengin, kuzey sınırı Türkmen beylikleriyle çevrili.'},
+ AKK:{n:'Akkoyunlular',s:'Akkoyunlu',c:'#f1ece0',r:'Uzun Hasan',rel:'İslam',cap:'diyarbakir',m:1.1,dif:2,d:'Diyarbakır\'ın Ak Koyunlu Türkmenleri. Doğuda ezelî düşman Karakoyunlu, batıda yükselen Osmanlı.'},
+ KKY:{n:'Karakoyunlular',s:'Karakoyunlu',c:'#2e2b2a',r:'Cihan Şah',rel:'İslam',cap:'tebriz',m:1.1,dif:1,d:'Cihan Şah\'ın Tebriz\'den Bağdat\'a uzanan geniş ama gevşek devleti. Akkoyunlu ile savaştasın.'},
+ TRB:{n:'Trabzon İmparatorluğu',s:'Trabzon',c:'#c29ad0',r:'IV. Yuannis',rel:'Ortodoks',cap:'trabzon',m:1,dif:3,d:'Komnenos hanedanının son kalesi. Akkoyunlu ile akrabalık bağları var.'},
+ GEO:{n:'Gürcü Krallığı',s:'Gürcistan',c:'#d9826b',r:'VIII. Giorgi',rel:'Ortodoks',cap:'tiflis',m:1,dif:2,d:'Kafkasya\'nın dağlık krallığı. Karakoyunlu akınları sınırları zorluyor.'},
+ HAB:{n:'Avusturya Arşidüklüğü',s:'Avusturya',c:'#b9b2a4',r:'III. Friedrich',rel:'Katolik',cap:'viyana',m:1.1,dif:2,d:'Habsburg hanedanı Viyana\'dan Macar tacına göz dikmiş durumda.'},
+ POL:{n:'Lehistan-Litvanya',s:'Lehistan',c:'#b2466e',r:'IV. Kazimierz',rel:'Katolik',cap:'kamanice',m:1.1,dif:2,d:'Kuzeyin büyük birliğinin güney sınırları. Boğdan ile dost, Karadeniz\'e inmek istiyor.'},
+ GH:{n:'Büyük Orda',s:'Büyük Orda',c:'#8d6f2a',r:'Seyyid Ahmed',rel:'İslam',cap:'azak',m:1.1,dif:2,d:'Altın Orda\'nın dağılan mirası. Bozkırın atlıları Kırım\'ı geri istiyor.'},
+ ARA:{n:'Napoli Krallığı',s:'Napoli',c:'#d9772f',r:'V. Alfonso',rel:'Katolik',cap:'napoli',m:1.1,dif:2,d:'Aragonlu Alfonso Güney İtalya ve Sicilya\'yı birleştirdi. Otranto\'dan Arnavut kıyıları görünüyor.'},
+ PAP:{n:'Papalık Devleti',s:'Papalık',c:'#efe0a1',r:'V. Nikolaus',rel:'Katolik',cap:'roma',m:1,dif:2,d:'Roma\'nın efendisi. Haçlı seferi çağrıları sende başlar.'},
+ CYP:{n:'Kıbrıs Krallığı',s:'Kıbrıs',c:'#8fbf6a',r:'II. Jean',rel:'Katolik',cap:'kibris',m:1,dif:3,d:'Lüzinyan hanedanının ada krallığı. Magosa Cenevizlilerin elinde.'},
+ RHO:{n:'Rodos Şövalyeleri',s:'Rodos',c:'#6b1f2a',r:'Jean de Lastic',rel:'Katolik',cap:'rodos',m:1.3,dif:3,d:'Hospitalier şövalyelerinin kale adası. Sayıca az, surları çok güçlü.'},
+ HAF:{n:'Hafsîler',s:'Hafsî',c:'#a7b86a',r:'Ebû Amr Osman',rel:'İslam',cap:'trablusgarp',m:1,dif:3,d:'Tunus merkezli hanedanın doğu uç beyliği Trablusgarp.'},
+ SAF:{n:'Safevîler',s:'Safevî',c:'#1d7a52',r:'Şah İsmail',rel:'İslam',cap:'tebriz',m:1.2,dif:9,d:''}
+};
+const PROVS=[
+ // Osmanlı
+ ['edirne','Edirne',26.55,41.68,'OSM',7,2],['gelibolu','Gelibolu',26.67,40.41,'OSM',3,2],['tekfurdagi','Tekfurdağı',27.5,40.98,'OSM',3,0],
+ ['kirkkilise','Kırkkilise',27.22,41.73,'OSM',3,0],['filibe','Filibe',24.75,42.15,'OSM',5,1],['sofya','Sofya',23.32,42.7,'OSM',5,1],
+ ['tirnova','Tırnova',25.62,43.08,'OSM',4,1],['sumnu','Şumnu',26.93,43.27,'OSM',3,0],['varna','Varna',27.9,43.2,'OSM',4,1],
+ ['silistre','Silistre',27.26,44.12,'OSM',3,1],['dobruca','Dobruca',28.55,44.35,'OSM',2,0],['nigbolu','Niğbolu',24.9,43.7,'OSM',3,1],
+ ['vidin','Vidin',22.88,43.99,'OSM',3,2],['kostendil','Köstendil',22.69,42.28,'OSM',3,0],['uskup','Üsküp',21.43,42.0,'OSM',4,1],
+ ['selanik','Selanik',22.94,40.64,'OSM',6,2],['serez','Serez',23.55,41.09,'OSM',4,0],['drama','Drama',24.3,41.2,'OSM',2,0],
+ ['gumulcine','Gümülcine',25.4,41.12,'OSM',3,0],['manastir','Manastır',21.33,41.03,'OSM',3,0],['ohri','Ohri',20.8,41.12,'OSM',2,1],
+ ['avlonya','Avlonya',19.49,40.47,'OSM',3,1],['yanya','Yanya',20.85,39.67,'OSM',3,1],['tesalya','Tesalya',22.1,39.55,'OSM',4,0],
+ ['izdin','İzdin',22.43,38.9,'OSM',2,0],['atina','Atina',23.73,37.98,'OSM',4,1],['bursa','Bursa',29.06,40.19,'OSM',6,1],
+ ['izmit','İzmit',29.92,40.77,'OSM',3,0],['biga','Biga',26.9,40.05,'OSM',2,0],['karesi','Karesi',27.88,39.65,'OSM',3,0],
+ ['saruhan','Saruhan',27.43,38.61,'OSM',3,0],['izmir','İzmir',27.14,38.42,'OSM',4,1],['aydin','Aydın',27.84,37.85,'OSM',3,0],
+ ['mentese','Menteşe',28.36,37.21,'OSM',2,0],['teke','Teke',30.71,36.89,'OSM',3,1],['hamid','Hamid',30.55,37.76,'OSM',2,0],
+ ['kutahya','Kütahya',29.98,39.42,'OSM',3,1],['karahisar','Karahisar',30.54,38.76,'OSM',3,0],['sultanonu','Sultanönü',30.52,39.78,'OSM',2,0],
+ ['bolu','Bolu',31.6,40.73,'OSM',2,0],['ankara','Ankara',32.86,39.93,'OSM',4,1],['cankiri','Çankırı',33.6,40.6,'OSM',2,0],
+ ['corum','Çorum',34.95,40.55,'OSM',2,0],['amasya','Amasya',35.83,40.65,'OSM',4,1],['canik','Canik',36.33,41.29,'OSM',2,0],
+ ['tokat','Tokat',36.55,40.31,'OSM',3,0],['sivas','Sivas',37.02,39.75,'OSM',3,1],['bozok','Bozok',34.8,39.8,'OSM',2,0],
+ ['kirsehir','Kırşehir',34.16,39.15,'OSM',2,0],
+ // Bizans
+ ['istanbul','Konstantiniyye',28.97,41.01,'BYZ',9,4],['silivri','Silivri',28.25,41.07,'BYZ',1,1],['misivri','Misivri',27.73,42.66,'BYZ',1,1],
+ ['mistra','Mistra',22.37,37.07,'BYZ',3,2],['balyabadra','Balyabadra',21.73,38.25,'BYZ',2,1],['korint','Korint',22.93,37.94,'BYZ',2,2],
+ // Candar, Ceneviz
+ ['kastamonu','Kastamonu',33.78,41.38,'CAN',3,1],['sinop','Sinop',35.15,42.02,'CAN',3,1],
+ ['kefe','Kefe',35.38,45.03,'GEN',4,2],['amasra','Amasra',32.38,41.75,'GEN',1,1],['sakiz','Sakız',26.0,38.37,'GEN',2,1],
+ ['midilli','Midilli',26.3,39.15,'GEN',2,1],['magosa','Magosa',33.94,35.12,'GEN',2,2],
+ // Karaman, Dulkadir
+ ['konya','Konya',32.49,37.87,'KAR',5,2],['karaman','Larende',33.22,37.18,'KAR',3,1],['aksaray','Aksaray',34.03,38.37,'KAR',2,0],
+ ['nigde','Niğde',34.68,37.97,'KAR',2,1],['kayseri','Kayseri',35.49,38.72,'KAR',4,1],['beysehir','Beyşehir',31.72,37.68,'KAR',2,0],
+ ['alaiye','Alaiye',32.0,36.55,'KAR',2,1],['icel','İçel',33.93,36.38,'KAR',2,1],
+ ['maras','Maraş',36.94,37.58,'DUL',3,1],['elbistan','Elbistan',37.19,38.2,'DUL',2,0],['divrigi','Divriği',38.12,39.37,'DUL',1,1],
+ // Memlük
+ ['kahire','Kahire',31.24,30.04,'MAM',9,2],['iskenderiye','İskenderiye',29.92,31.2,'MAM',6,2],['dimyat','Dimyat',31.81,31.42,'MAM',4,1],
+ ['behire','Buhayra',30.47,30.93,'MAM',3,0],['sarkiye','Şarkiye',31.5,30.6,'MAM',3,0],['feyyum','Feyyum',30.84,29.31,'MAM',3,0],
+ ['suveys','Süveyş',32.55,29.97,'MAM',1,0,'d'],['aris','Ariş',33.8,31.13,'MAM',1,0,'d'],['gazze','Gazze',34.46,31.5,'MAM',3,0],
+ ['kudus','Kudüs',35.22,31.78,'MAM',4,1],['kerek','Kerek',35.7,31.18,'MAM',1,1,'d'],['safed','Safed',35.3,32.95,'MAM',3,1],
+ ['havran','Havran',36.48,32.52,'MAM',2,0],['sam','Şam',36.29,33.51,'MAM',7,2],['beyrut','Beyrut',35.5,33.89,'MAM',3,0],
+ ['trablus','Trablusşam',35.84,34.44,'MAM',3,1],['humus','Humus',36.72,34.73,'MAM',3,0],['hama','Hama',36.75,35.13,'MAM',3,0],
+ ['halep','Halep',37.16,36.2,'MAM',6,2],['antakya','Antakya',36.16,36.2,'MAM',3,1],['ayntab','Ayıntab',37.38,37.06,'MAM',2,0],
+ ['adana','Adana',35.32,37.0,'MAM',4,1],['malatya','Malatya',38.31,38.35,'MAM',3,1],['rakka','Rakka',39.01,35.95,'MAM',2,0],
+ ['rahbe','Rahbe',40.14,35.33,'MAM',1,0,'d'],['tedmur','Tedmür',38.27,34.55,'MAM',1,0,'d'],['barka','Bingazi',20.07,32.12,'MAM',2,0],
+ ['derne','Derne',22.64,32.77,'MAM',1,0],['tobruk','Tobruk',23.95,32.07,'MAM',1,0,'d'],['matruh','Matruh',27.25,31.35,'MAM',1,0,'d'],
+ // Akkoyunlu
+ ['diyarbakir','Diyarbakır',40.22,37.91,'AKK',5,2],['mardin','Mardin',40.74,37.31,'AKK',3,2],['urfa','Ruha',38.79,37.16,'AKK',3,1],
+ ['harput','Harput',39.22,38.7,'AKK',2,1],['erzincan','Erzincan',39.49,39.75,'AKK',2,0],['bayburt','Bayburt',40.23,40.26,'AKK',1,1],
+ ['hasankeyf','Hasankeyf',41.41,37.71,'AKK',2,0],['cizre','Cizre',42.19,37.33,'AKK',2,0],['sebinkarahisar','Şebinkarahisar',38.42,40.29,'AKK',1,1],
+ // Karakoyunlu
+ ['tebriz','Tebriz',46.29,38.08,'KKY',7,2],['meraga','Merağa',46.24,37.39,'KKY',2,0],['urmiye','Urmiye',45.07,37.55,'KKY',2,0],
+ ['hoy','Hoy',44.95,38.55,'KKY',2,0],['nahcivan','Nahçıvan',45.41,39.21,'KKY',2,0],['revan','Revan',44.51,40.18,'KKY',3,1],
+ ['karabag','Karabağ',46.75,39.8,'KKY',2,0],['gence','Gence',46.36,40.68,'KKY',2,0],['sirvan','Şirvan',47.6,40.9,'KKY',3,1],
+ ['derbent','Derbent',47.9,42.2,'KKY',2,2],['kars','Kars',43.1,40.6,'KKY',2,1],['erzurum','Erzurum',41.27,39.9,'KKY',3,1],
+ ['van','Van',43.38,38.5,'KKY',3,1],['bitlis','Bitlis',42.11,38.4,'KKY',2,1],['musul','Musul',43.13,36.34,'KKY',4,1],
+ ['erbil','Erbil',44.01,36.19,'KKY',2,0],['kerkuk','Kerkük',44.39,35.47,'KKY',2,0],['sehrizor','Şehrizor',45.5,35.55,'KKY',2,0],
+ ['tikrit','Tikrit',43.68,34.6,'KKY',1,0],['bagdat','Bağdat',44.36,33.31,'KKY',6,2],['hille','Hille',44.42,32.48,'KKY',3,0],
+ ['vasit','Vâsıt',45.8,32.5,'KKY',2,0],['basra','Basra',47.78,30.51,'KKY',3,1],['ane','Âne',41.95,34.37,'KKY',1,0,'d'],
+ ['erdelan','Erdelan',47.0,35.31,'KKY',2,0],['kirmansah','Kirmanşah',47.07,34.31,'KKY',2,0],
+ // Trabzon, Gürcü
+ ['trabzon','Trabzon',39.72,41.0,'TRB',4,2],['kerasunt','Kerasunt',38.39,40.91,'TRB',2,1],
+ ['tiflis','Tiflis',44.79,41.72,'GEO',4,1],['kutais','Kutais',42.7,42.27,'GEO',3,1],['ahiska','Ahıska',42.98,41.64,'GEO',2,1],
+ ['abhazya','Abhazya',41.0,43.0,'GEO',2,0],['kaheti','Kaheti',45.9,41.9,'GEO',2,0],['guriya','Guriya',41.9,41.95,'GEO',1,0],
+ // Büyük Orda, Kırım
+ ['azak','Azak',39.42,47.1,'GH',2,1],['kuban','Kuban',38.97,45.04,'GH',2,0],['kipcak','Kıpçak',35.5,47.6,'GH',1,0],
+ ['don','Don Boyu',41.9,47.9,'GH',1,0],['manic','Manıç',43.2,46.3,'GH',1,0],['kabartay','Kabartay',43.6,43.5,'GH',1,0],
+ ['cerkes','Çerkes',39.9,44.3,'GH',1,0],['dagistan','Dağıstan',46.9,42.8,'GH',1,0],['terek','Terek',45.6,44.2,'GH',1,0],
+ ['bahcesaray','Bahçesaray',33.86,44.75,'KRM',3,1],['or','Or Kapı',33.7,46.15,'KRM',2,1],['gozleve','Gözleve',33.36,45.2,'KRM',2,0],
+ // Lehistan, Boğdan, Eflak
+ ['kamanice','Kamaniçe',26.58,48.68,'POL',3,2],['braslav','Braslav',28.93,48.82,'POL',2,1],['umani','Umani',30.4,48.6,'POL',1,0],
+ ['ozi','Özi',31.55,46.62,'POL',1,1],['halic','Haliç',24.7,48.95,'POL',2,1],
+ ['sucava','Suçava',26.25,47.65,'MOL',4,2],['yas','Yaş',27.6,47.16,'MOL',3,0],['akkerman','Akkerman',30.35,46.2,'MOL',3,2],
+ ['kili','Kili',29.26,45.43,'MOL',2,1],['bender','Bender',29.47,46.83,'MOL',1,1],['bakau','Bakau',26.9,46.57,'MOL',2,0],
+ ['tergoviste','Tergovişte',25.46,44.93,'WAL',4,1],['kraiova','Kraiova',23.8,44.32,'WAL',3,0],['ibrail','İbrail',27.96,45.27,'WAL',2,1],
+ ['buzau','Buzău',26.82,45.15,'WAL',2,0],
+ // Macar
+ ['budin','Budin',19.04,47.5,'HUN',8,2],['istolni','İstolni Belgrad',18.41,47.19,'HUN',3,1],['yanik','Yanık',17.63,47.68,'HUN',3,1],
+ ['pojon','Pojon',17.1,48.15,'HUN',4,1],['uyvar','Uyvar',18.16,47.99,'HUN',2,1],['egri','Eğri',20.38,47.9,'HUN',3,1],
+ ['kassa','Kassa',21.26,48.72,'HUN',3,1],['segedin','Segedin',20.15,46.25,'HUN',4,0],['solnok','Solnok',20.2,47.18,'HUN',2,0],
+ ['pecuy','Peçuy',18.23,46.07,'HUN',3,0],['kanije','Kanije',16.99,46.46,'HUN',2,1],['zagrep','Zağrep',15.97,45.8,'HUN',3,1],
+ ['bihac','Bihaç',15.87,44.81,'HUN',2,1],['pojega','Pojega',17.68,45.33,'HUN',3,0],['belgrad','Belgrad',20.46,44.82,'HUN',4,3],
+ ['temesvar','Temeşvar',21.23,45.75,'HUN',4,2],['severin','Severin',22.66,44.63,'HUN',2,1],['varad','Varad',21.93,47.06,'HUN',3,1],
+ ['kolojvar','Kolojvar',23.6,46.77,'HUN',4,1],['sibin','Sibin',24.15,45.8,'HUN',3,2],['brasov','Braşov',25.6,45.65,'HUN',3,1],
+ ['maramures','Maramureş',24.0,47.7,'HUN',1,0],['sekel','Sekel',25.5,46.4,'HUN',2,0],
+ // Avusturya, Venedik
+ ['viyana','Viyana',16.37,48.21,'HAB',6,2],['graz','Graz',15.44,47.07,'HAB',3,1],['linz','Linz',14.29,48.31,'HAB',3,1],
+ ['salzburg','Salzburg',13.04,47.8,'HAB',3,1],['karintiya','Karintiya',14.3,46.62,'HAB',2,0],['lubliyana','Lubliyana',14.5,46.05,'HAB',2,0],
+ ['triyeste','Triyeste',13.77,45.65,'HAB',2,1],
+ ['venedik','Venedik',12.12,45.47,'VEN',8,2],['friuli','Friuli',13.23,46.06,'VEN',3,1],['ravenna','Ravenna',12.2,44.42,'VEN',2,1],
+ ['istriya','İstriya',13.85,45.1,'VEN',2,0],['zadar','Zadar',15.23,44.12,'VEN',3,1],['split','Split',16.44,43.51,'VEN',2,1],
+ ['raguza','Raguza',18.1,42.65,'VEN',3,2],['kotor','Kotor',18.77,42.42,'VEN',2,1],['iskodra','İşkodra',19.51,42.07,'VEN',2,2],
+ ['drac','Dıraç',19.45,41.32,'VEN',2,1],['korfu','Korfu',19.92,39.62,'VEN',2,2],['moton','Moton',21.7,36.9,'VEN',2,2],
+ ['anabolu','Anabolu',22.8,37.57,'VEN',2,2],['egriboz','Eğriboz',23.85,38.6,'VEN',3,2],['kandiye','Kandiye',25.13,35.3,'VEN',4,2],
+ ['hanya','Hanya',24.02,35.45,'VEN',2,1],
+ // Arnavut, Sırp, Bosna
+ ['kroya','Kroya',19.8,41.51,'ALB',2,3],['debre','Debre',20.45,41.6,'ALB',1,1],['les','Leş',19.64,41.78,'ALB',1,1],
+ ['semendire','Semendire',20.93,44.66,'SRB',4,3],['rudnik','Rudnik',20.5,44.13,'SRB',2,0],['krusevac','Kruşevaç',21.33,43.58,'SRB',3,1],
+ ['nis','Niş',21.9,43.32,'SRB',3,1],['novobirda','Novobırda',21.43,42.6,'SRB',3,1],['prizren','Prizren',20.74,42.21,'SRB',2,1],
+ ['yenipazar','Yenipazar',20.51,43.14,'SRB',2,0],['zeta','Zeta',19.26,42.44,'SRB',2,1],
+ ['yayce','Yayçe',17.27,44.34,'BOS',3,2],['hersek','Hersek',17.81,43.34,'BOS',3,1],['vrhbosna','Vrhbosna',18.41,43.86,'BOS',2,0],
+ ['srebrenice','Srebrenice',19.3,44.1,'BOS',2,1],['usora','Usora',18.67,44.54,'BOS',2,0],
+ // İtalya, adalar, Kuzey Afrika
+ ['napoli','Napoli',14.25,40.85,'ARA',7,2],['kapitanata','Kapitanata',15.55,41.46,'ARA',2,0],['bari','Bari',16.87,41.12,'ARA',3,1],
+ ['otranto','Otranto',18.17,40.35,'ARA',3,1],['basilikata','Basilikata',15.8,40.64,'ARA',1,0],['kalabriya','Kalabriya',16.25,39.3,'ARA',2,0],
+ ['abruzzo','Abruzzo',13.4,42.35,'ARA',2,1],['palermo','Palermo',13.36,37.9,'ARA',4,1],['katanya','Katanya',14.9,37.5,'ARA',3,1],
+ ['roma','Roma',12.5,41.9,'PAP',6,2],['ankona','Ankona',13.51,43.62,'PAP',3,1],['umbriya','Umbriya',12.74,42.73,'PAP',2,0],
+ ['rimini','Rimini',12.57,44.06,'PAP',2,1],
+ ['kibris','Lefkoşa',33.2,35.05,'CYP',3,2],['rodos','Rodos',28.0,36.2,'RHO',2,3],['bodrum','Bodrum',27.43,37.03,'RHO',1,2],
+ ['trablusgarp','Trablusgarp',13.19,32.89,'HAF',3,1],['misrata','Misrata',15.1,32.38,'HAF',1,0],['sirt','Sirt',16.59,31.2,'HAF',1,0,'d']
+];
+const LANES=[['istanbul','izmit'],['gelibolu','biga'],['palermo','kalabriya'],['katanya','kalabriya'],['hanya','mistra'],['kandiye','rodos'],
+ ['rodos','mentese'],['rodos','bodrum'],['kibris','icel'],['magosa','trablus'],['midilli','karesi'],['sakiz','izmir'],['korfu','yanya'],['korfu','avlonya'],
+ ['egriboz','atina'],['egriboz','izdin'],['otranto','avlonya'],['bari','drac'],['kefe','kuban'],['ankona','zadar'],['silivri','istanbul']];
+
+const PD=PROVS.map((a,i)=>({i,key:a[0],name:a[1],lon:a[2],lat:a[3],o:a[4],dev:a[5],fort:a[6],des:a[7]==='d',adj:[],lanes:[]}));
+const NP=PD.length;
+const PK={};PD.forEach(d=>PK[d.key]=d.i);
+const FK=Object.keys(FAC);
+
+/* =====================================================================
+   NOISE + MAP BUILD
+   ===================================================================== */
+function hash(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263))|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+ const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.07+5.2,y*2.07+1.3)*.3+vnoise(x*4.3+9.1,y*4.3+3.7)*.15;}
+const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+const hex2=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+let idMap,land,provStart,provPix,baseC,polC,polImg,hlC,hlImg,hctx;
+function chamfer(D){
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;let v=D[i];if(!v)continue;
+  if(x>0&&D[i-1]+3<v)v=D[i-1]+3;
+  if(y>0){if(D[i-W]+3<v)v=D[i-W]+3;if(x>0&&D[i-W-1]+4<v)v=D[i-W-1]+4;if(x<W-1&&D[i-W+1]+4<v)v=D[i-W+1]+4;}
+  D[i]=v;}
+ for(let y=H-1;y>=0;y--)for(let x=W-1;x>=0;x--){const i=y*W+x;let v=D[i];if(!v)continue;
+  if(x<W-1&&D[i+1]+3<v)v=D[i+1]+3;
+  if(y<H-1){if(D[i+W]+3<v)v=D[i+W]+3;if(x<W-1&&D[i+W+1]+4<v)v=D[i+W+1]+4;if(x>0&&D[i+W-1]+4<v)v=D[i+W-1]+4;}
+  D[i]=v;}
+}
+function segDist(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=clamp(t,0,1);const x=ax+t*dx-px,y=ay+t*dy-py;return Math.sqrt(x*x+y*y);}
+
+function buildMap(){
+ const N=W*H;
+ const mc=mk(W,H),m=mc.getContext('2d');
+ m.fillStyle='#000';m.fillRect(0,0,W,H);
+ const fillPoly=(pts,c)=>{m.fillStyle=c;m.beginPath();pts.forEach((q,i)=>{const [x,y]=P(q[0],q[1]);i?m.lineTo(x,y):m.moveTo(x,y);});m.closePath();m.fill();};
+ SEAS.forEach(p=>fillPoly(p,'#fff'));ISLES.forEach(p=>fillPoly(p,'#000'));
+ const md=m.getImageData(0,0,W,H).data;
+ land=new Uint8Array(N);const ox=new Int8Array(N),oy=new Int8Array(N);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const a=fbm(x/38,y/38)-.5,b=fbm(x/38+71.3,y/38+19.7)-.5,c=vnoise(x/7+13.1,y/7)-.5,d=vnoise(x/7,y/7+41.7)-.5;
+  const i=y*W+x;ox[i]=Math.round(a*30+c*7);oy[i]=Math.round(b*30+d*7);
+  const sx=clamp(Math.round(x+a*12+c*4),0,W-1),sy=clamp(Math.round(y+b*12+d*4),0,H-1);
+  land[i]=md[(sy*W+sx)*4]<128?1:0;
+ }
+ // connected land masses
+ const comp=new Int32Array(N).fill(-1),st=new Int32Array(N);let nc=0;
+ for(let i=0;i<N;i++)if(land[i]&&comp[i]<0){let sp=0;st[sp++]=i;comp[i]=nc;
+  while(sp){const k=st[--sp],x=k%W;
+   if(x>0&&land[k-1]&&comp[k-1]<0){comp[k-1]=nc;st[sp++]=k-1;}
+   if(x<W-1&&land[k+1]&&comp[k+1]<0){comp[k+1]=nc;st[sp++]=k+1;}
+   if(k>=W&&land[k-W]&&comp[k-W]<0){comp[k-W]=nc;st[sp++]=k-W;}
+   if(k<N-W&&land[k+W]&&comp[k+W]<0){comp[k+W]=nc;st[sp++]=k+W;}}
+  nc++;}
+ // seeds snapped to land
+ PD.forEach(d=>{const [fx,fy]=P(d.lon,d.lat);const x0=Math.round(fx),y0=Math.round(fy);let bx=-1,by=-1,bd=1e9;
+  for(let r=0;r<=40&&bx<0;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
+   const xx=x0+dx,yy=y0+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;if(land[yy*W+xx]){const dd=dx*dx+dy*dy;if(dd<bd){bd=dd;bx=xx;by=yy;}}}
+  if(bx<0){bx=clamp(x0,0,W-1);by=clamp(y0,0,H-1);}
+  d.x=bx;d.y=by;d.comp=comp[by*W+bx];});
+ const G=48,GC=Math.ceil(W/G),GR=Math.ceil(H/G),grid=Array.from({length:GC*GR},()=>[]);
+ PD.forEach(d=>grid[Math.floor(d.y/G)*GC+Math.floor(d.x/G)].push(d.i));
+ const MAXD=92,MAXD2=MAXD*MAXD;
+ idMap=new Int16Array(N);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(!land[i]){idMap[i]=-1;continue;}
+  const px=x+ox[i],py=y+oy[i],cc=comp[i];let best=-2,bd=MAXD2;
+  const gx0=Math.max(0,Math.floor((px-MAXD)/G)),gx1=Math.min(GC-1,Math.floor((px+MAXD)/G)),gy0=Math.max(0,Math.floor((py-MAXD)/G)),gy1=Math.min(GR-1,Math.floor((py+MAXD)/G));
+  for(let gy=gy0;gy<=gy1;gy++)for(let gx=gx0;gx<=gx1;gx++){const cell=grid[gy*GC+gx];for(let k=0;k<cell.length;k++){const d=PD[cell[k]];if(d.comp!==cc)continue;const dx=d.x-px,dy=d.y-py,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=d.i;}}}
+  idMap[i]=best;}
+ PD.forEach(d=>{for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){if(dx*dx+dy*dy>25)continue;const xx=d.x+dx,yy=d.y+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;const i=yy*W+xx;if(land[i]&&comp[i]===d.comp)idMap[i]=d.i;}});
+ // contiguity: keep only the part connected to the seed, regrow the rest from neighbours
+ const reach=new Uint8Array(N),q=new Int32Array(N);let qh=0,qt=0;
+ PD.forEach(d=>{const i=d.y*W+d.x;if(idMap[i]===d.i&&!reach[i]){reach[i]=1;q[qt++]=i;}});
+ while(qh<qt){const k=q[qh++],id=idMap[k],x=k%W;const nb=[x>0?k-1:-1,x<W-1?k+1:-1,k-W,k+W];
+  for(const j of nb){if(j<0||j>=N||reach[j]||idMap[j]!==id)continue;reach[j]=1;q[qt++]=j;}}
+ qh=0;qt=0;for(let i=0;i<N;i++)if(reach[i])q[qt++]=i;
+ while(qh<qt){const k=q[qh++],id=idMap[k],x=k%W;const nb=[x>0?k-1:-1,x<W-1?k+1:-1,k-W,k+W];
+  for(const j of nb){if(j<0||j>=N||reach[j]||idMap[j]<0)continue;idMap[j]=id;reach[j]=1;q[qt++]=j;}}
+ for(let i=0;i<N;i++)if(idMap[i]>=0&&!reach[i])idMap[i]=-2;
+ // adjacency
+ const cnt=new Map();const addc=(a,b)=>{const k=a<b?a*1024+b:b*1024+a;cnt.set(k,(cnt.get(k)||0)+1);};
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,a=idMap[i];if(a<0)continue;
+  if(x<W-1){const b=idMap[i+1];if(b>=0&&b!==a)addc(a,b);}if(y<H-1){const b=idMap[i+W];if(b>=0&&b!==a)addc(a,b);}}
+ cnt.forEach((v,k)=>{if(v<3)return;const a=k>>10,b=k&1023;PD[a].adj.push(b);PD[b].adj.push(a);});
+ LANES.forEach(([a,b])=>{const A=PK[a],B=PK[b];if(A==null||B==null)return;if(!PD[A].adj.includes(B)){PD[A].adj.push(B);PD[B].adj.push(A);PD[A].lanes.push(B);}});
+ // pixel lists
+ const count=new Int32Array(NP+1);for(let i=0;i<N;i++)if(idMap[i]>=0)count[idMap[i]+1]++;
+ provStart=new Int32Array(NP+1);for(let k=0;k<NP;k++)provStart[k+1]=provStart[k]+count[k+1];
+ provPix=new Int32Array(provStart[NP]);const fillp=provStart.slice(0,NP);
+ for(let i=0;i<N;i++){const id=idMap[i];if(id>=0)provPix[fillp[id]++]=i;}
+ // label points via distance from province edge
+ const D=new Uint16Array(N);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,id=idMap[i];
+  if(id<0||x===0||y===0||x===W-1||y===H-1||idMap[i-1]!==id||idMap[i+1]!==id||idMap[i-W]!==id||idMap[i+W]!==id)D[i]=0;else D[i]=65535;}
+ chamfer(D);
+ PD.forEach(d=>{let best=-1,bv=-1;for(let k=provStart[d.i];k<provStart[d.i+1];k++){const i=provPix[k];
+   const v=D[i]*1000-((i%W-d.x)**2+(((i/W)|0)-d.y)**2)*0.02;if(v>bv){bv=v;best=i;}}
+  d.area=provStart[d.i+1]-provStart[d.i];
+  if(best>=0){d.lx=best%W;d.ly=(best/W)|0;d.inr=D[best]/3;}else{d.lx=d.x;d.ly=d.y;d.inr=4;}
+  let md2=1e9;MOUNTAINS.forEach(l=>{for(let k=0;k<l.length-1;k++){const [ax,ay]=P(l[k][0],l[k][1]),[bx,by]=P(l[k+1][0],l[k+1][1]);md2=Math.min(md2,segDist(d.lx,d.ly,ax,ay,bx,by));}});
+  d.mtn=md2<24;});
+ // sea distance to coast
+ const SD=new Uint16Array(N);for(let i=0;i<N;i++)SD[i]=land[i]?0:65535;chamfer(SD);
+ renderBase(SD);
+ polC=mk(W,H);polImg=polC.getContext('2d').createImageData(W,H);
+ hlC=mk(W,H);hctx=hlC.getContext('2d');hlImg=hctx.createImageData(W,H);
+}
+
+function renderBase(SD){
+ baseC=mk(W,H);const b=baseC.getContext('2d');const img=b.createImageData(W,H),d=img.data;
+ const steppeY=P(0,44.2)[1];
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let r,g,bl;
+  if(!land[i]){const sd=SD[i]/3,t=Math.min(sd/46,1);r=178-44*t;g=204-38*t;bl=196-30*t;
+   if((sd>3.1&&sd<4.3)||(sd>9.2&&sd<10.3)){r-=24;g-=20;bl-=16;}else if(sd>17&&sd<17.9){r-=12;g-=10;bl-=8;}
+   if(y%4===0){r-=5;g-=5;bl-=4;}
+  }else{const id=idMap[i],n=fbm(x/70,y/70),gr=hash(x,y);
+   if(id===-2){if(y<steppeY){r=214;g=207;bl=160;}else{r=224;g=202;bl=152;}const f=.93+.12*n;r*=f;g*=f;bl*=f;if(gr<.05){r-=38;g-=40;bl-=36;}}
+   else{const f=.92+.14*n;r=236*f;g=224*f;bl=190*f;r+=(gr-.5)*8;g+=(gr-.5)*8;bl+=(gr-.5)*6;}
+   const s=(x>0&&!land[i-1])||(x<W-1&&!land[i+1])||(y>0&&!land[i-W])||(y<H-1&&!land[i+W]);
+   if(s){r=82;g=70;bl=52;}
+   else if((x>1&&!land[i-2])||(x<W-2&&!land[i+2])||(y>1&&!land[i-2*W])||(y<H-2&&!land[i+2*W])){r-=22;g-=22;bl-=20;}
+  }
+  d[o]=r;d[o+1]=g;d[o+2]=bl;d[o+3]=255;}
+ b.putImageData(img,0,0);
+ b.lineJoin='round';b.lineCap='round';
+ // rivers
+ b.strokeStyle='rgba(74,118,128,.85)';b.lineWidth=1.4;
+ RIVERS.forEach(r=>{b.beginPath();const pts=r.map(q=>P(q[0],q[1]));b.moveTo(pts[0][0],pts[0][1]);
+  for(let k=1;k<pts.length-1;k++){const mx=(pts[k][0]+pts[k+1][0])/2,my=(pts[k][1]+pts[k+1][1])/2;b.quadraticCurveTo(pts[k][0],pts[k][1],mx,my);}
+  const l=pts[pts.length-1];b.lineTo(l[0],l[1]);b.stroke();});
+ // mountains
+ MOUNTAINS.forEach((l,li)=>{for(let k=0;k<l.length-1;k++){const [ax,ay]=P(l[k][0],l[k][1]),[bx,by]=P(l[k+1][0],l[k+1][1]);
+  const len=Math.hypot(bx-ax,by-ay),n=Math.floor(len/9);
+  for(let j=0;j<n;j++){const t=j/n,jx=(hash(li*97+k*13+j,7)-.5)*9,jy=(hash(li*31+j,k*5+3)-.5)*9;const x=ax+(bx-ax)*t+jx,y=ay+(by-ay)*t+jy;
+   const xi=Math.round(x),yi=Math.round(y);if(xi<0||yi<0||xi>=W||yi>=H||idMap[yi*W+xi]===-1)continue;
+   const s=3.2+hash(j,li)*2.4;
+   b.fillStyle='rgba(120,96,64,.18)';b.beginPath();b.moveTo(x-s,y+s*.55);b.lineTo(x,y-s);b.lineTo(x+s*.3,y+s*.55);b.fill();
+   b.strokeStyle='rgba(96,74,48,.72)';b.lineWidth=1.05;b.beginPath();b.moveTo(x-s,y+s*.55);b.lineTo(x,y-s);b.lineTo(x+s,y+s*.55);b.stroke();}}});
+ // region labels
+ REGION_LABELS.forEach(([t,lon,lat,sz,k])=>{const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';
+  if(k==='sea'){b.font=`italic 500 ${sz}px Alegreya, Georgia, serif`;b.fillStyle='rgba(38,72,78,.55)';spaced(b,t,x,y,sz*.32);}
+  else{b.font=`italic 500 ${sz}px Alegreya, Georgia, serif`;b.fillStyle='rgba(110,86,50,.55)';spaced(b,t,x,y,sz*.12);}
+  b.restore();});
+ // frame
+ b.strokeStyle='rgba(60,46,30,.8)';b.lineWidth=3;b.strokeRect(1.5,1.5,W-3,H-3);b.lineWidth=1;b.strokeRect(6.5,6.5,W-13,H-13);
+}
+function spaced(c,t,x,y,sp){const chars=[...t];const ws=chars.map(ch=>c.measureText(ch).width);const tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);
+ let cx=x-tot/2;c.textAlign='left';chars.forEach((ch,k)=>{c.fillText(ch,cx,y);cx+=ws[k]+sp;});c.textAlign='center';}
+
+/* =====================================================================
+   GAME STATE
+   ===================================================================== */
+const SEASONS=['İlkbahar','Yaz','Sonbahar','Kış'];
+const START_YEAR=1451,END_TURN=(1531-1451)*4;
+const RC=12,UPK=1,SAVE='kizil-elma-1451-v1';
+let S=null;
+const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+const atWar=(a,b)=>!!S.war[key(a,b)];
+const isAlly=(a,b)=>!!S.ally[key(a,b)];
+const inTruce=(a,b)=>(S.truce[key(a,b)]||0)>S.turn;
+const getOp=(a,b)=>S.op[key(a,b)]||0;
+const addOp=(a,b,v)=>{S.op[key(a,b)]=clamp(getOp(a,b)+v,-100,100);};
+const dateStr=t=>`${SEASONS[t%4]} ${START_YEAR+Math.floor(t/4)}`;
+const alive=f=>S.fac[f]&&S.fac[f].alive;
+const fname=f=>FAC[f].s;
+const fmtK=n=>{n=Math.max(0,Math.round(n));return n>=10000?Math.round(n/1000)+'k':(Math.round(n/100)/10).toFixed(1).replace('.0','')+'k';};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+const HIST=[['BYZ','OSM',-45],['KAR','OSM',-35],['HUN','OSM',-50],['ALB','OSM',-70],['AKK','KKY',-70],['GEN','VEN',-30],['HAB','HUN',-25],
+ ['AKK','OSM',-10],['KAR','MAM',15],['DUL','MAM',45],['BYZ','VEN',30],['BYZ','GEN',20],['HUN','SRB',10],['OSM','SRB',-5],['GH','KRM',-60],
+ ['KRM','OSM',20],['MOL','POL',25],['CAN','OSM',-15],['OSM','TRB',-20],['AKK','TRB',35],['GEO','KKY',-30],['ARA','VEN',-10],['PAP','VEN',10],
+ ['HUN','POL',10],['CYP','MAM',-20],['MAM','RHO',-40],['OSM','RHO',-30],['AKK','KAR',30],['HUN','BOS',25]];
+function baseOp(a,b){let v=FAC[a].rel===FAC[b].rel?20:-20;const h=HIST.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a));if(h)v+=h[2];return clamp(v,-100,100);}
+
+const MIS={
+ OSM:[{t:'Konstantiniyye\'nin Fethi',d:'Şehri al; Rumeli ile Anadolu birleşsin.',own:['istanbul'],g:150,dev:['istanbul',2]},
+      {t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
+      {t:'Mora Seferi',d:'Mistra ile Korint\'i ele geçir.',own:['mistra','korint'],g:60},
+      {t:'Belgrad Kapısı',d:'Macarların Tuna kalesini düşür.',own:['belgrad'],g:90},
+      {t:'Trabzon Seferi',d:'Komnenosların son kalesini al.',own:['trabzon'],g:60},
+      {t:'Mısır\'ın Anahtarı',d:'Kahire\'yi fethet.',own:['kahire'],g:250},
+      {t:'Kızıl Elma',d:'Roma\'ya ulaş.',own:['roma'],g:300}],
+ BYZ:[{t:'Surları Tut',d:'1455 yazına kadar Konstantiniyye\'yi koru.',hold:'istanbul',until:17,g:120},
+      {t:'Mora\'yı Birleştir',d:'Moton ve Anabolu\'yu al.',own:['moton','anabolu'],g:60},
+      {t:'Selanik\'i Kurtar',d:'Selanik\'i geri al.',own:['selanik'],g:90},
+      {t:'Edirne\'yi Geri Al',d:'Adrianopolis yeniden Roma\'nın olsun.',own:['edirne'],g:120},
+      {t:'Anadolu\'ya Dönüş',d:'Bursa ve İzmit\'i al.',own:['bursa','izmit'],g:120}],
+ HUN:[{t:'Belgrad\'ın Savunması',d:'Belgrad elinde kalsın, Semendire\'yi al.',own:['belgrad','semendire'],g:70},
+      {t:'Tuna Hattı',d:'Vidin, Niğbolu ve Silistre\'yi al.',own:['vidin','nigbolu','silistre'],g:90},
+      {t:'Haçlı Seferi',d:'Sofya ve Edirne\'yi al.',own:['sofya','edirne'],g:120},
+      {t:'Konstantiniyye\'ye Yardım',d:'Konstantiniyye Hıristiyan elinde olsun; onu al.',own:['istanbul'],g:200}],
+ VEN:[{t:'Ege\'nin Kraliçesi',d:'Sakız ve Midilli\'yi al.',own:['sakiz','midilli'],g:70},
+      {t:'Mora Kıyıları',d:'Mistra ve Korint\'i al.',own:['mistra','korint'],g:70},
+      {t:'Selanik Limanı',d:'Selanik\'i al.',own:['selanik'],g:90},
+      {t:'Kıbrıs',d:'Lefkoşa ve Magosa\'yı al.',own:['kibris','magosa'],g:100}],
+ MAM:[{t:'Anadolu Kapıları',d:'Maraş ve Elbistan\'ı al.',own:['maras','elbistan'],g:60},
+      {t:'Bağdat',d:'Abbasi hilafetinin eski merkezini al.',own:['bagdat'],g:120},
+      {t:'Rodos\'u Düşür',d:'Şövalyelerin adasını al.',own:['rodos'],g:90},
+      {t:'Rum Diyarı',d:'Konya\'yı al.',own:['konya'],g:120}],
+ KAR:[{t:'Selçuklu Mirası',d:'Ankara ve Kırşehir\'i al.',own:['ankara','kirsehir'],g:70},
+      {t:'Akdeniz Kıyıları',d:'Teke ve Adana\'yı al.',own:['teke','adana'],g:70},
+      {t:'Bursa\'ya Yürüyüş',d:'Osmanlı\'nın eski başkentini al.',own:['bursa'],g:150}],
+ AKK:[{t:'Kara Koyun\'u Yık',d:'Tebriz\'i al.',own:['tebriz'],g:150},
+      {t:'Bağdat',d:'Bağdat\'ı al.',own:['bagdat'],g:120},
+      {t:'Erzurum Yaylası',d:'Erzurum ve Kars\'ı al.',own:['erzurum','kars'],g:70}],
+ KKY:[{t:'Ak Koyun\'u Ez',d:'Diyarbakır\'ı al.',own:['diyarbakir'],g:120},
+      {t:'Gürcü Seferi',d:'Tiflis\'i al.',own:['tiflis'],g:70},
+      {t:'Halep',d:'Halep\'i al.',own:['halep'],g:120}],
+ ALB:[{t:'Kroya Direnişi',d:'1460 yazına kadar Kroya\'yı koru.',hold:'kroya',until:37,g:100},
+      {t:'Kıyıları Birleştir',d:'İşkodra, Dıraç ve Avlonya\'yı al.',own:['iskodra','drac','avlonya'],g:90},
+      {t:'Üsküp',d:'Üsküp\'ü al.',own:['uskup'],g:80}]
+};
+
+function facProvs(f){const r=[];for(let i=0;i<NP;i++)if(S.prov[i].o===f)r.push(i);return r;}
+function strength(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;return s;}
+function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;}
+function income(f){let s=0;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o!==f)continue;s+=p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}return s;}
+function upkeep(f){return strength(f)/1000*UPK;}
+function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
+function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
+function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
+const avail=i=>Math.max(0,S.prov[i].t-S.prov[i].mv);
+function atkMul(f){return (S.turn%4===3?.85:1);}
+function atkPower(n,f){return n*atkMul(f);}
+function defPower(i,att){const p=S.prov[i],d=PD[i];const mil=p.dev*150+p.fort*700;const fm=1+.15*p.fort*(att&&S.fac[att].cannon?.4:1);
+ return (p.t+mil)*fm*(d.mtn?1.3:1)*(d.des?1.1:1);}
+
+function newGame(player){
+ S={v:1,turn:0,player,prov:[],fac:{},war:{},truce:{},ally:{},op:{},log:[],flags:{},battles:[],offers:[],news:[],mis:[],misDone:{},stats:{won:0,lost:0,taken:0}};
+ FK.forEach(f=>{S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});
+ PD.forEach(d=>{const m=FAC[d.o].m;S.prov.push({o:d.o,dev:d.dev,fort:d.fort,mkt:0,brk:0,t:Math.round((d.dev*450+d.fort*250)*m/100)*100,mv:0,un:0});});
+ FK.forEach(f=>{const ps=facProvs(f);if(!ps.length)return;const F=S.fac[f];F.alive=true;F.cap=PK[FAC[f].cap]??ps[0];
+  S.prov[F.cap].t+=Math.round(2500*FAC[f].m/100)*100;const ds=devSum(f);F.gold=Math.round(50+ds*1.2);F.mp=ds*350;});
+ for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++)S.op[key(FK[a],FK[b])]=baseOp(FK[a],FK[b]);
+ [['AKK','KKY'],['OSM','ALB'],['KRM','GH']].forEach(([a,b])=>S.war[key(a,b)]={t:0,sc:{[a]:0,[b]:0}});
+ [['MAM','DUL'],['AKK','KAR'],['HUN','BOS'],['VEN','BYZ']].forEach(([a,b])=>S.ally[key(a,b)]=true);
+ if(player){
+  const ms=MIS[player]||genericMissions(player);S.mis=ms.map(m=>({...m}));
+  addLog(`${FAC[player].n} tahtında: ${FAC[player].r}. Tarihin yeni bir sayfası açılıyor.`,'cap');
+ }
+}
+function genericMissions(f){const n=facProvs(f).length;
+ const nb=nbrs(f).filter(g=>g!=='SAF').sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
+ const r=[{t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{t:'Dolu Hazine',d:'Hazinende 400 altın biriktir.',gold:400,g:0,dev:['cap',1]}];
+ if(tgt)r.push({t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
+ r.push({t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
+
+function addLog(m,k='info'){S.log.push({t:S.turn,m,k});if(S.log.length>400)S.log.shift();}
+function news(m,k='info'){S.news.push({m,k});addLog(m,k);}
+
+/* ---------------- war & peace ---------------- */
+function declareWar(a,b){
+ if(atWar(a,b)||a===b)return;
+ delete S.ally[key(a,b)];
+ S.war[key(a,b)]={t:S.turn,sc:{[a]:0,[b]:0}};addOp(a,b,-60);
+ alliesOf(b).forEach(c=>addOp(a,c,-25));
+ const msg=`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`;
+ if(a===S.player||b===S.player){news(msg,'war');if(b===S.player)toast(msg,'war');}else addLog(msg,'war');
+ alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a))return;S.war[key(c,a)]={t:S.turn,sc:{[a]:0,[c]:0}};
+  const m2=`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`;if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
+}
+function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);
+ const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');}
+function warScore(a,b){const w=S.war[key(a,b)];return w?(w.sc[a]||0)-(w.sc[b]||0):0;}
+function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,other);
+ const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return Math.random()<.5;return false;}
+function aiAcceptPeace(ai,pl){const w=S.war[key(ai,pl)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,pl);
+ if(ws<=-1)return true;if(strength(ai)<strength(pl)*.75)return true;if(dur>=10&&ws<=2)return true;return false;}
+function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return ws<=-4||strength(ai)<strength(pl)*.4;}
+function tributeAmt(ai){return Math.max(20,Math.round(Math.min(S.fac[ai].gold*.7,30+devSum(ai)*2)));}
+function aiAcceptAlliance(ai,pl){if(atWar(ai,pl)||inTruce(ai,pl)&&getOp(ai,pl)<20)return false;const o=getOp(ai,pl);
+ const common=warsOf(ai).some(e=>atWar(pl,e));return o>=40||(o>=10&&common);}
+
+/* ---------------- battles ---------------- */
+function battle(from,to,n){
+ const A=S.prov[from],D=S.prov[to],att=A.o,def=D.o;n=Math.min(n,avail(from));if(n<=0)return null;
+ A.t-=n;
+ const aP=atkPower(n,att)*rnd(.85,1.2),dP=defPower(to,att)*rnd(.85,1.2),r=aP/dP,defT=D.t;
+ const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0};
+ const w=S.war[key(att,def)];
+ if(r>1){
+  const aLoss=Math.round(n*clamp(.3/r,.04,.3)/100)*100;const dLoss=Math.round(defT*.65/100)*100;const flee=defT-dLoss;
+  if(flee>0){const ret=PD[to].adj.filter(j=>S.prov[j].o===def);if(ret.length){const j=ret[Math.floor(Math.random()*ret.length)];S.prov[j].t+=flee;S.prov[j].mv+=flee;rep.retreat=j;}}
+  const wasCap=S.fac[def].cap===to;
+  D.t=0;D.mv=0;capture(to,att);D.t=n-aLoss;D.mv=D.t;
+  rep.win=true;rep.aLoss=aLoss;rep.dLoss=defT;if(w){w.sc[att]=(w.sc[att]||0)+2+(wasCap?3:0);}
+ }else{
+  const aLoss=Math.round(n*clamp(.55-.25*r,.25,.55)/100)*100,dLoss=Math.min(defT,Math.round(defT*clamp(.3*r,.03,.3)/100)*100);
+  D.t-=dLoss;const back=n-aLoss;A.t+=back;A.mv+=back;
+  if(D.fort>0&&r>.8&&Math.random()<.3){D.fort--;rep.fortDmg=true;}
+  rep.aLoss=aLoss;rep.dLoss=dLoss;if(w)w.sc[def]=(w.sc[def]||0)+1;
+ }
+ S.battles.push(rep);if(S.battles.length>60)S.battles.shift();
+ if(att===S.player||def===S.player){S.report=S.report||[];S.report.push(rep);
+  if(att===S.player){rep.win?S.stats.won++:S.stats.lost++;}else{rep.win?S.stats.lost++:S.stats.won++;}}
+ polDirty=true;return rep;
+}
+function capture(i,f){
+ const p=S.prov[i],old=p.o;p.o=f;p.un=8;p.mv=0;if(p.fort>1)p.fort--;
+ S.fac[f].gold+=p.dev*4;if(f===S.player)S.stats.taken++;
+ const d=PD[i];
+ if(S.fac[old].cap===i){const rest=facProvs(old);if(rest.length){rest.sort((a,b)=>S.prov[b].dev-S.prov[a].dev);S.fac[old].cap=rest[0];}
+  S.fac[old].gold=Math.round(S.fac[old].gold*.7);
+  const m=`${fname(old)} başkenti ${d.name}, ${fname(f)} eline geçti!`;(old===S.player||f===S.player)?news(m,'cap'):addLog(m,'cap');}
+ if(old===S.player&&f!==S.player)addLog(`${d.name} eyaletini ${fname(f)} kuvvetlerine kaptırdık.`,'war');
+ if(!facProvs(old).length)eliminate(old,f);
+ if(d.key==='istanbul'){
+  if(f==='OSM'&&!S.flags.fetih){S.flags.fetih=1;S.fac.OSM.cap=i;p.dev+=1;p.un=2;
+   news('Konstantiniyye fethedildi! Osmanlı başkenti İstanbul\'a taşındı.','cap');
+   queueModal(()=>eventModal({t:'Konstantiniyye Fethedildi',e:`${dateStr(S.turn)}`,d:'Theodosius surları aşıldı. Bin yıllık Doğu Roma başkenti artık Osmanlı\'nın. Genç sultana "Fatih" unvanı veriliyor ve devlet merkezi İstanbul\'a taşınıyor.',ch:[{l:'Devam et'}]}));}
+  else if(old!==f){news(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,'cap');}
+ }
+ polDirty=true;
+}
+function eliminate(f,by){const F=S.fac[f];F.alive=false;
+ Object.keys(S.war).forEach(k=>{if(k.split('|').includes(f))delete S.war[k];});
+ Object.keys(S.ally).forEach(k=>{if(k.split('|').includes(f))delete S.ally[k];});
+ S.offers=S.offers.filter(o=>o.f!==f);
+ news(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,'cap');
+ if(f===S.player){S.over='lose';}
+}
+
+/* ---------------- AI ---------------- */
+function aiTurn(f){
+ const F=S.fac[f];if(!F.alive)return;const mine=facProvs(f);if(!mine.length)return;
+ aiDiplo(f);
+ const enemies=new Set(warsOf(f));const front=new Set(),border=new Set();
+ for(const i of mine)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f){border.add(i);if(enemies.has(o))front.add(i);}}
+ aiEconomy(f,mine,front,border,enemies.size>0);
+ // attacks
+ if(enemies.size){
+  const order=[...front].sort((a,b)=>avail(b)-avail(a));
+  for(const i of order){const av=avail(i);if(av<800)continue;let best=-1,bs=0,bd=0;
+   for(const j of PD[i].adj){const q=S.prov[j];if(!enemies.has(q.o))continue;const dp=defPower(j,f),ap=atkPower(av,f);
+    if(ap>dp*1.25){const sc=(q.dev+(S.fac[q.o].cap===j?5:0)+1)/(dp+800);if(sc>bs){bs=sc;best=j;bd=dp;}}}
+   if(best>=0){const need=Math.ceil(bd*1.7/atkMul(f)/100)*100;const send=Math.min(av,Math.max(need,Math.round(av*.6/100)*100));battle(i,best,send);}
+  }
+  // concentrate: front provinces that face a strong target pull from front neighbours
+  for(const i of front){const av=avail(i);if(av<500)continue;
+   let weak=Infinity;for(const j of PD[i].adj)if(enemies.has(S.prov[j].o))weak=Math.min(weak,defPower(j,f));
+   for(const k of PD[i].adj){if(S.prov[k].o!==f||!front.has(k)||k===i)continue;const ak=avail(k);if(ak<500)continue;
+    let wk=Infinity;for(const j of PD[k].adj)if(enemies.has(S.prov[j].o))wk=Math.min(wk,defPower(j,f));
+    if(weak<wk*.8&&S.prov[i].t>=S.prov[k].t*.5){const mv=Math.round(ak*.6/100)*100;S.prov[k].t-=mv;S.prov[i].t+=mv;S.prov[i].mv+=mv;}}}
+ }
+ // march toward the front (or border in peace)
+ const goal=front.size?front:border;if(!goal.size)return;
+ const dist=new Map(),q=[];goal.forEach(i=>{dist.set(i,0);q.push(i);});
+ for(let h=0;h<q.length;h++){const i=q[h];for(const j of PD[i].adj){if(S.prov[j].o!==f||dist.has(j))continue;dist.set(j,dist.get(i)+1);q.push(j);}}
+ const share=front.size?.85:.5;
+ for(const i of mine){if(goal.has(i)||!dist.has(i))continue;const av=avail(i);if(av<400)continue;
+  let nx=-1,nd=dist.get(i);for(const j of PD[i].adj){if(S.prov[j].o===f&&dist.has(j)&&dist.get(j)<nd){nd=dist.get(j);nx=j;}}
+  if(nx>=0){const mv=Math.round(av*share/100)*100;S.prov[i].t-=mv;S.prov[nx].t+=mv;S.prov[nx].mv+=mv;}}
+}
+function aiEconomy(f,mine,front,border,war){
+ const F=S.fac[f];const inc=income(f);let upk=upkeep(f);const cap=inc*(war?1.05:.72);
+ const spots=front.size?[...front]:border.size?[...border]:[F.cap];let g=0;
+ while(F.gold>=RC+15&&F.mp>=1000&&upk+UPK<=cap&&g++<40){
+  let i=spots[Math.floor(Math.random()*spots.length)];
+  if(war&&Math.random()<.6){let bt=-1,bv=-1;for(const s of spots){let th=0;for(const j of PD[s].adj){const o=S.prov[j].o;if(o!==f&&atWar(f,o))th+=S.prov[j].t;}const v=th-S.prov[s].t;if(v>bv){bv=v;bt=s;}}if(bt>=0)i=bt;}
+  S.prov[i].t+=1000;S.prov[i].mv+=1000;F.gold-=RC;F.mp-=1000;upk+=UPK;}
+ if(F.gold>150&&Math.random()<.35){const c=mine.filter(i=>!S.prov[i].mkt).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];if(c!=null){S.prov[c].mkt=1;F.gold-=60;}}
+ else if(F.gold>200&&Math.random()<.3){const c=F.cap;if(S.prov[c].dev<12){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
+ if(war&&F.gold>100&&front.size&&Math.random()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4){F.gold-=40*(p.fort+1);p.fort++;}}
+}
+function aiDiplo(f){
+ const my=strength(f);
+ warsOf(f).forEach(g=>{
+  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&Math.random()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace'});S.fac[f].nextOffer=S.turn+4;}}
+  else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(aiWantsPeace(f,g)&&Math.random()<.25))makePeace(f,g);
+ });
+ if(S.turn<3)return;
+ const nw=warsOf(f).length;if(nw>=(my>70000?2:1))return;if(Math.random()>.14)return;
+ let best=null,bs=0;
+ for(const g of nbrs(f)){if(isAlly(f,g)||inTruce(f,g)||atWar(f,g))continue;if(g===S.player&&S.turn<6)continue;const o=getOp(f,g);if(o>5)continue;
+  let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*.5;});const ratio=my/Math.max(th,1);if(ratio<1.45)continue;
+  const sc=ratio*(1+(-o)/60);if(sc>bs){bs=sc;best=g;}}
+ if(best&&Math.random()<.55)declareWar(f,best);
+ if(Math.random()<.03){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
+}
+
+/* ---------------- turn flow ---------------- */
+function endRound(){
+ FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;const inc=income(f),up=upkeep(f);F.gold+=inc-up;
+  const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
+  if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}F.gold=0;
+   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordu −10%).','war');}});
+ for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
+ for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++){const k=key(FK[a],FK[b]),bo=baseOp(FK[a],FK[b]),v=S.op[k]||0;if(v<bo)S.op[k]=v+1;else if(v>bo)S.op[k]=v-1;}
+ S.turn++;
+ historic();
+}
+function historic(){
+ const t=S.turn;
+ if(t===8&&alive('OSM')){S.fac.OSM.cannon=1;news('Macar dökümcü Urban, Osmanlı için dev toplar döktü. Osmanlı ordusu kale surlarını artık çok daha kolay aşıyor.','cap');
+  if(S.player==='OSM')queueModal(()=>eventModal({t:'Urban\'ın Topları',e:dateStr(t),d:'Macar dökümcü Urban, Edirne\'de şimdiye dek görülmemiş büyüklükte toplar döktü. Ordunun karşısında kale surları eskisi kadar güçlü değil.',ch:[{l:'Surlara karşı yürü'}]}));}
+ if(t===20)news('Gökyüzünde parlak bir kuyruklu yıldız göründü. Kimisi uğursuzluk, kimisi zafer diyor.');
+ if(t===36){FK.forEach(f=>{if(S.fac[f].alive)S.fac[f].cannon=1;});news('Barut çağı: Artık bütün ordular kuşatma topları kullanıyor.','cap');}
+ if(t===164)news('Uzak batıda Kolomb adlı bir denizci okyanusun ötesinde yeni topraklar buldu. Endülüs\'te Gırnata düştü.');
+ if(t===200)spawnSafavid();
+}
+function spawnSafavid(){
+ const tb=PK.tebriz,old=S.prov[tb].o;if(old==='SAF')return;
+ const take=new Set([tb]);let fr=[tb];for(let d=0;d<2;d++){const nx=[];fr.forEach(i=>PD[i].adj.forEach(j=>{if(S.prov[j].o===old&&!take.has(j)){take.add(j);nx.push(j);}}));fr=nx;}
+ if(old===S.player){[...take].forEach(i=>{if(S.fac[old].cap===i)take.delete(i);});}
+ if(!take.size)return;const F=S.fac.SAF;F.alive=true;F.gold=150;F.mp=20000;F.cannon=1;
+ take.forEach(i=>{const p=S.prov[i];p.o='SAF';p.t+=3500;p.un=0;});F.cap=take.has(tb)?tb:[...take][0];
+ FK.forEach(g=>{if(g!=='SAF')S.op[key('SAF',g)]=baseOp('SAF',g);});
+ if(S.fac[old].alive&&!facProvs(old).length)eliminate(old,'SAF');
+ if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]={t:S.turn,sc:{SAF:0,[old]:0}};}
+ news(`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`,'cap');polDirty=true;
+}
+function checkMissions(){
+ if(!S.player)return;const pl=S.player;
+ S.mis.forEach((m,k)=>{if(S.misDone[k])return;let ok=false;
+  if(m.own)ok=m.own.every(x=>S.prov[PK[x]].o===pl);
+  else if(m.count)ok=facProvs(pl).length>=m.count;
+  else if(m.gold)ok=S.fac[pl].gold>=m.gold;
+  else if(m.hold)ok=S.turn>=m.until&&S.prov[PK[m.hold]].o===pl;
+  if(ok){S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
+   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
+   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');}});
+}
+function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
+
+let busy=false;
+function endTurn(){
+ if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();
+ $('#endTurn').textContent='Hamleler…';
+ setTimeout(()=>{
+  S.news=[];S.report=[];
+  const order=FK.filter(f=>f!==S.player&&alive(f));for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  order.forEach(aiTurn);
+  endRound();
+  checkMissions();
+  if(!S.over){const n=facProvs(S.player).length;if(n>=Math.ceil(NP*.5))S.over='win';else if(S.turn>=END_TURN)S.over='time';}
+  if(!S.over&&S.turn>1&&Math.random()<.3)randomEvent();
+  save();polDirty=true;renderAll();
+  $('#endTurn').textContent='Turu Bitir';$('#endTurn').disabled=false;busy=false;
+  if(S.over){queueModal(showEnd);return;}
+  if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
+ },30);
+}
+
+/* ---------------- random events ---------------- */
+function randomEvent(){
+ const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length)return;const pick=a=>a[Math.floor(Math.random()*a.length)];
+ const isM=FAC[f].rel==='İslam';const p=pick(mine),pn=PD[p].name;const un=mine.filter(i=>S.prov[i].un>0);
+ const ev=[
+  {w:3,t:isM?'İpek Yolu Kervanı':'Levanten Tüccarlar',d:isM?'Doğudan gelen zengin bir kervan pazarlarında konakladı. Gümrük emini seni bekliyor.':'Venedikli ve Cenevizli tüccarlar limanlarında ticaret izni istiyor.',
+   ch:[{l:`Gümrük al (+${Math.round(20+devSum(f)*.3)} altın)`,f:()=>{F.gold+=Math.round(20+devSum(f)*.3);}}]},
+  {w:2,t:'Veba Salgını',d:`${pn} eyaletinde kara ölüm baş gösterdi. Hekimler karantina istiyor.`,
+   ch:[{l:'Karantina uygula (−30 altın, garnizon −10%)',dis:F.gold<30,f:()=>{F.gold-=30;S.prov[p].t=Math.round(S.prov[p].t*.9/100)*100;}},{l:'Kaderine bırak (gelişmişlik −1, garnizon −35%)',f:()=>{S.prov[p].dev=Math.max(1,S.prov[p].dev-1);S.prov[p].t=Math.round(S.prov[p].t*.65/100)*100;}}]},
+  {w:3,t:'Bereketli Hasat',d:'Ambarlar doldu, köylerden gelen gençler orduya yazılmak istiyor.',ch:[{l:`Ambarları sat (+${Math.round(15+devSum(f)*.2)} altın)`,f:()=>{F.gold+=Math.round(15+devSum(f)*.2);}},{l:'Gönüllüleri al (+6000 insan gücü)',f:()=>{F.mp+=6000;}}]},
+  {w:2,t:isM?'Gezgin Âlim':'Hümanist Bilgin',d:isM?'Semerkant\'tan gelen ünlü bir âlim başkentinde medrese açmak istiyor.':'İtalya\'dan gelen bir bilgin başkentinde kütüphane kurmak istiyor.',
+   ch:[{l:'Himaye et (−40 altın, başkent +1 gelişmişlik)',dis:F.gold<40,f:()=>{F.gold-=40;S.prov[F.cap].dev++;}},{l:'Nazikçe geri çevir'}]},
+  {w:2,t:isM?'Akıncı Beyleri':'Paralı Askerler',d:isM?'Sınır boylarından akıncı beyleri hizmet teklif ediyor.':'Bir condottiere bölüğü ücret karşılığı hizmet teklif ediyor.',
+   ch:[{l:'Kirala (−70 altın, başkente +4000 asker)',dis:F.gold<70,f:()=>{F.gold-=70;S.prov[F.cap].t+=4000;}},{l:'Gerek yok'}]},
+  {w:1,t:'Deprem',d:`${pn} sarsıldı; kale burçlarında çatlaklar var.`,ch:[{l:'Hemen onar (−35 altın)',dis:F.gold<35,f:()=>{F.gold-=35;}},{l:'Bekle (kale −1)',f:()=>{S.prov[p].fort=Math.max(0,S.prov[p].fort-1);}}]},
+  {w:S.turn%4===3?3:0,t:'Sert Kış',d:'Yollar karla kapandı, köylerde kıtlık var.',ch:[{l:'Ambarları aç (−25 altın)',dis:F.gold<25,f:()=>{F.gold-=25;}},{l:'Dayanın (insan gücü −30%)',f:()=>{F.mp=Math.round(F.mp*.7);}}]}
+ ];
+ if(un.length){const q=pick(un);ev.push({w:4,t:'Ayaklanma',d:`Yeni fethedilen ${PD[q].name} halkı vergilere karşı ayaklandı.`,ch:[{l:'Bastır (garnizon −25%)',f:()=>{S.prov[q].t=Math.round(S.prov[q].t*.75/100)*100;S.prov[q].un=Math.max(0,S.prov[q].un-3);}},{l:'Vergi affı ilan et (−40 altın, huzursuzluk biter)',dis:F.gold<40,f:()=>{F.gold-=40;S.prov[q].un=0;}}]});}
+ const fr=FK.filter(g=>g!==f&&alive(g)&&!atWar(f,g));if(fr.length){const g=pick(fr);ev.push({w:2,t:`${FAC[g].s} Elçisi`,d:`${FAC[g].n} elçisi hediyelerle sarayına geldi.`,ch:[{l:'Hediyeleri kabul et (+30 altın)',f:()=>{F.gold+=30;}},{l:'Karşılık ver (−20 altın, ilişki +25)',dis:F.gold<20,f:()=>{F.gold-=20;addOp(f,g,25);}}]});}
+ let tot=ev.reduce((a,e)=>a+e.w,0),r=Math.random()*tot;const e=ev.find(x=>(r-=x.w)<0)||ev[0];
+ queueModal(()=>eventModal({...e,e:dateStr(S.turn)}));
+}
+
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+const $=s=>document.querySelector(s);
+let dpr=1,vw=0,vh=0,cam={x:0,y:0,s:1},fitS=1,polDirty=true,need=false;
+let sel=-1,tgt=-1,hlKey='',startPick=null,facLabels=[];
+function resize(){dpr=Math.min(window.devicePixelRatio||1,2);vw=innerWidth;vh=innerHeight;cv.width=vw*dpr;cv.height=vh*dpr;fitS=Math.min(vw/W,vh/H);clampCam();req();}
+function clampCam(){const minS=fitS*.85;cam.s=clamp(cam.s,minS,5);const mw=W*cam.s,mh=H*cam.s,pad=80;
+ cam.x=mw<vw?(vw-mw)/2:clamp(cam.x,vw-mw-pad,pad);cam.y=mh<vh?(vh-mh)/2:clamp(cam.y,vh-mh-pad,pad);}
+function req(){if(!need){need=true;requestAnimationFrame(draw);}}
+function centerOn(x,y,s){cam.s=s;cam.x=vw/2-x*s;cam.y=vh/2-y*s;clampCam();req();}
+function zoomAt(sx,sy,ns){ns=clamp(ns,fitS*.85,5);const wx=(sx-cam.x)/cam.s,wy=(sy-cam.y)/cam.s;cam.s=ns;cam.x=sx-wx*ns;cam.y=sy-wy*ns;clampCam();req();}
+
+function renderPol(){
+ const d=polImg.data;const col=FK.reduce((o,f)=>{o[f]=hex2(FAC[f].c);return o;},{});
+ const own=new Array(NP);for(let i=0;i<NP;i++)own[i]=S.prov[i].o;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4,id=idMap[i];if(id<0){d[o+3]=0;continue;}
+  const ow=own[id],c=col[ow];let edge=0;
+  const nb=[x>0?idMap[i-1]:-3,x<W-1?idMap[i+1]:-3,y>0?idMap[i-W]:-3,y<H-1?idMap[i+W]:-3];
+  for(let k=0;k<4;k++){const b=nb[k];if(b!==id&&b>=0){if(own[b]!==ow){edge=2;break;}edge=1;}}
+  if(edge===2){d[o]=c[0]*.42;d[o+1]=c[1]*.42;d[o+2]=c[2]*.42;d[o+3]=235;}
+  else if(edge===1){d[o]=c[0]*.55;d[o+1]=c[1]*.55;d[o+2]=c[2]*.55;d[o+3]=120;}
+  else{d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=118;}}
+ polC.getContext('2d').putImageData(polImg,0,0);
+ computeFacLabels();polDirty=false;
+}
+function computeFacLabels(){
+ facLabels=[];
+ FK.forEach(f=>{if(!S.fac[f].alive)return;const ps=facProvs(f);if(!ps.length)return;const seen=new Set();let best=null,ba=0;
+  for(const s of ps){if(seen.has(s))continue;const comp=[s];seen.add(s);for(let h=0;h<comp.length;h++)for(const j of PD[comp[h]].adj){if(!seen.has(j)&&S.prov[j].o===f&&!PD[comp[h]].lanes.includes(j)&&!PD[j].lanes.includes(comp[h])){seen.add(j);comp.push(j);}}
+   const a=comp.reduce((t,i)=>t+PD[i].area,0);if(a>ba){ba=a;best=comp;}}
+  if(!best||ba<2500)return;let cx=0,cy=0;best.forEach(i=>{cx+=PD[i].lx*PD[i].area;cy+=PD[i].ly*PD[i].area;});cx/=ba;cy/=ba;
+  const id=idMap[Math.round(cy)*W+Math.round(cx)];
+  if(id<0||S.prov[id].o!==f){let bd=1e9;best.forEach(i=>{const dd=(PD[i].lx-cx)**2+(PD[i].ly-cy)**2;if(dd<bd){bd=dd;cx=PD[i].lx;cy=PD[i].ly;}});}
+  facLabels.push({f,x:cx,y:cy,sz:clamp(Math.sqrt(ba)/7.5,10,46)});});
+}
+function renderHL(){
+ const d=hlImg.data;d.fill(0);const paint=(k,fc,ec)=>{for(let q=provStart[k];q<provStart[k+1];q++){const i=provPix[q],o=i*4,x=i%W;
+  const e=(x>0&&idMap[i-1]!==k)||(x<W-1&&idMap[i+1]!==k)||idMap[i-W]!==k||idMap[i+W]!==k||(x>1&&idMap[i-2]!==k)||(x<W-2&&idMap[i+2]!==k)||idMap[i-2*W]!==k||idMap[i+2*W]!==k;
+  const c=e?ec:fc;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];}};
+ if(startPick){facProvs(startPick).forEach(k=>paint(k,[255,248,225,70],[255,236,190,255]));}
+ else if(sel>=0){
+  if(S.prov[sel].o===S.player&&S.player){PD[sel].adj.forEach(j=>{const o=S.prov[j].o;if(o===S.player)paint(j,[60,190,180,60],[40,160,150,200]);else if(atWar(S.player,o))paint(j,[225,70,50,80],[200,50,35,230]);});}
+  paint(sel,[255,248,225,80],[255,240,196,255]);
+  if(tgt>=0)paint(tgt,S.prov[tgt].o===S.player?[60,190,180,120]:[225,70,50,130],[255,255,255,255]);
+ }
+ hctx.putImageData(hlImg,0,0);
+}
+function updateHL(){const k=startPick?'f'+startPick+S.turn:sel+'|'+tgt+'|'+S.turn+'|'+JSON.stringify(Object.keys(S.war).length);if(k!==hlKey||polDirty){hlKey=k;renderHL();}}
+
+function draw(){
+ need=false;if(!baseC||!S)return;
+ if(polDirty){renderPol();hlKey='';}
+ updateHL();
+ ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#0d1830';ctx.fillRect(0,0,cv.width,cv.height);
+ const s=cam.s;
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=30;ctx.fillStyle='#86a8a2';ctx.fillRect(cam.x,cam.y,W*s,H*s);ctx.shadowBlur=0;
+ ctx.setTransform(dpr*s,0,0,dpr*s,dpr*cam.x,dpr*cam.y);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+ ctx.drawImage(baseC,0,0);ctx.drawImage(polC,0,0);ctx.drawImage(hlC,0,0);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ const X=x=>cam.x+x*s,Y=y=>cam.y+y*s;
+ // sea lanes
+ ctx.setLineDash([5,5]);ctx.lineWidth=1.4;ctx.strokeStyle='rgba(28,58,66,.6)';
+ PD.forEach(d=>d.lanes.forEach(j=>{const e=PD[j];ctx.beginPath();ctx.moveTo(X(d.lx),Y(d.ly));ctx.lineTo(X(e.lx),Y(e.ly));ctx.stroke();}));
+ ctx.setLineDash([]);
+ // faction labels
+ if(s<1.5){ctx.textAlign='center';ctx.textBaseline='middle';
+  facLabels.forEach(l=>{const fs=l.sz*s;if(fs<9)return;const c=hex2(FAC[l.f].c);ctx.font=`800 ${fs}px "Alegreya SC", Georgia, serif`;
+   ctx.globalAlpha=clamp((1.5-s)/.4,0,1)*.9;ctx.lineWidth=Math.max(2,fs*.12);ctx.strokeStyle='rgba(245,236,212,.55)';
+   const txt=FAC[l.f].s.toLocaleUpperCase('tr');const sp=fs*.18;
+   const chars=[...txt],ws=chars.map(ch=>ctx.measureText(ch).width),tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);let cx=X(l.x)-tot/2;
+   ctx.textAlign='left';chars.forEach((ch,k)=>{ctx.strokeText(ch,cx,Y(l.y));ctx.fillStyle=`rgb(${c[0]*.38|0},${c[1]*.38|0},${c[2]*.38|0})`;ctx.fillText(ch,cx,Y(l.y));cx+=ws[k]+sp;});ctx.textAlign='center';});
+  ctx.globalAlpha=1;}
+ // arrow
+ if(sel>=0&&tgt>=0){const a=PD[sel],b=PD[tgt];const ax=X(a.lx),ay=Y(a.ly),bx=X(b.lx),by=Y(b.ly);const mx=(ax+bx)/2-(by-ay)*.18,my=(ay+by)/2+(bx-ax)*.18;
+  const war=S.prov[tgt].o!==S.player;ctx.strokeStyle=war?'rgba(190,40,25,.95)':'rgba(25,120,115,.95)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo(mx,my,bx,by);ctx.stroke();
+  const an=Math.atan2(by-my,bx-mx);ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx-14*Math.cos(an-.45),by-14*Math.sin(an-.45));ctx.lineTo(bx-14*Math.cos(an+.45),by-14*Math.sin(an+.45));ctx.fill();}
+ // markers and names
+ const showAll=s>=.62,showNames=s>=1.15;const nearSel=new Set(sel>=0?[sel,...PD[sel].adj]:[]);
+ ctx.textAlign='center';ctx.textBaseline='middle';
+ const recent=new Set(S.battles.filter(b=>b.turn>=S.turn-1).map(b=>b.to));
+ for(const d of PD){const p=S.prov[d.i];const sx=X(d.lx),sy=Y(d.ly);if(sx<-60||sy<-40||sx>vw+60||sy>vh+40)continue;
+  const mine=p.o===S.player;const isCap=S.fac[p.o]&&S.fac[p.o].cap===d.i;
+  if(showNames){ctx.font=`700 ${s>1.8?12.5:11.5}px "Alegreya SC", Georgia, serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(246,238,215,.8)';const ny=sy+(p.t>0||mine?15:0);
+   const nm=(isCap?'★ ':'')+d.name;ctx.strokeText(nm,sx,ny);ctx.fillStyle='#2b2116';ctx.fillText(nm,sx,ny);}
+  else if(isCap&&s>=.5){ctx.font='12px Georgia, serif';ctx.fillStyle='rgba(40,28,14,.85)';ctx.fillText('★',sx,sy+13);}
+  if(p.t<=0&&!mine)continue;if(!(showAll||mine||nearSel.has(d.i)))continue;
+  const txt=fmtK(p.t);ctx.font='800 11.5px "Alegreya Sans", system-ui, sans-serif';const tw=ctx.measureText(txt).width+12;const c=hex2(FAC[p.o].c);
+  ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;ctx.strokeStyle=mine?'#f3d27a':'rgba(20,16,10,.7)';ctx.lineWidth=mine?2:1.2;
+  rr(sx-tw/2,sy-8.5,tw,17,8.5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=lum(c)>.6?'#1c160e':'#fff';ctx.fillText(txt,sx,sy+.5);
+  if(mine&&p.mv>0&&p.mv>=p.t*.5){ctx.fillStyle='rgba(20,16,10,.55)';ctx.beginPath();ctx.arc(sx+tw/2-1,sy-8,3,0,7);ctx.fill();}
+  if(recent.has(d.i)){ctx.font='13px system-ui, sans-serif';ctx.fillStyle='#8e1d10';ctx.fillText('⚔',sx-tw/2-8,sy);}
+ }
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+const ptrs=new Map();let drag=null,pinch=null,down=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size===1){down={x:e.clientX,y:e.clientY,moved:false};drag={x:e.clientX,y:e.clientY,cx:cam.x,cy:cam.y};}
+ else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:cam.s,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,cx:cam.x,cy:cam.y};if(down)down.moved=true;drag=null;}});
+cv.addEventListener('pointermove',e=>{
+ if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pinch&&ptrs.size===2){const [a,b]=[...ptrs.values()];const ns=clamp(pinch.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,fitS*.85,5);
+  const wx=(pinch.mx-pinch.cx)/pinch.s,wy=(pinch.my-pinch.cy)/pinch.s,mx=(a.x+b.x)/2,my=(a.y+b.y)/2;cam.s=ns;cam.x=mx-wx*ns;cam.y=my-wy*ns;clampCam();req();}
+ else if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>6&&down){down.moved=true;cv.classList.add('dragging');}
+  if(down&&down.moved){cam.x=drag.cx+dx;cam.y=drag.cy+dy;clampCam();req();}}
+ if(e.pointerType==='mouse'&&!drag)hover(e.clientX,e.clientY);});
+const up=e=>{ptrs.delete(e.pointerId);cv.classList.remove('dragging');
+ if(ptrs.size===0){if(down&&!down.moved&&e.type==='pointerup')mapClick(e.clientX,e.clientY);drag=null;pinch=null;down=null;}
+ else if(ptrs.size===1){pinch=null;const p=[...ptrs.values()][0];drag={x:p.x,y:p.y,cx:cam.x,cy:cam.y};}};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+cv.addEventListener('pointerleave',()=>{$('#tip').hidden=true;});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,cam.s*Math.exp(-e.deltaY*.0015));},{passive:false});
+function pickAt(sx,sy){const x=Math.floor((sx-cam.x)/cam.s),y=Math.floor((sy-cam.y)/cam.s);if(x<0||y<0||x>=W||y>=H)return -1;return idMap[y*W+x];}
+function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id];
+ tip.innerHTML=`<b>${PD[id].name}</b> · ${FAC[p.o].s} · ${fmtK(p.t)}`;tip.style.left=sx+'px';tip.style.top=sy+'px';tip.hidden=false;}
+
+function mapClick(sx,sy){
+ if(!S||!S.player||busy||!$('#start').hidden)return;
+ const id=pickAt(sx,sy);
+ if(id<0){clearSel();return;}
+ if(sel>=0&&S.prov[sel].o===S.player&&id!==sel&&PD[sel].adj.includes(id)){
+  const o=S.prov[id].o;
+  if(o===S.player||atWar(S.player,o)){if(avail(sel)<100){toast('Bu eyaletteki askerler bu tur zaten hareket etti.');return;}tgt=id;amt=Math.round(avail(sel)*(o===S.player?1:1)/100)*100;renderPanel();req();return;}
+ }
+ if(id===sel&&tgt<0){clearSel();return;}
+ sel=id;tgt=-1;confirmKey='';renderPanel();req();
+}
+function clearSel(){sel=-1;tgt=-1;confirmKey='';$('#panel').hidden=true;req();}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+let amt=0,confirmKey='';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function shield(f,big){const c=hex2(FAC[f].c);return `<span class="shield${big?' big':''}${lum(c)>.62?' lt':''}" style="--c:${FAC[f].c}">${FAC[f].s.slice(0,2).toLocaleUpperCase('tr')}</span>`;}
+function relChip(f){const pl=S.player;if(f===pl)return '<span class="chip ally">Senin</span>';
+ if(atWar(pl,f))return '<span class="chip war">Savaşta</span>';if(isAlly(pl,f))return '<span class="chip ally">Müttefik</span>';
+ if(inTruce(pl,f))return `<span class="chip truce">Ateşkes · ${S.truce[key(pl,f)]-S.turn} tur</span>`;return '<span class="chip">Barış</span>';}
+function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800);while($('#toasts').children.length>4)$('#toasts').firstChild.remove();}
+
+function renderTop(){
+ if(!S||!S.player)return;const f=S.player,F=S.fac[f];
+ $('#pShield').outerHTML=shield(f).replace('class="shield','id="pShield" class="shield');$('#pName').textContent=FAC[f].s;
+ const net=income(f)-upkeep(f);$('#gold').textContent=Math.floor(F.gold);const gd=$('#goldd');gd.textContent=(net>=0?'+':'')+net.toFixed(0);gd.className=net>=0?'pos':'neg';
+ $('#mp').textContent=fmtK(F.mp);$('#army').textContent=fmtK(strength(f));$('#provs').textContent=facProvs(f).length;
+ const w=warsOf(f).length;$('#wars').textContent=w;$('#wars').className=w?'neg':'';
+ $('#season').textContent=SEASONS[S.turn%4];$('#year').textContent=START_YEAR+Math.floor(S.turn/4)+` · tur ${S.turn+1}`;
+}
+function renderPanel(){
+ const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;
+ const d=PD[sel],p=S.prov[sel],f=S.player,F=S.fac[f],mine=p.o===f,isCap=S.fac[p.o].cap===sel;
+ const terr=d.mtn?'Dağlık · +30% savunma':d.des?'Çöl · +10% savunma':'Ova';
+ let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="Kapat">×</button></div>
+ <div class="chips">${relChip(p.o)}<span class="chip">${terr}</span>${p.un>0?`<span class="chip un">Huzursuz · ${p.un} tur</span>`:''}${p.mkt?'<span class="chip">Pazar</span>':''}${p.brk?'<span class="chip">Kışla</span>':''}</div>
+ <div class="grid4"><div><label>Gelişim</label><b>${p.dev}</b></div><div><label>Kale</label><b>${p.fort}</b></div><div><label>Garnizon</label><b>${fmtK(p.t)}</b></div><div><label>Gelir</label><b>${(p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)).toFixed(1)}</b></div></div>`;
+ if(tgt>=0){
+  const td=PD[tgt],tp=S.prov[tgt],av=avail(sel),war=tp.o!==f;amt=clamp(amt,Math.min(100,av),av);
+  h+=`<div class="sec"><h3>${war?'Sefer':'Asker yürüt'} → ${esc(td.name)}</h3>
+   <div class="amt"><span>Gönderilecek</span><b id="amtv">${amt.toLocaleString('tr')}</b><span>/ ${av.toLocaleString('tr')}</span></div>
+   <input type="range" id="amt" min="${Math.min(100,av)}" max="${av}" step="100" value="${amt}" aria-label="Asker sayısı"></div>`;
+  if(war){h+=`<div class="odds" id="odds"></div><div class="hint">Savunma: ${fmtK(tp.t)} asker + yerel milis, kale ${tp.fort}${PD[tgt].mtn?', dağlık arazi':''}${F.cannon?' (topçun kale etkisini kırıyor)':''}${S.turn%4===3?'. Kış seferi: saldırı gücü −15%':''}.</div>`;}
+  h+=`<div class="acts"><button class="btn ${war?'danger':'primary'}" data-act="go">${war?'Saldır':'Yürüt'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div>`;
+ }else if(mine){
+  const av=avail(sel);
+  h+=`<div class="hint">${av>0?`Hazır asker: <b>${av.toLocaleString('tr')}</b>. Yürütmek ya da saldırmak için komşu bir eyalete dokun. <span style="color:#6fd0c8">Yeşil</span> kendi toprağın, <span style="color:#f08a74">kırmızı</span> savaştaki düşman.`:'Bu eyaletteki askerler bu tur hareket etti.'}</div>
+  <div class="sec"><h3>Asker topla</h3><div class="acts">
+   <button class="btn" data-act="rec1" ${F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
+   <button class="btn" data-act="rec5" ${F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>
+  <div class="sec"><h3>İnşa et</h3><div class="acts">
+   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>İmar +1 <span class="c">${25*p.dev}</span></button>
+   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?'Pazar var':'Pazar'} <span class="c">${p.mkt?'✓':'60'}</span></button>
+   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>Kale ${p.fort+1} <span class="c">${p.fort>=5?'azami':40*(p.fort+1)}</span></button>
+   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?'Kışla var':'Kışla'} <span class="c">${p.brk?'✓':'50'}</span></button></div>
+   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır.</div></div>`;
+ }else{
+  const o=p.o,dp=defPower(sel,f);
+  h+=`<div class="meta"><span>Hükümdar <b>${esc(FAC[o].r)}</b></span><span>İlişki <b>${getOp(f,o)}</b></span><span>Ordu <b>${fmtK(strength(o))}</b></span><span>Tahmini savunma <b>${fmtK(dp)}</b></span></div>`;
+  if(!atWar(f,o)){const ck='war:'+o;
+   if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin.</div>`;
+   else if(inTruce(f,o))h+=`<div class="hint">Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.</div>`;
+   else h+=`<div class="hint">Bu eyalete saldırmak için önce savaş ilan etmelisin.</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?'Emin misin? Savaş ilan et':'Savaş ilan et'}</button>`;}
+  else h+=`<div class="hint">Savaştasın. Komşu eyaletini seçip buraya dokunarak saldır.</div>`;
+ }
+ el.innerHTML=h;
+ const r=$('#amt');if(r){const upd=()=>{amt=+r.value;$('#amtv').textContent=amt.toLocaleString('tr');const od=$('#odds');if(od){const ratio=atkPower(amt,f)/defPower(tgt,f);
+   const [t,c]=ratio>1.6?['Ezici üstünlük','var(--ok)']:ratio>1.15?['Üstünüz','#a9d98a']:ratio>.9?['Başa baş','var(--brass)']:ratio>.6?['Riskli','#f0a070']:['Umutsuz','var(--war2)'];
+   od.innerHTML=`<span>Güç ${fmtK(atkPower(amt,f))} : ${fmtK(defPower(tgt,f))}</span><b style="color:${c}">${t}</b>`;}};r.addEventListener('input',upd);upd();}
+}
+
+function act(a,t){
+ const f=S&&S.player,F=f&&S.fac[f];
+ switch(a){
+  case 'close':clearSel();break;
+  case 'cancel':tgt=-1;renderPanel();req();break;
+  case 'go':{const n=Math.min(amt,avail(sel));if(n<=0)break;const o=S.prov[tgt].o;
+   if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;const to=tgt;sel=to;tgt=-1;}
+   else{const rep=battle(sel,tgt,n);if(rep){toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
+     if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
+   renderAll();break;}
+  case 'rec1':case 'rec5':{const n=a==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)break;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;renderAll();break;}
+  case 'bdev':{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)break;F.gold-=c;p.dev++;renderAll();break;}
+  case 'bmkt':{const p=S.prov[sel];if(p.mkt||F.gold<60)break;F.gold-=60;p.mkt=1;renderAll();break;}
+  case 'bbrk':{const p=S.prov[sel];if(p.brk||F.gold<50)break;F.gold-=50;p.brk=1;renderAll();break;}
+  case 'bfort':{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)break;F.gold-=c;p.fort++;renderAll();break;}
+  case 'dwar':{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();break;}confirmKey='';declareWar(f,o);toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();break;}
+  case 'end':endTurn();break;
+  case 'diplo':showDiplo();break;
+  case 'missions':showMissions();break;
+  case 'chron':showChron();break;
+  case 'menu':showMenu();break;
+  case 'state':showState();break;
+  case 'mclose':closeModal();break;
+  case 'zin':zoomAt(vw/2,vh/2,cam.s*1.35);break;
+  case 'zout':zoomAt(vw/2,vh/2,cam.s/1.35);break;
+  case 'fit':cam.s=fitS;clampCam();req();break;
+  case 'dp-war':{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();break;}confirmKey='';declareWar(f,o);renderAll();showDiplo();break;}
+  case 'dp-peace':{const o=t.dataset.f;if(aiAcceptPeace(o,f)){makePeace(f,o);toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
+  case 'dp-trib':{const o=t.dataset.f;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold-=g;F.gold+=g;makePeace(f,o);news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
+  case 'dp-ally':{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();break;}
+  case 'dp-gift':{const o=t.dataset.f;if(F.gold<50)break;F.gold-=50;addOp(f,o,20);toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();break;}
+  case 'dp-break':{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();break;}
+  case 'off':{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)break;S.offers.splice(k,1);
+   if(ok&&atWar(of.f,f)){makePeace(of.f,f);toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();break;}
+  case 'ev':{const c=evChoices[+t.dataset.k];closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();break;}
+  case 'pick':{startPick=t.dataset.f;renderStart();hlKey='';startCenter(startPick);break;}
+  case 'begin':beginGame(startPick);break;
+  case 'continue':loadGame();break;
+  case 'newgame':closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
+  case 'help':showHelp();break;
+ }
+}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;act(t.dataset.act,t);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else clearSel();}});
+
+function renderAll(){renderTop();renderPanel();polDirty=true;req();}
+
+/* ---------------- modals ---------------- */
+const modalQ=[];let evChoices=[],evTitle='';
+function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
+function closeModal(){$('#modal').hidden=true;confirmKey='';if(modalQ.length){const m=modalQ.shift();setTimeout(m,60);}}
+function queueModal(fn){if($('#modal').hidden)fn();else modalQ.push(fn);}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev'))closeModal();});
+function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;
+ openModal(`<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
+ <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
+function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
+ const title=mineAtk?`${PD[r.to].name} seferi`:`${FAC[r.att].s} saldırısı: ${PD[r.to].name}`;
+ return `<div class="btl"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
+  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>Savunan <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}</div></div>`;}
+function showReport(){
+ const rep=(S.report||[]).filter(r=>r.att!==S.player);
+ let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>Mevsim Raporu</h2>`;
+ if(S.offers.length)h+=`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`;
+ if(rep.length)h+=`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`;
+ if(S.news.length)h+=`<div class="sec"><h3>Haberler</h3><div class="logl">${S.news.map(n=>`<div><time>${dateStr(S.turn)}</time><span class="${n.k}">${esc(n.m)}</span></div>`).join('')}</div></div>`;
+ h+=`<div class="foot"><button class="btn primary" data-act="mclose">Devam</button></div>`;openModal(h);
+}
+function showDiplo(){
+ const pl=S.player,F=S.fac[pl];const nb=new Set(nbrs(pl));
+ const list=FK.filter(f=>f!==pl&&alive(f)).sort((a,b)=>(atWar(pl,b)-atWar(pl,a))||(nb.has(b)-nb.has(a))||(strength(b)-strength(a)));
+ const rows=list.map(f=>{const w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f),op=getOp(pl,f);let b='';
+  if(w){b+=`<button class="btn" data-act="dp-peace" data-f="${f}">Barış teklif et</button><button class="btn" data-act="dp-trib" data-f="${f}">Haraç iste</button>`;}
+  else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">İttifakı boz</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">İttifak öner</button>`;
+   b+=`<button class="btn" data-act="dp-gift" data-f="${f}" ${F.gold<50?'disabled':''}>Hediye (50)</button>`;
+   if(!al&&!tr)b+=`<button class="btn danger" data-act="dp-war" data-f="${f}">${confirmKey==='dw:'+f?'Emin misin?':'Savaş ilan et'}</button>`;}
+  return `<div class="row">${shield(f)}<div class="nm">${esc(FAC[f].n)}<small>${esc(FAC[f].r)}${nb.has(f)?' · komşu':''}</small></div><div>${relChip(f)}</div></div>
+   <div class="row sub"><div class="meta"><span>Eyalet <b>${facProvs(f).length}</b></span><span>Ordu <b>${fmtK(strength(f))}</b></span><span>İlişki <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>Savaş skoru <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span></div><div class="ra" style="justify-content:flex-start;margin-top:6px">${b}</div></div>`;}).join('');
+ openModal(`<div class="eyebrow">Divan-ı Hümayun</div><h2>Diplomasi</h2><p class="lead" style="font-size:14px">Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+}
+function showMissions(){
+ const pl=S.player;const rows=S.mis.map((m,k)=>{const done=S.misDone[k]!=null;let prog='';
+  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;prog=`${n}/${m.own.length}`;}else if(m.count)prog=`${facProvs(pl).length}/${m.count}`;else if(m.gold)prog=`${Math.floor(S.fac[pl].gold)}/${m.gold}`;else if(m.hold)prog=S.turn>=m.until?'':`${m.until-S.turn} tur`;
+  return `<div class="mis ${done?'done':''}"><span class="ck">${done?'✓':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&prog?` · ${prog}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;}).join('');
+ openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2><div class="rows">${rows}</div>
+  <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+}
+function showChron(){const l=S.log.slice().reverse().slice(0,160);
+ openModal(`<div class="eyebrow">Tarih kaydı</div><h2>Vakayiname</h2><div class="logl">${l.map(e=>`<div><time>${dateStr(e.t)}</time><span class="${e.k}">${esc(e.m)}</span></div>`).join('')||'<div>Henüz kayıt yok.</div>'}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+function showState(){const f=S.player,F=S.fac[f],inc=income(f),up=upkeep(f),ps=facProvs(f);
+ const mk=ps.filter(i=>S.prov[i].mkt).length,un=ps.filter(i=>S.prov[i].un>0).length,ds=devSum(f);
+ openModal(`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(FAC[f].r)} · Başkent ${esc(PD[F.cap].name)}</div></div></div>
+ <div class="ledger"><span>Eyalet vergileri</span><b class="pos">+${inc.toFixed(1)}</b><span>Ordu maaşları (${fmtK(strength(f))})</span><b class="neg">−${up.toFixed(1)}</b><span class="tot">Tur başına net</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>
+ <div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>
+ <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
+ <div class="logl">
+ <div><time>Seç</time><span>Kendi eyaletine dokun. Yeşil komşular kendi toprağın, kırmızılar savaşta olduğun düşmanın.</span></div>
+ <div><time>Yürüt</time><span>Seçili eyaletten komşuya dokun, asker sayısını ayarla, <b>Yürüt</b> ya da <b>Saldır</b>. Hareket eden askerler o tur tekrar hareket edemez.</span></div>
+ <div><time>Muharebe</time><span>Savunmaya garnizon, yerel milis (gelişim ve kaleye göre) ve kale katılır. Dağlık eyaletler +30% savunur. Kışın saldırı −15%.</span></div>
+ <div><time>Topçu</time><span>Osmanlı 1453'te, herkes 1460'ta kuşatma topu kazanır. Topçu kale bonusunun büyük kısmını yok eder.</span></div>
+ <div><time>Hazine</time><span>Gelir eyalet gelişiminden gelir, her 1.000 asker tur başına 1 altın maaş ister. Hazine eksiye düşerse askerler firar eder.</span></div>
+ <div><time>Fetih</time><span>Yeni alınan eyalet 8 tur huzursuz kalır ve yarı gelir verir. Başkent kaybı hazinenin %30'unu götürür.</span></div>
+ <div><time>Diplomasi</time><span>Savaş ilan et, barış ya da haraç iste, ittifak kur. Müttefikler savunma savaşlarında yardıma gelir. Barıştan sonra 12 tur ateşkes olur.</span></div>
+ <div><time>Zafer</time><span>Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla. Haritayı sürükle, tekerlek ya da iki parmakla yakınlaştır.</span></div>
+ </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
+function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
+ <p class="lead" style="font-size:14px">Oyun her turun sonunda bu tarayıcıya otomatik kaydedilir.</p>
+ <div class="choices"><button class="btn" style="justify-content:center" data-act="help">Nasıl oynanır</button>
+ <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
+ <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);}
+function showEnd(){const pl=S.player;const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
+ const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
+ const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Kızıl Elma'ya ulaştın.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
+ openModal(`<div class="eyebrow">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
+ <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:#1d2f52':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} eyalet</small></div><b>${x.s}</b></div>`).join('')}</div>
+ <div class="foot">${S.over==='lose'?'':'<button class="btn" data-act="mclose">Haritaya bak</button>'}<button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
+
+/* ---------------- start screen ---------------- */
+function renderStart(){
+ const groups=[[1,'Güçlü başlangıç'],[2,'Dengeli'],[3,'Zorlu']];
+ $('#flist').innerHTML=groups.map(([g,t])=>`<div class="fgroup"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('');
+ const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(FAC[f].r)} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+  <div class="row2">${has?'<button class="btn" data-act="continue">Kayıtlı oyuna dön</button>':''}<button class="btn primary" data-act="begin">Sefere başla</button></div>`
+  :`<p>Soldan bir devlet seç. Haritada toprakları parlayacak.</p>${has?'<div class="row2"><button class="btn primary" data-act="continue">Kayıtlı oyuna dön</button></div>':''}`;
+}
+function showStart(){newGame(null);startPick='OSM';sel=-1;tgt=-1;$('#top').hidden=true;$('#zoom').hidden=true;$('#panel').hidden=true;$('#start').hidden=false;
+ polDirty=true;hlKey='';renderStart();startCenter('OSM');}
+function startCenter(f){const c=S.fac[f].cap,s=Math.max(fitS*1.25,Math.min(vw,vh)/700);const side=vw>760?Math.min(470,vw*.45):0;cam.s=s;cam.x=side+(vw-side)/2-PD[c].lx*s;cam.y=vh/2-PD[c].ly*s;clampCam();req();}
+function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
+ queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
+function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2));renderAll();
+ if(S.over)queueModal(showEnd);}
+function save(){try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
+function loadGame(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(!s||!s.prov||s.prov.length!==NP)throw 0;S=s;FK.forEach(f=>{if(!S.fac[f])S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});$('#start').hidden=true;enterGame();}
+ catch(e){toast('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','war');}}
+
+/* ---------------- boot ---------------- */
+async function boot(){
+ resize();addEventListener('resize',resize);
+ try{await Promise.race([Promise.all([document.fonts.load('700 20px "Alegreya SC"'),document.fonts.load('italic 500 20px Alegreya'),document.fonts.load('800 12px "Alegreya Sans"')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
+ await new Promise(r=>setTimeout(r,30));
+ buildMap();
+ $('#loading').remove();
+ let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
+ showStart();
+ req();
+}
+boot();
+window.__ke={get S(){return S;},PD,endTurn,aiTurn,beginGame};
+})();
+</script>
+</body>
+</html>
