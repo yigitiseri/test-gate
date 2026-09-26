@@ -17,7 +17,7 @@ Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. 
 
 - **Ses:** Hicaz makamında ney, ud, davul ve def ile çalan fon müziği; savaşta mehter havasına döner. Yürüyüş, kılıç, top, zafer borusu, gong ve çan efektleri. Hepsi Web Audio ile kodla üretilir, ses dosyası yoktur. Üst çubuktaki düğmeyle kapatılır; menüde müzik, efekt ve ses düzeyi ayarları var.
 
-Oyun her turun sonunda tarayıcıya otomatik kaydedilir.
+Oyun her hamleden sonra tarayıcıya otomatik kaydedilir; sayfa kapansa bile açılış ekranındaki "Kayıtlı oyuna dön" ile devam edilir.
 
 ## Teknik
 

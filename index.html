@@ -1509,9 +1509,11 @@ function act(a,t){
 }
 const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begin','ev','dp-peace','dp-trib','dp-ally','dp-gift','off','snd']);
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
+addEventListener('pagehide',()=>{if(S&&S.player&&!busy)save();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.player&&!busy)save();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else clearSel();}});
 
-function renderAll(){renderTop();renderPanel();polDirty=true;req();}
+function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.player&&!busy)save();}
 
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='';
@@ -1573,7 +1575,7 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  <div><time>Zafer</time><span>Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla. Haritayı sürükle, tekerlek ya da iki parmakla yakınlaştır.</span></div>
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
 function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
- <p class="lead" style="font-size:14px">Oyun her turun sonunda bu tarayıcıya otomatik kaydedilir.</p>
+ <p class="lead" style="font-size:14px">Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>
  <div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
  <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>
  <div class="choices"><button class="btn" style="justify-content:center" data-act="help">Nasıl oynanır</button>
