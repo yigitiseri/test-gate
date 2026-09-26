@@ -21,4 +21,7 @@ Oyun her turun sonunda tarayıcıya otomatik kaydedilir.
 
 ## Teknik
 
+Harita varsayılan olarak Three.js (WebGL) ile 3D çizilir: yükselti haritasından üretilen arazi ağı, güneş ışığı ve gölgeler, dalgalanan su, 3D kaleler ve asker figürleri. Sol alttaki **2D/3D** düğmesiyle düz haritaya geçilebilir; Three.js yüklenemezse oyun kendiliğinden 2D çalışır.
+
+
 Tek bir HTML dosyası, harici kütüphane yok. Harita her açılışta prosedürel olarak üretilir: kıyı şeritleri enlem-boylam poligonlarından gürültüyle bozularak çizilir, eyalet sınırları gerçek şehir koordinatlarından türetilen ve kara kütlesiyle sınırlandırılan bir Voronoi bölümlemesidir. Nehirler, dağlar ve deniz yolları da haritada gösterilir.
