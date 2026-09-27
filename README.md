@@ -1,4 +1,4 @@
-# Kızıl Elma 1451
+# Age of Dynasties
 
 Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. Yıl 1451: II. Mehmed tahta çıkmış, Konstantiniyye surları hâlâ ayakta. Balkanlar, Anadolu, Kafkasya, Mezopotamya, Levant, Mısır ve Güney İtalya'yı kapsayan haritada 28 devletten birini seçip 1531'e kadar yönetiyorsun.
 
@@ -27,7 +27,7 @@ Oyun bir web uygulamasıdır (PWA): ikonu, tam ekran açılışı ve çevrimdı�
 2. iPhone'da adresi **Safari** ile aç.
 3. **Paylaş** düğmesi → **Ana Ekrana Ekle** → **Ekle**.
 
-Oyun ana ekranda Kızıl Elma ikonuyla, tarayıcı çubukları olmadan açılır. İlk açılıştan sonra internet olmadan da oynanabilir. Yeni sürüm yayınlarken `sw.js` içindeki `VERSION` değerini artır.
+Oyun ana ekranda taçlı arma ikonuyla, tarayıcı çubukları olmadan açılır. İlk açılıştan sonra internet olmadan da oynanabilir. Yeni sürüm yayınlarken `sw.js` içindeki `VERSION` değerini artır.
 
 ## Görünüm
 
