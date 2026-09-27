@@ -323,6 +323,24 @@ input[type=range]{accent-color:var(--brass)}
 .pick p{color:#4a3520;font-size:15.5px}
 #loading{background:#1c120a;font-family:var(--display);color:var(--gold)}
 #loading small{font-family:var(--body);color:#c9b089;font-size:15px}
+#modal .card:has(.guide){width:min(760px,100%)}
+.guide{display:flex;flex-direction:column;gap:12px}
+.gtabs{display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid #a88452;padding-bottom:8px}
+.gt{font:600 13px/1 var(--display);letter-spacing:.08em;padding:8px 12px;border:1px solid #a88452;border-radius:3px;background:rgba(255,248,228,.5);color:#4a3520;cursor:pointer}
+.gt:hover{background:rgba(255,250,236,.9);border-color:#6e4d27}
+.gt.on{background:linear-gradient(#9b2417,#6d160e);color:#f7e8bb;border-color:#4a0d07}
+.gt:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.gbody{display:flex;flex-direction:column;gap:10px;font-size:16px;line-height:1.55}
+.gbody p{margin:0;max-width:68ch}
+.gbody h3{margin:6px 0 0;font:700 14px/1.2 var(--display);letter-spacing:.12em;color:var(--brass)}
+.gbody ol{margin:0;padding-left:22px}
+.gtable{width:100%;border-collapse:collapse;font-size:15px;background:rgba(255,248,228,.45)}
+.gtable th,.gtable td{border:1px solid #b89a6a;padding:6px 9px;text-align:left;vertical-align:top}
+.gtable th{font:700 11.5px/1.3 var(--display);letter-spacing:.08em;color:#6e4d27;background:rgba(168,132,82,.15)}
+.formula{font-style:italic;padding:8px 12px;border-left:3px solid var(--brass);background:rgba(142,31,20,.07)}
+.tip{padding:9px 12px;border:1px dashed #a88452;background:rgba(201,154,59,.12)}
+.hero .gbtn{margin-top:12px;align-self:flex-start;padding:7px 12px;font-size:14px}
+@media (max-width:760px){.gtable{font-size:13.5px}.gtable th,.gtable td{padding:5px 6px}.gt{padding:7px 9px;font-size:11.5px}}
 </style>
 </head>
 <body>
@@ -344,6 +362,7 @@ input[type=range]{accent-color:var(--brass)}
     <button class="nb" data-act="diplo">⚖<span class="lbl"> Diplomasi</span></button>
     <button class="nb" data-act="missions">✦<span class="lbl"> Hedefler</span></button>
     <button class="nb" data-act="chron">❧<span class="lbl"> Vakayiname</span></button>
+    <button class="nb" data-act="guide" data-t="genel" aria-label="Oyun rehberi" title="Oyun rehberi"><b style="font:700 15px var(--display)">i</b><span class="lbl"> Rehber</span></button>
     <button class="nb" data-act="snd" id="sndBtn" aria-label="Sesi aç/kapat">🔊</button>
     <button class="nb" data-act="menu">☰</button>
   </nav>
@@ -363,6 +382,7 @@ input[type=range]{accent-color:var(--brass)}
       <div class="eyebrow">Büyük strateji · Sıra tabanlı · Sesli</div>
       <h1><small>Age of</small>Dynasties<span>MCDLI · HİCRÎ 855</span></h1>
       <p>Genç bir sultan tahta çıktı, Konstantiniyye surları hâlâ ayakta. Bir devlet seç, ordunu topla, eyalet eyalet genişle. 1531 yılına kadar tarihin akışını değiştir.</p>
+      <button class="btn gbtn" data-act="guide" data-t="genel">ⓘ Oyun rehberi</button>
     </div>
     <div class="flist" id="flist"></div>
     <div class="pick" id="pick"></div>
@@ -1743,7 +1763,8 @@ function act(a,t){
   case 'snd-sfx':SND.set('sfx',!SND.st.sfx);showMenu();break;
   case 'continue':loadGame();break;
   case 'newgame':modalQ.length=0;closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
-  case 'help':showHelp();break;
+  case 'help':showGuide('genel');break;
+  case 'guide':showGuide(t.dataset.t);break;
  }
 }
 const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begin','ev','dp-peace','dp-trib','dp-ally','dp-gift','off','snd']);
@@ -1803,6 +1824,94 @@ function showState(){const f=S.player,F=S.fac[f],inc=income(f),up=upkeep(f),ps=f
  <div class="ledger"><span>Eyalet vergileri</span><b class="pos">+${inc.toFixed(1)}</b><span>Ordu maaşları (${fmtK(strength(f))})</span><b class="neg">−${up.toFixed(1)}</b><span class="tot">Tur başına net</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>
  <div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>
  <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+/* ---------------- guide ---------------- */
+const GUIDE_TABS=[['genel','Genel'],['para','Para'],['savas','Savaş'],['bina','Binalar'],['diplo','Diplomasi'],['olay','Olaylar']];
+function guideBody(t){
+ const half=Math.ceil(NP*.5);
+ if(t==='para')return `<h3>Hazine nasıl dolar?</h3>
+ <p>Her tur sonunda eyaletlerinden vergi toplanır. Bir eyaletin geliri <b>gelişmişliği</b> kadardır.</p>
+ <div class="formula">Gelir = gelişim × (pazar varsa 1,5) × (huzursuzsa 0,5)</div>
+ <div class="formula">Gider = her 1.000 asker için tur başına 1 altın</div>
+ <p>Üst çubuktaki Hazine yanında yazan yeşil ya da kırmızı sayı, tur başına kalan <b>net</b> paradır.</p>
+ <table class="gtable"><tr><th>Ek gelir</th><th>Ne kadar</th></tr>
+ <tr><td>Fetih yağması</td><td>Alınan eyaletin gelişimi × 4</td></tr>
+ <tr><td>Haraç</td><td>Yenik düşmanın hazinesinin %70'ine kadar</td></tr>
+ <tr><td>Olaylar</td><td>Kervan, bereketli hasat, elçi hediyesi</td></tr>
+ <tr><td>Hedefler</td><td>Her tarihî hedefin kendi ödülü (60–300 altın)</td></tr></table>
+ <h3>İnsan gücü</h3>
+ <p>Asker toplamak için altının yanında insan gücü de gerekir. Her tur <b>gelişim × 110</b> kadar artar, üst sınırı <b>gelişim × 800</b>'dür. Kışla bu ikisini de iki katına çıkarır.</p>
+ <h3>Dikkat</h3>
+ <p>Hazine eksiye düşerse maaşını alamayan askerlerin <b>%10'u her eyalette firar eder</b>. Ordunun maaşı gelirini geçmesin.</p>
+ <p class="tip"><b>İpucu:</b> Pazarı en gelişmiş eyaletlerine kur. Gelişim 7 olan Edirne pazarla tur başına 7 yerine 10,5 altın getirir.</p>`;
+ if(t==='savas')return `<h3>Saldırmadan önce</h3>
+ <p>Bir devlete saldırmak için önce <b>savaş ilan etmelisin</b>. Sadece komşu eyaletlere saldırılır; kesik çizgiler deniz geçişleridir. Bir asker her tur <b>bir kez</b> hareket eder, yeni toplanan asker o tur yürüyemez.</p>
+ <div class="formula">Saldırı = gönderilen asker × şans (0,85–1,2) × (kışın 0,85)</div>
+ <div class="formula">Savunma = (garnizon + milis) × kale × arazi × şans (0,85–1,2)</div>
+ <table class="gtable"><tr><th>Savunmayı artıran</th><th>Etki</th></tr>
+ <tr><td>Yerel milis</td><td>gelişim × 150 + kale × 700 asker</td></tr>
+ <tr><td>Kale</td><td>her seviye +%15 (düşmanın topu varsa +%6)</td></tr>
+ <tr><td>Dağlık arazi</td><td>+%30</td></tr><tr><td>Çöl</td><td>+%10</td></tr></table>
+ <h3>Sonuç</h3>
+ <table class="gtable"><tr><th></th><th>Kazanırsan</th><th>Kaybedersen</th></tr>
+ <tr><td>Eyalet</td><td>Senin olur, 8 tur huzursuz kalır</td><td>Düşmanda kalır</td></tr>
+ <tr><td>Senin kaybın</td><td>En fazla %30 (ne kadar üstünsen o kadar az)</td><td>%25–55, kalanlar geri döner</td></tr>
+ <tr><td>Düşman</td><td>Garnizonun %65'i ölür, gerisi kaçar</td><td>En fazla %30 kayıp</td></tr>
+ <tr><td>Ganimet</td><td>Gelişim × 4 altın, kale 1 seviye hasar</td><td>—</td></tr></table>
+ <p>Başkent düşerse sahibi hazinesinin <b>%30'unu</b> kaybeder ve başkentini taşır. Son eyaletini kaybeden devlet tarihten silinir.</p>
+ <h3>Topçu</h3><p>Osmanlı 1453'te Urban'ın toplarını, diğer herkes 1460'ta barutlu topları kazanır. Top, kale bonusunun %60'ını yok eder.</p>
+ <p class="tip"><b>Kesin zafer:</b> Şans payı yüzünden gücün savunmanın <b>1,42 katı</b> olursa kaybetmezsin. Asker gönderirken paneldeki tahmine bak: Ezici üstünlük › Üstünüz › Başa baş › Riskli › Umutsuz.</p>
+ <p class="tip"><b>Örnek:</b> 1451'de Konstantiniyye yaklaşık 18.700 güçle savunulur. Top yokken kesin fetih için yaklaşık 26.500 asker gerekir; 1453'ten sonra Osmanlı için 20.500 yeter.</p>`;
+ if(t==='bina')return `<p>Kendi eyaletine dokun; panelde <b>Asker topla</b> ve <b>İnşa et</b> bölümleri çıkar. Harcama hemen yapılır.</p>
+ <table class="gtable"><tr><th>Yapı</th><th>Maliyet</th><th>Etki</th><th>Sınır</th></tr>
+ <tr><td><b>İmar</b></td><td>25 × gelişim</td><td>+1 gelişim: daha çok gelir, insan gücü ve milis</td><td>12'ye kadar</td></tr>
+ <tr><td><b>Pazar</b></td><td>60</td><td>Eyalet geliri +%50</td><td>1</td></tr>
+ <tr><td><b>Kışla</b></td><td>50</td><td>Eyaletin insan gücü üretimi ve sınırı ×2</td><td>1</td></tr>
+ <tr><td><b>Kale</b></td><td>40 × (seviye + 1)</td><td>Savunma +%15 ve +700 milis</td><td>5. seviye</td></tr>
+ <tr><td><b>Asker</b></td><td>12 altın + 1.000 insan gücü</td><td>+1.000 asker (5.000'lik: 60 altın)</td><td>—</td></tr></table>
+ <p>Fethedilen eyalette kale 1 seviye hasar görür; pazar ve kışla yerinde kalır.</p>
+ <p class="tip"><b>İpucu:</b> Başlangıçta pazar en hızlı geri dönen yatırımdır. Sınırdaki önemli şehirlere kale, çok asker toplayacağın yerlere kışla yap. İmar pahalıdır ama kalıcıdır.</p>`;
+ if(t==='diplo')return `<p>Üst çubuktaki <b>⚖ Diplomasi</b> düğmesi bütün devletleri, ilişkini ve ordularını gösterir.</p>
+ <table class="gtable"><tr><th>Eylem</th><th>Ne olur</th></tr>
+ <tr><td>Savaş ilan et</td><td>İlişki −60. Hedefin müttefikleri de sana savaş açar (ateşkeste olanlar hariç).</td></tr>
+ <tr><td>Barış teklif et</td><td>Savaş skorunda öndeysen, düşman senden %25 zayıfsa ya da savaş 10 turu geçtiyse kabul edilir.</td></tr>
+ <tr><td>Haraç iste</td><td>Skorda 4 puan öndeysen ya da düşman gücünün %40'ından zayıfsa, hazinesinin %70'ine kadar öder ve barış olur.</td></tr>
+ <tr><td>İttifak öner</td><td>İlişki 40+ ise ya da 10+ ve ortak bir düşmanınız varsa kabul edilir. Müttefik, sana savaş açılınca yardıma gelir.</td></tr>
+ <tr><td>Hediye</td><td>50 altın, ilişki +20</td></tr></table>
+ <h3>İlişki ve savaş skoru</h3>
+ <p>İlişki −100 ile +100 arasındadır. Aynı dinden devletler +20, farklı dinden devletler −20 ile başlar, üstüne tarihî dostluk ve düşmanlıklar eklenir. Her tur yavaşça bu başlangıç değerine döner.</p>
+ <p>Savaş skoru: kazanılan muharebe <b>+2</b>, alınan başkent <b>+3 ek</b>, püskürtülen saldırı <b>+1</b>. Barıştan sonra <b>12 tur</b> (3 yıl) ateşkes olur.</p>
+ <p class="tip"><b>Koruma:</b> Oyunun ilk 6 turunda kimse sana savaş açmaz.</p>`;
+ if(t==='olay')return `<h3>Rastgele olaylar</h3>
+ <p>Her tur %30 ihtimalle bir olay seni karar vermeye çağırır: İpek Yolu kervanı, veba salgını, bereketli hasat, gezgin âlim, paralı askerler, deprem, sert kış, yeni fethedilen eyalette ayaklanma, yabancı elçi. Seçimin hazineyi, orduyu ya da ilişkileri etkiler.</p>
+ <h3>Tarihî olaylar</h3>
+ <table class="gtable"><tr><th>Yıl</th><th>Olay</th></tr>
+ <tr><td>1453</td><td>Urban'ın topları: Osmanlı kuşatma topu kazanır</td></tr>
+ <tr><td>1456</td><td>Kuyruklu yıldız görülür</td></tr>
+ <tr><td>1460</td><td>Barut çağı: herkes top kullanır</td></tr>
+ <tr><td>1492</td><td>Yeni Dünya'nın keşfi, Gırnata'nın düşüşü</td></tr>
+ <tr><td>1501</td><td>Şah İsmail Tebriz'de taç giyer; Safevî devleti doğar</td></tr></table>
+ <h3>Hedefler</h3>
+ <p><b>✦ Hedefler</b> menüsünde devletine özel tarihî görevler vardır; örneğin Konstantiniyye'nin fethi, Belgrad kuşatması, Kroya direnişi. Her biri altın ödül verir ve puanına +60 ekler.</p>`;
+ return `<p>Yıl 1451. Balkanlar, Anadolu, Kafkasya ve Doğu Akdeniz'de 28 hanedan güç için yarışıyor. Birini seç ve 1531'e kadar yönet.</p>
+ <table class="gtable"><tr><th>Konu</th><th>Kural</th></tr>
+ <tr><td>Tur</td><td>Her tur bir mevsim; 1451 İlkbahar'dan 1531'e 320 tur</td></tr>
+ <tr><td>Zafer</td><td>${half} eyalete (haritanın yarısı) ulaş ya da 1531'de en yüksek puanı topla</td></tr>
+ <tr><td>Yenilgi</td><td>Son eyaletini kaybetmek</td></tr>
+ <tr><td>Puan</td><td>eyalet × 10 + gelişim × 3 + hedef × 60 + altın ÷ 10</td></tr></table>
+ <h3>Bir tur nasıl geçer?</h3>
+ <ol><li>Asker topla, inşa et, asker yürüt, saldır, diplomasi yap.</li><li><b>Turu Bitir</b>'e bas.</li><li>Diğer 27 devlet hamlesini yapar.</li><li>Gelir ve insan gücü eklenir, askerler dinlenir.</li><li>Bazen bir olay seni karar vermeye çağırır.</li></ol>
+ <h3>Kontroller</h3>
+ <table class="gtable"><tr><td>Eyaletini seç</td><td>Eyalete dokun</td></tr>
+ <tr><td>Yürüt / saldır</td><td>Seçiliyken komşuya dokun. Yeşil kendi toprağın, kırmızı savaştaki düşman.</td></tr>
+ <tr><td>Haritayı gez</td><td>Sürükle; fare tekerleği ya da iki parmakla yakınlaştır</td></tr>
+ <tr><td>Görünüm</td><td>Sol alttaki 3D/2D ve harita modu düğmeleri</td></tr></table>
+ <p class="tip">Oyun her hamleden sonra kendiliğinden kaydedilir. Açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>`;
+}
+function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
+ openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>Oyun Rehberi</h2>
+ <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
+ <div class="gbody">${guideBody(t)}</div>
+ <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
 function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
  <div class="logl">
  <div><time>Seç</time><span>Kendi eyaletine dokun. Yeşil komşular kendi toprağın, kırmızılar savaşta olduğun düşmanın.</span></div>
@@ -1818,7 +1927,7 @@ function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · $
  <p class="lead" style="font-size:14px">Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>
  <div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
  <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>
- <div class="choices"><button class="btn" style="justify-content:center" data-act="help">Nasıl oynanır</button>
+ <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">Oyun rehberi</button>
  <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
  <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
  const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}
@@ -1843,7 +1952,7 @@ function showStart(){newGame(null);startPick='OSM';sel=-1;tgt=-1;$('#top').hidde
  polDirty=true;hlKey='';renderStart();startCenter('OSM');}
 function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);if(!ps.length)return;
  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;ps.forEach(i=>{const d=PD[i];x0=Math.min(x0,d.lx);x1=Math.max(x1,d.lx);y0=Math.min(y0,d.ly);y1=Math.max(y1,d.ly);});
- const smax=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1),fit=Math.min((vw-side-60)/(x1-x0+90),(vh-60)/(y1-y0+90))*(G3.on?1.15:1);
+ const smax=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1),fit=Math.min((vw-side-60)/(x1-x0+90),(vh-60)/(y1-y0+90))*(G3.on?.8:1);
  centerOn((x0+x1)/2,(y0+y1)/2,clamp(fit,fitS*.9,smax),side);}
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
  queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
