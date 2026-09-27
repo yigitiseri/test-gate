@@ -39,3 +39,7 @@ Harita varsayılan olarak Three.js (WebGL) ile 3D çizilir: yükselti haritasın
 
 
 Tek bir HTML dosyası, harici kütüphane yok. Harita her açılışta prosedürel olarak üretilir: kıyı şeritleri enlem-boylam poligonlarından gürültüyle bozularak çizilir, eyalet sınırları gerçek şehir koordinatlarından türetilen ve kara kütlesiyle sınırlandırılan bir Voronoi bölümlemesidir. Nehirler, dağlar ve deniz yolları da haritada gösterilir.
+
+## Geliştirme
+
+`index.html` elle düzenlenmez: `src/` altındaki şablon, CSS ve JS parçalarından `node build.js` ile üretilir. Testler: `tests/run-all.sh`. Ayrıntılar ve hangi dosyanın neyi içerdiği için [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -1,0 +1,22 @@
+:root{
+  --ink:#0d1830;--ink2:#132342;--ink3:#1b3058;--line:#2b4677;--line2:#3c5d96;
+  --paper:#f0e5c9;--paper2:#cfc3a3;--muted:#98a6c0;
+  --brass:#d9ad55;--tile:#23898a;--tile2:#2fb0aa;--war:#c7432e;--war2:#e35a41;--ok:#6cb57a;
+  --sea:#2a5f80;
+  --display:'Alegreya SC',Georgia,'Times New Roman',serif;
+  --body:'Alegreya Sans','Segoe UI',system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--paper);font:15px/1.4 var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+#map,#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+#map{touch-action:none;cursor:grab}
+#map.dragging{cursor:grabbing}
+
+/* Iznik tile band used on panels */
+.band{height:6px;background:
+  radial-gradient(circle at 6px 3px,var(--tile2) 2px,transparent 2.5px) 0 0/12px 6px,
+  linear-gradient(90deg,var(--ink3),var(--line) 50%,var(--ink3));border-bottom:1px solid var(--brass)}
+

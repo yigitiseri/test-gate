@@ -1,0 +1,37 @@
+@media (max-width:1560px){
+  nav.tabs .lbl{display:none}
+  #top{gap:10px}
+}
+@media (max-width:1280px){
+  .brand small{display:none}
+  .brand{font-size:18px}
+}
+@media (max-width:1100px){
+  .brand{display:none}
+}
+@media (max-width:980px){
+  #top{flex-wrap:wrap;gap:6px 10px;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px}
+  .brand{display:block;font-size:17px}
+  .res{order:5;flex-basis:100%}
+  .stat{flex:1 1 auto;min-width:0;padding:0 8px}
+  .stat b{font-size:15px}
+  .date{margin-left:auto}
+  nav.tabs{order:4}
+  #endTurn{padding:8px 12px;font-size:14px}
+}
+@media (max-width:760px){
+  .stat{padding:0 5px}
+  .stat label{font-size:9.5px;letter-spacing:.03em}
+  .stat b{font-size:14px}
+  .stat b small{font-size:11px;margin-left:2px}
+  #panel{left:8px;right:8px;width:auto;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:52%}
+  #zoom{bottom:calc(10px + env(safe-area-inset-bottom,0px));left:10px}
+  #zoom button{width:34px;height:34px;font-size:17px}
+  #start{grid-template-columns:1fr;grid-template-rows:1fr}
+  #start .side{border-right:0}
+  .hero{padding-bottom:10px}
+  .hero p{display:none}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .grid4 b{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
