@@ -19,6 +19,16 @@ Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. 
 
 Oyun her hamleden sonra tarayıcıya otomatik kaydedilir; sayfa kapansa bile açılış ekranındaki "Kayıtlı oyuna dön" ile devam edilir.
 
+## iPhone / Android'e yükleme
+
+Oyun bir web uygulamasıdır (PWA): ikonu, tam ekran açılışı ve çevrimdışı önbelleği vardır.
+
+1. Oyunu HTTPS üzerinden yayınla (örneğin GitHub Pages: **Settings → Pages → Deploy from a branch**, dal olarak bu dal, klasör `/ (root)`).
+2. iPhone'da adresi **Safari** ile aç.
+3. **Paylaş** düğmesi → **Ana Ekrana Ekle** → **Ekle**.
+
+Oyun ana ekranda Kızıl Elma ikonuyla, tarayıcı çubukları olmadan açılır. İlk açılıştan sonra internet olmadan da oynanabilir. Yeni sürüm yayınlarken `sw.js` içindeki `VERSION` değerini artır.
+
 ## Görünüm
 
 Arayüz bir el yazması gibi tasarlandı: parşömen paneller, deri üst çubuk, Cinzel ve EB Garamond yazı tipleri, balmumu mühürlü olay fermanları, her devlet için SVG arma, Miladi yılın yanında Roma rakamı ve Hicri yıl. Harita eski bir portolan gibi: pusula güllerinden çıkan rüzgâr çizgileri, derece işaretli çerçeve, başlık kartuşu, kadırga çizimleri. 3D'de Müslüman şehirlerde kubbe ve minare, Ortodoks şehirlerde kubbe ve haç, Katolik şehirlerde çan kulesi; başkentlerde armalı bayrak ve denizde latin yelkenli kadırgalar var.

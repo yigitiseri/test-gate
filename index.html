@@ -2,7 +2,15 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2b1a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kızıl Elma">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
 <!--ARTIFACT-START-->
 <title>Kızıl Elma 1451</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -228,7 +236,8 @@ input[type=range]{width:100%;accent-color:var(--brass)}
   --parchbg:radial-gradient(ellipse at 18% 8%,rgba(255,250,232,.6),transparent 55%),radial-gradient(ellipse at 85% 95%,rgba(140,92,36,.2),transparent 50%),var(--parch),linear-gradient(170deg,#f4e8c9,#e6d0a2);
   --leather:linear-gradient(180deg,rgba(64,40,22,.97),rgba(38,23,12,.97)),var(--parch);
   --divider:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='12'><path d='M0 6H104M136 6H240' stroke='%238e1f14' stroke-width='1'/><path d='M120 1L128 6L120 11L112 6Z' fill='%23c99a3b' stroke='%238e1f14'/><circle cx='106' cy='6' r='2' fill='%238e1f14'/><circle cx='134' cy='6' r='2' fill='%238e1f14'/></svg>");}
-body{background:#1c120a;color:var(--paper);font-size:16px;font-family:var(--body)}
+body{background:#1c120a;color:var(--paper);font-size:16px;font-family:var(--body);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+input,textarea{-webkit-user-select:auto;user-select:auto}
 #vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 55%,transparent 58%,rgba(46,26,8,.5) 100%),var(--parch);mix-blend-mode:multiply}
 .band{height:9px;border-top:1px solid var(--gold);border-bottom:2px solid var(--gold);background:radial-gradient(circle at 8px 4.5px,#e2b857 2px,transparent 2.6px) 0 0/16px 9px,linear-gradient(#9b2417,#6d160e)}
 /* shields → coats of arms */
@@ -1854,6 +1863,7 @@ async function boot(){
  req();
 }
 boot();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&document.querySelector('link[rel=manifest]'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 window.__ke={get S(){return S;},PD,endTurn,aiTurn,beginGame};
 })();
 </script>
