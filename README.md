@@ -19,6 +19,10 @@ Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. 
 
 Oyun her hamleden sonra tarayıcıya otomatik kaydedilir; sayfa kapansa bile açılış ekranındaki "Kayıtlı oyuna dön" ile devam edilir.
 
+## Görünüm
+
+Arayüz bir el yazması gibi tasarlandı: parşömen paneller, deri üst çubuk, Cinzel ve EB Garamond yazı tipleri, balmumu mühürlü olay fermanları, her devlet için SVG arma, Miladi yılın yanında Roma rakamı ve Hicri yıl. Harita eski bir portolan gibi: pusula güllerinden çıkan rüzgâr çizgileri, derece işaretli çerçeve, başlık kartuşu, kadırga çizimleri. 3D'de Müslüman şehirlerde kubbe ve minare, Ortodoks şehirlerde kubbe ve haç, Katolik şehirlerde çan kulesi; başkentlerde armalı bayrak ve denizde latin yelkenli kadırgalar var.
+
 ## Teknik
 
 Harita varsayılan olarak Three.js (WebGL) ile 3D çizilir: yükselti haritasından üretilen arazi ağı, güneş ışığı ve gölgeler, dalgalanan su, 3D kaleler ve asker figürleri. Sol alttaki **2D/3D** düğmesiyle düz haritaya geçilebilir; Three.js yüklenemezse oyun kendiliğinden 2D çalışır ve 3D düğmesi devre dışı kalır.
