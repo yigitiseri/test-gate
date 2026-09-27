@@ -10,7 +10,7 @@ Tarayıcıda oynanan, harita üzerinde sıra tabanlı bir tarih-strateji oyunu. 
 - **Muharebe:** Savunmaya garnizon, yerel milis ve kale katılır. Dağlık eyaletler +%30 savunur, kış seferlerinde saldırı gücü %15 düşer.
 - **Topçu:** Osmanlı 1453'te (Urban'ın topları), herkes 1460'ta kuşatma topu kazanır. Toplar kale bonusunun büyük kısmını etkisiz kılar.
 - **Ekonomi:** Gelir eyalet gelişiminden gelir. Pazar, kışla, kale ve imar inşa edilebilir. Her 1.000 asker tur başına 1 altın maaş ister.
-- **Diplomasi:** Savaş ilan et, barış ya da haraç iste, ittifak kur, hediye gönder. Müttefikler savunma savaşlarında yardıma gelir.
+- **Diplomasi:** Savaş ilan et, barış ya da haraç iste, ittifak kur, hediye gönder. Müttefikler savunma savaşlarında yardıma gelir (saldıranla ateşkesleri sürmüyorsa).
 - **Hedefler:** Her büyük devletin tarihî hedefleri var: Konstantiniyye'nin fethi, Belgrad kuşatması, Kroya direnişi, Tebriz gibi.
 - **Olaylar:** Veba, kervanlar, ayaklanmalar, paralı askerler, Urban'ın topları, 1501'de Safevîlerin doğuşu.
 - **Zafer:** Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla.
@@ -21,7 +21,7 @@ Oyun her hamleden sonra tarayıcıya otomatik kaydedilir; sayfa kapansa bile aç
 
 ## Teknik
 
-Harita varsayılan olarak Three.js (WebGL) ile 3D çizilir: yükselti haritasından üretilen arazi ağı, güneş ışığı ve gölgeler, dalgalanan su, 3D kaleler ve asker figürleri. Sol alttaki **2D/3D** düğmesiyle düz haritaya geçilebilir; Three.js yüklenemezse oyun kendiliğinden 2D çalışır.
+Harita varsayılan olarak Three.js (WebGL) ile 3D çizilir: yükselti haritasından üretilen arazi ağı, güneş ışığı ve gölgeler, dalgalanan su, 3D kaleler ve asker figürleri. Sol alttaki **2D/3D** düğmesiyle düz haritaya geçilebilir; Three.js yüklenemezse oyun kendiliğinden 2D çalışır ve 3D düğmesi devre dışı kalır.
 
 
 Tek bir HTML dosyası, harici kütüphane yok. Harita her açılışta prosedürel olarak üretilir: kıyı şeritleri enlem-boylam poligonlarından gürültüyle bozularak çizilir, eyalet sınırları gerçek şehir koordinatlarından türetilen ve kara kütlesiyle sınırlandırılan bir Voronoi bölümlemesidir. Nehirler, dağlar ve deniz yolları da haritada gösterilir.

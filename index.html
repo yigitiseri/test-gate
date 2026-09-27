@@ -43,8 +43,8 @@ button{font:inherit;color:inherit}
 .facbtn b{font:700 16px/1 var(--display);white-space:nowrap}
 .res{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
 .res::-webkit-scrollbar{display:none}
-.stat{display:flex;flex-direction:column;padding:2px 10px;border-left:1px solid var(--line);min-width:64px}
-.stat label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.stat{display:flex;flex-direction:column;flex:none;padding:2px 9px;border-left:1px solid var(--line);min-width:56px}
+.stat label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);white-space:nowrap}
 .stat b{font:700 17px/1.1 var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
 .stat b small{font-size:12px;font-weight:600;margin-left:4px}
 .pos{color:var(--ok)}.neg{color:var(--war2)}
@@ -66,7 +66,7 @@ nav.tabs{display:flex;gap:4px}
 .shield.big{width:40px;height:48px;font-size:15px}
 
 /* ---------- side panel ---------- */
-#panel{position:fixed;z-index:9;right:16px;top:84px;width:350px;max-height:calc(100% - 104px);overflow:auto;background:var(--ink);
+#panel{position:fixed;z-index:9;right:16px;top:calc(var(--toph,68px) + 14px);width:350px;max-height:calc(100% - var(--toph,68px) - 34px);overflow:auto;background:var(--ink);
   border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
 #panel .in{padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
 .ph{display:flex;gap:12px;align-items:flex-start}
@@ -157,6 +157,7 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 #zoom{position:fixed;z-index:8;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:4px}
 #zoom button{width:38px;height:38px;border-radius:8px;background:var(--ink);border:1px solid var(--line2);font:700 20px/1 var(--body);cursor:pointer}
 #zoom button:hover{background:var(--ink3)}
+#zoom button:disabled{opacity:.4;cursor:not-allowed}
 
 /* ---------- start screen ---------- */
 #start{position:fixed;inset:0;z-index:20;display:grid;grid-template-columns:minmax(0,470px) 1fr;pointer-events:none}
@@ -182,19 +183,32 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 #loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font:700 22px var(--display);color:var(--brass)}
 #loading small{display:block;font:500 13px var(--body);color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.1em}
 
-@media (max-width:1100px){
+@media (max-width:1560px){
   nav.tabs .lbl{display:none}
-  .brand small{display:none}
+  #top{gap:10px}
 }
-@media (max-width:760px){
+@media (max-width:1280px){
+  .brand small{display:none}
+  .brand{font-size:18px}
+}
+@media (max-width:1100px){
+  .brand{display:none}
+}
+@media (max-width:920px){
   #top{flex-wrap:wrap;gap:6px 10px;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px}
-  .brand{font-size:17px}
+  .brand{display:block;font-size:17px}
   .res{order:5;flex-basis:100%}
-  .stat{min-width:0;padding:0 8px}
+  .stat{flex:1 1 auto;min-width:0;padding:0 8px}
   .stat b{font-size:15px}
   .date{margin-left:auto}
   nav.tabs{order:4}
   #endTurn{padding:8px 12px;font-size:14px}
+}
+@media (max-width:760px){
+  .stat{padding:0 5px}
+  .stat label{font-size:9.5px;letter-spacing:.03em}
+  .stat b{font-size:14px}
+  .stat b small{font-size:11px;margin-left:2px}
   #panel{left:8px;right:8px;width:auto;top:auto;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:52%}
   #zoom{bottom:calc(10px + env(safe-area-inset-bottom,0px));left:10px}
   #zoom button{width:34px;height:34px;font-size:17px}
@@ -784,24 +798,26 @@ function declareWar(a,b){
  alliesOf(b).forEach(c=>addOp(a,c,-25));
  const msg=`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`;
  if(a===S.player||b===S.player){news(msg,'war');if(b===S.player)toast(msg,'war');}else addLog(msg,'war');
- alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a))return;S.war[key(c,a)]={t:S.turn,sc:{[a]:0,[c]:0}};
+ alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a)||inTruce(c,a))return;S.war[key(c,a)]={t:S.turn,sc:{[a]:0,[c]:0}};
   const m2=`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`;if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
 }
-function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);
+function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);pruneOffers();
  const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');}
+function offerOk(o){const w=alive(o.f)&&S.war[key(o.f,S.player)];return !!w&&(o.wt==null||o.wt===w.t);}
+function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
 function warScore(a,b){const w=S.war[key(a,b)];return w?(w.sc[a]||0)-(w.sc[b]||0):0;}
 function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,other);
  const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return Math.random()<.5;return false;}
 function aiAcceptPeace(ai,pl){const w=S.war[key(ai,pl)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,pl);
  if(ws<=-1)return true;if(strength(ai)<strength(pl)*.75)return true;if(dur>=10&&ws<=2)return true;return false;}
-function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return ws<=-4||strength(ai)<strength(pl)*.4;}
-function tributeAmt(ai){return Math.max(20,Math.round(Math.min(S.fac[ai].gold*.7,30+devSum(ai)*2)));}
+function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return tributeAmt(ai)>=10&&(ws<=-4||strength(ai)<strength(pl)*.4);}
+function tributeAmt(ai){const g=Math.max(0,Math.floor(S.fac[ai].gold));return Math.min(g,Math.max(20,Math.round(Math.min(g*.7,30+devSum(ai)*2))));}
 function aiAcceptAlliance(ai,pl){if(atWar(ai,pl)||inTruce(ai,pl)&&getOp(ai,pl)<20)return false;const o=getOp(ai,pl);
  const common=warsOf(ai).some(e=>atWar(pl,e));return o>=40||(o>=10&&common);}
 
 /* ---------------- battles ---------------- */
 function battle(from,to,n){
- const A=S.prov[from],D=S.prov[to],att=A.o,def=D.o;n=Math.min(n,avail(from));if(n<=0)return null;
+ const A=S.prov[from],D=S.prov[to],att=A.o,def=D.o;if(att===def||!atWar(att,def)||!PD[from].adj.includes(to))return null;n=Math.min(n,avail(from));if(n<=0)return null;
  A.t-=n;
  const aP=atkPower(n,att)*rnd(.85,1.2),dP=defPower(to,att)*rnd(.85,1.2),r=aP/dP,defT=D.t;
  const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0};
@@ -887,22 +903,22 @@ function aiEconomy(f,mine,front,border,war){
   if(war&&Math.random()<.6){let bt=-1,bv=-1;for(const s of spots){let th=0;for(const j of PD[s].adj){const o=S.prov[j].o;if(o!==f&&atWar(f,o))th+=S.prov[j].t;}const v=th-S.prov[s].t;if(v>bv){bv=v;bt=s;}}if(bt>=0)i=bt;}
   S.prov[i].t+=1000;S.prov[i].mv+=1000;F.gold-=RC;F.mp-=1000;upk+=UPK;}
  if(F.gold>150&&Math.random()<.35){const c=mine.filter(i=>!S.prov[i].mkt).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];if(c!=null){S.prov[c].mkt=1;F.gold-=60;}}
- else if(F.gold>200&&Math.random()<.3){const c=F.cap;if(S.prov[c].dev<12){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
- if(war&&F.gold>100&&front.size&&Math.random()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4){F.gold-=40*(p.fort+1);p.fort++;}}
+ else if(F.gold>200&&Math.random()<.3){const c=F.cap;if(S.prov[c].dev<12&&F.gold>=25*S.prov[c].dev){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
+ if(war&&F.gold>100&&front.size&&Math.random()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4&&F.gold>=40*(p.fort+1)){F.gold-=40*(p.fort+1);p.fort++;}}
 }
 function aiDiplo(f){
  const my=strength(f);
  warsOf(f).forEach(g=>{
-  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&Math.random()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace'});S.fac[f].nextOffer=S.turn+4;}}
+  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&Math.random()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
   else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(aiWantsPeace(f,g)&&Math.random()<.25))makePeace(f,g);
  });
  if(S.turn<3)return;
- const nw=warsOf(f).length;if(nw>=(my>70000?2:1))return;if(Math.random()>.14)return;
+ const nw=warsOf(f).length;if(nw>=(my>70000?2:1))return;if(Math.random()>.2)return;
  let best=null,bs=0;
  for(const g of nbrs(f)){if(isAlly(f,g)||inTruce(f,g)||atWar(f,g))continue;if(g===S.player&&S.turn<6)continue;const o=getOp(f,g);if(o>5)continue;
-  let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*.5;});const ratio=my/Math.max(th,1);if(ratio<1.45)continue;
+  let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*.5;});const ratio=my/Math.max(th,1);if(ratio<(g===S.player?1.45:1.3))continue;
   const sc=ratio*(1+(-o)/60);if(sc>bs){bs=sc;best=g;}}
- if(best&&Math.random()<.55)declareWar(f,best);
+ if(best&&Math.random()<.65)declareWar(f,best);
  if(Math.random()<.03){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
 }
 
@@ -931,11 +947,13 @@ function spawnSafavid(){
  const take=new Set([tb]);let fr=[tb];for(let d=0;d<2;d++){const nx=[];fr.forEach(i=>PD[i].adj.forEach(j=>{if(S.prov[j].o===old&&!take.has(j)){take.add(j);nx.push(j);}}));fr=nx;}
  if(old===S.player){[...take].forEach(i=>{if(S.fac[old].cap===i)take.delete(i);});}
  if(!take.size)return;const F=S.fac.SAF;F.alive=true;F.gold=150;F.mp=20000;F.cannon=1;
- take.forEach(i=>{const p=S.prov[i];p.o='SAF';p.t+=3500;p.un=0;});F.cap=take.has(tb)?tb:[...take][0];
+ take.forEach(i=>{const p=S.prov[i];p.o='SAF';p.t+=3500;p.un=0;});F.cap=take.has(tb)?tb:[...take].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];
  FK.forEach(g=>{if(g!=='SAF')S.op[key('SAF',g)]=baseOp('SAF',g);});
  if(S.fac[old].alive&&!facProvs(old).length)eliminate(old,'SAF');
  if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]={t:S.turn,sc:{SAF:0,[old]:0}};}
- news(`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`,'cap');polDirty=true;
+ const hasTb=take.has(tb);
+ news(hasTb?`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`:`Şah İsmail ${PD[F.cap].name} merkezli bir ayaklanmayla taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu; Tebriz hâlâ ${fname(old)} elinde.`,'cap');polDirty=true;
+ if(old===S.player&&S.fac[old].alive)queueModal(()=>eventModal({t:'Kızılbaş Ayaklanması',e:dateStr(S.turn),d:`Şah İsmail'in müritleri ${take.size} eyalette ayaklandı ve Safevî devletini kurdu. ${hasTb?'Tebriz düştü':'Tebriz surları dayandı, ama çevresindeki eyaletler elden çıktı'}; Safevîler sana savaş açtı.`,ch:[{l:'Kılıçlar kınından çıksın'}]}));
 }
 function checkMissions(){
  if(!S.player)return;const pl=S.player;
@@ -955,7 +973,7 @@ function endTurn(){
  if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
  $('#endTurn').textContent='Hamleler…';
  setTimeout(()=>{
-  S.news=[];S.report=[];
+  S.news=[];S.report=[];pruneOffers();
   const order=FK.filter(f=>f!==S.player&&alive(f));for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
   order.forEach(aiTurn);
   endRound();
@@ -966,7 +984,7 @@ function endTurn(){
   S.battles.filter(b=>b.turn===S.turn-1).slice(-30).forEach((b,k)=>{const me=b.att===S.player||b.def===S.player;
    if(me)addFx({type:'march',a:b.from,b:b.to,dur:420,delay:k*140,col:FAC[b.att].c});
    addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
-  $('#endTurn').textContent='Turu Bitir';$('#endTurn').disabled=false;busy=false;
+  $('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';$('#endTurn').disabled=false;busy=false;
   if(S.over){queueModal(showEnd);return;}
   if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);
   if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
@@ -974,8 +992,9 @@ function endTurn(){
 }
 
 /* ---------------- random events ---------------- */
-function randomEvent(){
- const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length)return;const pick=a=>a[Math.floor(Math.random()*a.length)];
+function randomEvent(seed){
+ const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length){delete S.pendEv;return;}if(seed==null)seed=Math.floor(Math.random()*2147483647);S.pendEv=seed;
+ let rs=seed>>>0;const rng=()=>{rs=(rs+0x6D2B79F5)>>>0;let t=rs;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};const pick=a=>a[Math.floor(rng()*a.length)];
  const isM=FAC[f].rel==='İslam';const p=pick(mine),pn=PD[p].name;const un=mine.filter(i=>S.prov[i].un>0);
  const ev=[
   {w:3,t:isM?'İpek Yolu Kervanı':'Levanten Tüccarlar',d:isM?'Doğudan gelen zengin bir kervan pazarlarında konakladı. Gümrük emini seni bekliyor.':'Venedikli ve Cenevizli tüccarlar limanlarında ticaret izni istiyor.',
@@ -992,8 +1011,8 @@ function randomEvent(){
  ];
  if(un.length){const q=pick(un);ev.push({w:4,t:'Ayaklanma',d:`Yeni fethedilen ${PD[q].name} halkı vergilere karşı ayaklandı.`,ch:[{l:'Bastır (garnizon −25%)',f:()=>{S.prov[q].t=Math.round(S.prov[q].t*.75/100)*100;S.prov[q].un=Math.max(0,S.prov[q].un-3);}},{l:'Vergi affı ilan et (−40 altın, huzursuzluk biter)',dis:F.gold<40,f:()=>{F.gold-=40;S.prov[q].un=0;}}]});}
  const fr=FK.filter(g=>g!==f&&alive(g)&&!atWar(f,g));if(fr.length){const g=pick(fr);ev.push({w:2,t:`${FAC[g].s} Elçisi`,d:`${FAC[g].n} elçisi hediyelerle sarayına geldi.`,ch:[{l:'Hediyeleri kabul et (+30 altın)',f:()=>{F.gold+=30;}},{l:'Karşılık ver (−20 altın, ilişki +25)',dis:F.gold<20,f:()=>{F.gold-=20;addOp(f,g,25);}}]});}
- let tot=ev.reduce((a,e)=>a+e.w,0),r=Math.random()*tot;const e=ev.find(x=>(r-=x.w)<0)||ev[0];
- queueModal(()=>eventModal({...e,e:dateStr(S.turn)}));
+ let tot=ev.reduce((a,e)=>a+e.w,0),r=rng()*tot;const e=ev.find(x=>(r-=x.w)<0)||ev[0];
+ queueModal(()=>eventModal({...e,e:dateStr(S.turn),pend:1}));
 }
 
 /* =====================================================================
@@ -1003,11 +1022,12 @@ const cv=document.getElementById('map'),ctx=cv.getContext('2d');
 const $=s=>document.querySelector(s);
 let dpr=1,vw=0,vh=0,cam={x:0,y:0,s:1},fitS=1,polDirty=true,need=false;
 let sel=-1,tgt=-1,hlKey='',startPick=null,facLabels=[];
-function resize(){dpr=Math.min(window.devicePixelRatio||1,2);vw=innerWidth;vh=innerHeight;cv.width=vw*dpr;cv.height=vh*dpr;fitS=Math.min(vw/W,vh/H);if(G3.on){G3.resize();G3.clamp();}clampCam();req();}
-function clampCam(){const minS=fitS*.85;cam.s=clamp(cam.s,minS,5);const mw=W*cam.s,mh=H*cam.s,pad=80;
- cam.x=mw<vw?(vw-mw)/2:clamp(cam.x,vw-mw-pad,pad);cam.y=mh<vh?(vh-mh)/2:clamp(cam.y,vh-mh-pad,pad);}
+function resize(){dpr=Math.min(window.devicePixelRatio||1,2);vw=innerWidth;vh=innerHeight;document.documentElement.style.setProperty('--toph',Math.round(topH())+'px');cv.width=vw*dpr;cv.height=vh*dpr;fitS=Math.min(vw/W,vh/H);if(G3.on){G3.resize();G3.clamp();}clampCam();req();}
+function topH(){const t=document.getElementById('top');return t&&!t.hidden?t.getBoundingClientRect().bottom:0;}
+function clampCam(){const minS=fitS*.85;cam.s=clamp(cam.s,minS,5);const mw=W*cam.s,mh=H*cam.s,pad=80,th=topH(),vis=vh-th;
+ cam.x=mw<vw?(vw-mw)/2:clamp(cam.x,vw-mw-pad,pad);cam.y=mh<vis?th+(vis-mh)/2:clamp(cam.y,vh-mh-pad,th+pad);}
 function req(){if(!need){need=true;requestAnimationFrame(draw);}}
-function centerOn(x,y,s,off=0){if(G3.on){G3.center(x,y,s,off);req();return;}cam.s=s;cam.x=off+(vw-off)/2-x*s;cam.y=vh/2-y*s;clampCam();req();}
+function centerOn(x,y,s,off=0){const th=topH();if(G3.on){G3.center(x,y,s,off,th);req();return;}cam.s=s;cam.x=off+(vw-off)/2-x*s;cam.y=th+(vh-th)/2-y*s;clampCam();req();}
 function zoomAt(sx,sy,ns){if(G3.on){G3.zoomAt(sx,sy,ns);req();return;}ns=clamp(ns,fitS*.85,5);const wx=(sx-cam.x)/cam.s,wy=(sy-cam.y)/cam.s;cam.s=ns;cam.x=sx-wx*ns;cam.y=sy-wy*ns;clampCam();req();}
 
 let mapMode='pol',polDist=null;
@@ -1252,19 +1272,20 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
  G3.clamp=()=>{G3.s=clamp(G3.s,fitS*.85,6);G3.mx=clamp(G3.mx,0,W);G3.my=clamp(G3.my,0,H);};
  G3.panBy=(dx,dy)=>{camUpdate();const a=ground(vw/2,vh/2),b=ground(vw/2-dx,vh/2-dy);if(a&&b){G3.mx+=b[0]-a[0];G3.my+=b[1]-a[1];}G3.clamp();};
  G3.zoomAt=(sx,sy,ns)=>{camUpdate();const a=ground(sx,sy);G3.s=clamp(ns,fitS*.85,6);camUpdate();const b=ground(sx,sy);if(a&&b){G3.mx+=a[0]-b[0];G3.my+=a[1]-b[1];}G3.clamp();};
- G3.center=(x,y,s,off=0)=>{G3.s=s;G3.mx=x;G3.my=y;G3.clamp();if(off)G3.panBy((off+(vw-off)/2)-vw/2,0);};
+ G3.center=(x,y,s,off=0,th=0)=>{G3.s=s;G3.mx=x;G3.my=y;G3.clamp();if(off||th)G3.panBy((off+(vw-off)/2)-vw/2,th/2);};
  G3.pick=(sx,sy)=>{camUpdate();ndc.set(sx/vw*2-1,-(sy/vh)*2+1);ray.setFromCamera(ndc,camera);const o=ray.ray.origin,d=ray.ray.direction;if(d.y>=0)return null;
   let t=Math.max(0,(60-o.y)/d.y);const te=(.5-o.y)/d.y,st=Math.max(.3,(te-t)/700);
   for(;t<=te;t+=st){const x=o.x+d.x*t+W/2,z=o.z+d.z*t+H/2;if(x<0||z<0||x>=W||z>=H)continue;if(o.y+d.y*t<=surf(x,z))return [x,z];}
   return [o.x+d.x*te+W/2,o.z+d.z*te+H/2];};
  G3.resize=()=>{if(!R)return;R.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));R.setSize(vw,vh,false);};
+ G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?'3D bu cihazda açılamadı':G3.on?'2D haritaya geç':'3D haritaya geç';};
  G3.set=on=>{
-  if(on&&!G3.init())on=false;
-  if(on===G3.on)return G3.on;
+  if(on&&!G3.init()){on=false;G3.fail=true;}
+  if(on===G3.on){G3.label();return G3.on;}
   if(on){G3.s=cam.s;const c=[(vw/2-cam.x)/cam.s,(vh/2-cam.y)/cam.s];G3.mx=c[0];G3.my=c[1];G3.on=true;G3.resize();G3.clamp();G3.texDirty=true;G3.objDirty=true;}
   else{G3.on=false;cam.s=clamp(G3.s,fitS*.85,5);cam.x=vw/2-G3.mx*cam.s;cam.y=vh/2-G3.my*cam.s;clampCam();}
   document.getElementById('gl').hidden=!G3.on;try{localStorage.setItem('ke-3d',G3.on?'1':'0');}catch(e){}
-  const b=document.getElementById('v3dBtn');if(b)b.textContent=G3.on?'2D':'3D';
+  G3.label();
   polDirty=true;hlKey='';req();return G3.on;};
 })();
 function curS(){return G3.on?G3.s:cam.s;}
@@ -1307,6 +1328,7 @@ function mapClick(sx,sy){
  sel=id;tgt=-1;confirmKey='';SND.play('select');renderPanel();req();
 }
 function clearSel(){sel=-1;tgt=-1;confirmKey='';$('#panel').hidden=true;req();}
+function tgtOk(){if(sel<0||tgt<0||!S||!S.player)return false;const f=S.player,o=S.prov[tgt].o;return S.prov[sel].o===f&&PD[sel].adj.includes(tgt)&&(o===f||atWar(f,o));}
 
 /* =====================================================================
    SOUND (Web Audio, fully synthesized)
@@ -1417,10 +1439,11 @@ function renderTop(){
  const net=income(f)-upkeep(f);$('#gold').textContent=Math.floor(F.gold);const gd=$('#goldd');gd.textContent=(net>=0?'+':'')+net.toFixed(0);gd.className=net>=0?'pos':'neg';
  $('#mp').textContent=fmtK(F.mp);$('#army').textContent=fmtK(strength(f));$('#provs').textContent=facProvs(f).length;
  const w=warsOf(f).length;$('#wars').textContent=w;$('#wars').className=w?'neg':'';
+ if(!busy)$('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';document.documentElement.style.setProperty('--toph',Math.round(topH())+'px');
  SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];$('#year').textContent=START_YEAR+Math.floor(S.turn/4)+` · tur ${S.turn+1}`;
 }
 function renderPanel(){
- const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;
+ const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;if(tgt>=0&&!tgtOk())tgt=-1;
  const d=PD[sel],p=S.prov[sel],f=S.player,F=S.fac[f],mine=p.o===f,isCap=S.fac[p.o].cap===sel;
  const terr=d.mtn?'Dağlık · +30% savunma':d.des?'Çöl · +10% savunma':'Ova';
  let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="Kapat">×</button></div>
@@ -1460,12 +1483,15 @@ function renderPanel(){
    od.innerHTML=`<span>Güç ${fmtK(atkPower(amt,f))} : ${fmtK(defPower(tgt,f))}</span><b style="color:${c}">${t}</b>`;}};r.addEventListener('input',upd);upd();}
 }
 
+const OVERBLOCK=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','dwar','dp-war','dp-peace','dp-trib','dp-ally','dp-gift','dp-break','off']);
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
+ if(f&&S.over&&OVERBLOCK.has(a)){toast('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.');return;}
+ if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
  switch(a){
   case 'close':clearSel();break;
   case 'cancel':tgt=-1;renderPanel();req();break;
-  case 'go':{const n=Math.min(amt,avail(sel));if(n<=0)break;const o=S.prov[tgt].o;
+  case 'go':{if(!tgtOk()){tgt=-1;toast('Bu hedefe artık saldıramazsın: savaş sona erdi ya da eyalet el değiştirdi.');renderPanel();req();break;}const n=Math.min(amt,avail(sel));if(n<=0)break;const o=S.prov[tgt].o;
    if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});SND.play('march');const to=tgt;sel=to;tgt=-1;}
    else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){SND.play('march');const cn=!!S.fac[f].cannon,w=rep.win;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[b0].fort>=2}),420);addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
      if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
@@ -1486,24 +1512,24 @@ function act(a,t){
   case 'zin':zoomAt(vw/2,vh/2,curS()*1.35);break;
   case 'zout':zoomAt(vw/2,vh/2,curS()/1.35);break;
   case 'fit':if(G3.on){G3.center(W/2,H/2,fitS);}else{cam.s=fitS;clampCam();}req();break;
-  case 'v3d':{const on=G3.set(!G3.on);toast(on?'3D harita':(window.THREE?'2D harita':'3D bu cihazda açılamadı'));break;}
+  case 'v3d':{const on=G3.set(!G3.on);toast(on?'3D harita':(G3.fail?'3D bu cihazda açılamadı':'2D harita'));break;}
   case 'mode':mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?'Arazi haritası':'Siyasi harita';toast(mapMode==='pol'?'Siyasi harita':'Arazi haritası');polDirty=true;req();break;
   case 'dp-war':{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();break;}confirmKey='';declareWar(f,o);SND.play('war');renderAll();showDiplo();break;}
-  case 'dp-peace':{const o=t.dataset.f;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
-  case 'dp-trib':{const o=t.dataset.f;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold-=g;F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
+  case 'dp-peace':{const o=t.dataset.f;if(!atWar(f,o))break;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
+  case 'dp-trib':{const o=t.dataset.f;if(!atWar(f,o))break;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(tributeAmt(o)<10?`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`:`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
   case 'dp-ally':{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();break;}
   case 'dp-gift':{const o=t.dataset.f;if(F.gold<50)break;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();break;}
   case 'dp-break':{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();break;}
-  case 'off':{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)break;S.offers.splice(k,1);
+  case 'off':{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)break;S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast('Bu teklif artık geçerli değil.');renderAll();showReport();break;}
    if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();break;}
-  case 'ev':{const c=evChoices[+t.dataset.k];closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();break;}
+  case 'ev':{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();break;}
   case 'pick':{startPick=t.dataset.f;renderStart();hlKey='';startCenter(startPick);break;}
   case 'begin':SND.play('fanfare');beginGame(startPick);break;
   case 'snd':SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');break;
   case 'snd-music':SND.set('music',!SND.st.music);showMenu();break;
   case 'snd-sfx':SND.set('sfx',!SND.st.sfx);showMenu();break;
   case 'continue':loadGame();break;
-  case 'newgame':closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
+  case 'newgame':modalQ.length=0;closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
   case 'help':showHelp();break;
  }
 }
@@ -1511,24 +1537,24 @@ const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begi
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
 addEventListener('pagehide',()=>{if(S&&S.player&&!busy)save();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.player&&!busy)save();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else clearSel();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden){if(!$('#modal .ev')&&!$('#modal .endm'))closeModal();}else clearSel();}});
 
 function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.player&&!busy)save();}
 
 /* ---------------- modals ---------------- */
-const modalQ=[];let evChoices=[],evTitle='';
+const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
-function closeModal(){$('#modal').hidden=true;confirmKey='';if(modalQ.length){const m=modalQ.shift();setTimeout(m,60);}}
+function closeModal(){$('#modal').hidden=true;confirmKey='';if(modalQ.length){const m=modalQ.shift();setTimeout(()=>{if($('#modal').hidden)m();else modalQ.unshift(m);},60);}}
 function queueModal(fn){if($('#modal').hidden)fn();else modalQ.push(fn);}
-$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev'))closeModal();});
-function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;SND.play(/Fethedildi/.test(ev.t)?'fanfare':'event');
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev')&&!$('#modal .endm'))closeModal();});
+function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;evPend=!!ev.pend;SND.play(/Fethedildi/.test(ev.t)?'fanfare':'event');
  openModal(`<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
  <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
 function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
  const title=mineAtk?`${PD[r.to].name} seferi`:`${FAC[r.att].s} saldırısı: ${PD[r.to].name}`;
  return `<div class="btl"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
   <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>Savunan <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}</div></div>`;}
-function showReport(){
+function showReport(){pruneOffers();
  const rep=(S.report||[]).filter(r=>r.att!==S.player);
  let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>Mevsim Raporu</h2>`;
  if(S.offers.length)h+=`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`;
@@ -1582,12 +1608,13 @@ function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · $
  <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
  <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
  const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}
-function showEnd(){const pl=S.player;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
+function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
  const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
  const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Kızıl Elma'ya ulaştın.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
- openModal(`<div class="eyebrow">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
+ openModal(`<div class="eyebrow endm">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
  <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:#1d2f52':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} eyalet</small></div><b>${x.s}</b></div>`).join('')}</div>
- <div class="foot">${S.over==='lose'?'':'<button class="btn" data-act="mclose">Haritaya bak</button>'}<button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
+ <p class="hint">Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.</p>
+ <div class="foot"><button class="btn" data-act="mclose">Haritaya bak</button><button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
 
 /* ---------------- start screen ---------------- */
 function renderStart(){
@@ -1603,10 +1630,10 @@ function showStart(){newGame(null);startPick='OSM';sel=-1;tgt=-1;$('#top').hidde
 function startCenter(f){const c=S.fac[f].cap,s=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1);const side=vw>760?Math.min(470,vw*.45):0;centerOn(PD[c].lx,PD[c].ly,s,side);}
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
  queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
-function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
- if(S.over)queueModal(showEnd);}
+function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
+ if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);}
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
-function loadGame(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(!s||!s.prov||s.prov.length!==NP)throw 0;S=s;FK.forEach(f=>{if(!S.fac[f])S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});$('#start').hidden=true;enterGame();}
+function loadGame(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(!s||!s.prov||s.prov.length!==NP)throw 0;S=s;FK.forEach(f=>{if(!S.fac[f])S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});S.offers=S.offers||[];pruneOffers();$('#start').hidden=true;enterGame();}
  catch(e){toast('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','war');}}
 
 /* ---------------- boot ---------------- */
@@ -1616,7 +1643,7 @@ async function boot(){
  await new Promise(r=>setTimeout(r,30));
  buildMap();
  let want3=true;try{want3=localStorage.getItem('ke-3d')!=='0';}catch(e){}
- if(want3)G3.set(true);
+ G3.set(!!want3);
  $('#loading').remove();
  let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
  showStart();
