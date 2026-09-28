@@ -1,22 +1,37 @@
 /* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
-const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
+const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[],
+ dirty:true,hot:0,armyDirty:false,armyItems:[],armySig:''}; // render-on-demand: dirty (camera/scene changed), hot (animate water/ships until)
+/** Mark the 3D view as changed and keep water/ships animating for 3 s (throttled to ~20 fps). */
+G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
 (function(){
- let R=null,scene,camera,tex,texCv,water,sun,v3,ray,ndc,plane,I={};
+  let R=null,scene,camera,tex,texCv,water,sun,v3,ray,ndc,plane,I={},A={},lastR=0;
+ const ACAP=1536;
+ /** Quality tier: 'low' (no shadows), 'mid' (1024 shadows, phones), 'high' (desktop). aOpt.q3d overrides 'auto'. */
+ const qTier=()=>{const q=aOpt.q3d||'auto';return q==='auto'?(aMobile()?'mid':'high'):q;};
+ const qPR=()=>{const q=qTier();return Math.min(window.devicePixelRatio||1,q==='low'?1:q==='mid'?1.5:1.75);};
+ function applyQ(){if(!R)return;const q=qTier(),ms=Math.min(4096,R.capabilities.maxTextureSize),on=q!=='low';
+  const sz=q==='high'?(ms>=4096&&innerWidth>900?4096:2048):1024;
+  const ch=R.shadowMap.enabled!==on;R.shadowMap.enabled=on;R.shadowMap.type=q==='high'?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
+  sun.shadow.mapSize.set(sz,sz);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}
+  if(ch&&scene)scene.traverse(o=>{if(o.material)o.material.needsUpdate=true;});
+  R.setPixelRatio(qPR());if(vw)R.setSize(vw,vh,false);G3.dirty=true;}
+ G3.applyQ=()=>{applyQ();req();};
+ G3.quality=()=>R?qTier():null;
  const fov=38,UPV=()=>new THREE.Vector3(0,1,0);
  const surf=(x,y)=>SURF[clamp(Math.round(y),0,H-1)*W+clamp(Math.round(x),0,W-1)];
  const lin=h=>new THREE.Color(h).convertSRGBToLinear();
  G3.init=function(){
   if(R)return true;if(!window.THREE||!SURF)return false;
   try{R=new THREE.WebGLRenderer({canvas:document.getElementById('gl'),antialias:true,powerPreference:'high-performance'});}catch(e){R=null;return false;}
-  R.outputEncoding=THREE.sRGBEncoding;R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.setClearColor(0xcbb68b);
+  R.outputEncoding=THREE.sRGBEncoding;R.setClearColor(0xcbb68b);
   scene=new THREE.Scene();scene.fog=new THREE.Fog(0xcbb68b,800,2600);
   camera=new THREE.PerspectiveCamera(fov,1,1,5000);
   v3=new THREE.Vector3();ray=new THREE.Raycaster();ndc=new THREE.Vector2();plane=new THREE.Plane(UPV(),0);
   scene.add(new THREE.HemisphereLight(0xfff0d4,0x5a4428,.55));
-  sun=new THREE.DirectionalLight(0xffdcaa,1.0);sun.castShadow=true;const ms=Math.min(4096,R.capabilities.maxTextureSize);sun.shadow.mapSize.set(ms>=4096&&innerWidth>900?4096:2048,ms>=4096&&innerWidth>900?4096:2048);
-  sun.shadow.bias=-.0005;sun.shadow.normalBias=.8;scene.add(sun);scene.add(sun.target);
+  sun=new THREE.DirectionalLight(0xffdcaa,1.0);sun.castShadow=true;
+  sun.shadow.bias=-.0005;sun.shadow.normalBias=.8;scene.add(sun);scene.add(sun.target);applyQ();
   // terrain
   texCv=mk(W,H);tex=new THREE.CanvasTexture(texCv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=R.capabilities.getMaxAnisotropy();
   const SX=Math.round(W/3),SY=Math.round(H/3);const g=new THREE.PlaneGeometry(W,H,SX,SY);g.rotateX(-Math.PI/2);const pos=g.attributes.position;
@@ -42,17 +57,20 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
   I.troof=mkI(new THREE.ConeGeometry(.62,1,7).translate(0,.5,0),std(0xffffff,{roughness:.6}),N*4);
   I.pole=mkI(new THREE.CylinderGeometry(.05,.05,1,5).translate(0,.5,0),std(0x3a2a18),N);
   I.flag=mkI(new THREE.PlaneGeometry(1,.62).translate(.5,0,0),std(0xffffff,{side:THREE.DoubleSide,roughness:.7}),N);
-  I.body=mkI(new THREE.CylinderGeometry(.3,.46,1.35,7).translate(0,.68,0),std(0xffffff,{roughness:.7}),N*6);
-  I.head=mkI(new THREE.SphereGeometry(.28,8,6).translate(0,1.62,0),std(0xd9ae86),N*6);
-  I.helm=mkI(new THREE.ConeGeometry(.3,.42,8).translate(0,1.95,0),std(0xc9c4b8,{metalness:.5,roughness:.4}),N*6);
-  I.spear=mkI(new THREE.CylinderGeometry(.045,.045,2.9,4).translate(.42,1.35,0),std(0x5a4128),N*6);
-  I.shield=mkI(new THREE.CylinderGeometry(.34,.34,.08,10).rotateZ(Math.PI/2).translate(-.36,.85,0),std(0xffffff,{roughness:.55}),N*6);
   I.dome=mkI(new THREE.SphereGeometry(.5,16,8,0,Math.PI*2,0,Math.PI/2),std(0x8e9aa5,{metalness:.35,roughness:.45}),N);
   I.minS=mkI(new THREE.CylinderGeometry(.5,.5,1,8).translate(0,.5,0),std(0xf3ecdc),N*4);
   I.minC=mkI(new THREE.ConeGeometry(.6,1,8).translate(0,.5,0),std(0x8e9aa5,{metalness:.35,roughness:.45}),N*4);
   I.crV=mkI(new THREE.BoxGeometry(1,1,1).translate(0,.5,0),std(0xd9a93a,{metalness:.6,roughness:.35}),N);
   I.crH=mkI(new THREE.BoxGeometry(1,1,1),std(0xd9a93a,{metalness:.6,roughness:.35}),N);
   flagGeo=new THREE.PlaneGeometry(1,.62,8,1).translate(.5,0,0);mkShips(std);
+  // army regiments (A1): one block of figures per field army, figure count log-scaled with its size
+  A.body=mkI(new THREE.CylinderGeometry(.3,.46,1.35,7).translate(0,.68,0),std(0xffffff,{roughness:.7}),ACAP);
+  A.head=mkI(new THREE.SphereGeometry(.28,8,6).translate(0,1.62,0),std(0xd9ae86),ACAP);
+  A.helm=mkI(new THREE.ConeGeometry(.3,.42,8).translate(0,1.95,0),std(0xc9c4b8,{metalness:.5,roughness:.4}),ACAP);
+  A.spear=mkI(new THREE.CylinderGeometry(.045,.045,2.9,4).translate(.42,1.35,0),std(0x5a4128),ACAP);
+  A.shield=mkI(new THREE.CylinderGeometry(.34,.34,.08,10).rotateZ(Math.PI/2).translate(-.36,.85,0),std(0xffffff,{roughness:.55}),ACAP);
+  A.base=mkI(new THREE.CylinderGeometry(1,1,.25,20).translate(0,.12,0),std(0xffffff,{roughness:.9}),ACAP/4);
+  {const wc=new THREE.Color(1,1,1);for(const m of [A.body,A.shield,A.base])m.setColorAt(0,wc);for(const m of Object.values(A))m.count=0;} // create instanceColor before the first compile
   return true;
  };
  const ROUTES=[[[25.2,40.2],[25.8,38.9],[25.3,37.4],[24.4,36.4],[23.9,37.5],[24.6,39.3]],[[13.4,44.6],[15.0,43.3],[17.0,42.3],[18.8,41.3],[17.9,42.3],[15.5,43.6]],
@@ -101,13 +119,24 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
    const fx0=wx+u*.95,fz0=wz-u*.95;set(I.pole,i,fx0,h+u*1.6,fz0,cap?u:0,u*1.7,cap?u:0);set(I.flag,i,0,-50,0,0,0,0);I.flag.setColorAt(i,C);
    if(cap){let m=flags[i];if(!m){m=new THREE.Mesh(flagGeo,flagMat(p.o));m.castShadow=true;scene.add(m);flags[i]=m;}m.material=flagMat(p.o);m.position.set(fx0,h+u*3.0,fz0);m.scale.set(u*1.6,u*1.6,1);m.visible=true;}
    else if(flags[i])flags[i].visible=false;
-   const n=p.t>0?Math.min(6,Math.ceil(p.t/2500)):0;const ax=wx+u*1.25+2.8,az=wz+u*.7;
-   for(let j=0;j<6;j++){const k=i*6+j;if(j<n){const fx=ax+(j%3)*1.75+(j>=3?.85:0),fz=az+(j>=3?1.9:0);const fh=Math.max(surf(fx+W/2,fz+H/2),.5)-.05;
-     for(const m of [I.body,I.head,I.helm,I.spear,I.shield])set(m,k,fx,fh,fz,1.7,1.7,1.7,.35);I.body.setColorAt(k,C);I.shield.setColorAt(k,C);}
-    else for(const m of [I.body,I.head,I.helm,I.spear,I.shield])set(m,k,0,-50,0,0,0,0);}
-   G3.anchor[i]=[ax+W/2+1.75,az+H/2+(n>3?1.9:.2),7];
+   G3.anchor[i]=[d.lx+u*1.35+1.2,d.ly+u*.55,u*.9];
   }
   for(const m of Object.values(I)){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
+ }
+ /** Regiment blocks for G3.armyItems=[{f,n,wx,wy,dir?}] (map coords): figures log-scaled with size, ranks of four on a faction-coloured base. */
+ function armySync(){
+  const M=M4(),Q=new THREE.Quaternion(),Pv=new THREE.Vector3(),Sc=new THREE.Vector3(),C=new THREE.Color(),UP=UPV();
+  let k=0,b=0;
+  for(const it of G3.armyItems){if(!FAC[it.f])continue;const nf=tokFigures(it.n),cols=Math.min(4,nf),rows=Math.ceil(nf/cols);if(k+nf>ACAP)break;
+   const ry=it.dir!=null?-it.dir+Math.PI/2:.35,cs=Math.cos(ry),sn=Math.sin(ry);C.copy(lin(FAC[it.f].c));
+   for(let j=0;j<nf;j++){const r=Math.floor(j/cols),c=j%cols,inRow=r===rows-1?nf-r*cols:cols,ox=(c-(inRow-1)/2)*2.1,oz=(r-(rows-1)/2)*2.3;
+    const x=it.wx+ox*cs+oz*sn,z=it.wy-ox*sn+oz*cs,h=Math.max(surf(x,z),.5)-.05;
+    Pv.set(x-W/2,h,z-H/2);Q.setFromAxisAngle(UP,ry);Sc.set(2.05,2.05,2.05);M.compose(Pv,Q,Sc);
+    for(const m of [A.body,A.head,A.helm,A.spear,A.shield])m.setMatrixAt(k,M);A.body.setColorAt(k,C);A.shield.setColorAt(k,C);k++;}
+   if(b<ACAP/4){const rad=Math.max(cols*2.1,rows*2.3)*.6+1.1,h=Math.max(surf(it.wx,it.wy),.5)-.1;Pv.set(it.wx-W/2,h,it.wy-H/2);Q.set(0,0,0,1);Sc.set(rad,1,rad*.8);M.compose(Pv,Q,Sc);
+    A.base.setMatrixAt(b,M);A.base.setColorAt(b,C.multiplyScalar(.55));b++;}}
+  for(const m of [A.body,A.head,A.helm,A.spear,A.shield]){m.count=k;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
+  A.base.count=b;A.base.instanceMatrix.needsUpdate=true;if(A.base.instanceColor)A.base.instanceColor.needsUpdate=true;
  }
  function camUpdate(){
   const t=clamp((Math.log(G3.s)-Math.log(fitS*.85))/(Math.log(6)-Math.log(fitS*.85)),0,1),pitch=(66-30*t)*Math.PI/180;
@@ -121,33 +150,46 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
  G3.render=function(now){
   if(G3.texDirty){const c=texCv.getContext('2d');c.drawImage(base3C,0,0);c.drawImage(polC,0,0);c.drawImage(hlC,0,0);tex.needsUpdate=true;G3.texDirty=false;}
   if(G3.objDirty){sync();G3.objDirty=false;}
+  if(G3.armyDirty){armySync();G3.armyDirty=false;}
   camUpdate();water.material.normalMap.offset.set(now*.000012,now*.000007);moveShips(now);
   for(const k in flags){const m=flags[k];if(m.visible)m.rotation.y=.5+Math.sin(now/650+ +k)*.2;}
-  R.render(scene,camera);
+  R.render(scene,camera);G3.dirty=false;lastR=now;KE.stats.frames++;
  };
+ /** Render-on-demand: only when something changed, or ~20 fps while the view is "hot" (3 s after the last interaction). */
+ G3.needs=now=>G3.dirty||G3.texDirty||G3.objDirty||G3.armyDirty||(now<G3.hot&&now-lastR>=48);
  G3.proj=(mx,my,h=0)=>{v3.set(mx-W/2,Math.max(surf(mx,my),.5)+h,my-H/2).project(camera);return [(v3.x+1)/2*vw,(1-v3.y)/2*vh,v3.z<1&&v3.z>-1];};
  function ground(sx,sy){ndc.set(sx/vw*2-1,-(sy/vh)*2+1);ray.setFromCamera(ndc,camera);const hit=new THREE.Vector3();return ray.ray.intersectPlane(plane,hit)?[hit.x+W/2,hit.z+H/2]:null;}
  G3.clamp=()=>{G3.s=clamp(G3.s,fitS*.85,6);G3.mx=clamp(G3.mx,-W*.2,W*1.2);G3.my=clamp(G3.my,-H*.2,H*1.2);};
- G3.panBy=(dx,dy)=>{camUpdate();const a=ground(vw/2,vh/2),b=ground(vw/2-dx,vh/2-dy);if(a&&b){G3.mx+=b[0]-a[0];G3.my+=b[1]-a[1];}G3.clamp();};
- G3.zoomAt=(sx,sy,ns)=>{camUpdate();const a=ground(sx,sy);G3.s=clamp(ns,fitS*.85,6);camUpdate();const b=ground(sx,sy);if(a&&b){G3.mx+=a[0]-b[0];G3.my+=a[1]-b[1];}G3.clamp();};
- G3.center=(x,y,s,off=0,th=0)=>{G3.s=s;G3.mx=x;G3.my=y;G3.clamp();if(off||th)G3.panBy((off+(vw-off)/2)-vw/2,th/2);};
+ G3.panBy=(dx,dy)=>{G3.touch();camUpdate();const a=ground(vw/2,vh/2),b=ground(vw/2-dx,vh/2-dy);if(a&&b){G3.mx+=b[0]-a[0];G3.my+=b[1]-a[1];}G3.clamp();};
+ G3.zoomAt=(sx,sy,ns)=>{G3.touch();camUpdate();const a=ground(sx,sy);G3.s=clamp(ns,fitS*.85,6);camUpdate();const b=ground(sx,sy);if(a&&b){G3.mx+=a[0]-b[0];G3.my+=a[1]-b[1];}G3.clamp();};
+ G3.center=(x,y,s,off=0,th=0)=>{G3.touch();G3.s=s;G3.mx=x;G3.my=y;G3.clamp();if(off||th)G3.panBy((off+(vw-off)/2)-vw/2,th/2);};
  G3.pick=(sx,sy)=>{camUpdate();ndc.set(sx/vw*2-1,-(sy/vh)*2+1);ray.setFromCamera(ndc,camera);const o=ray.ray.origin,d=ray.ray.direction;if(d.y>=0)return null;
   let t=Math.max(0,(60-o.y)/d.y);const te=(.5-o.y)/d.y,st=Math.max(.3,(te-t)/700);
   for(;t<=te;t+=st){const x=o.x+d.x*t+W/2,z=o.z+d.z*t+H/2;if(x<0||z<0||x>=W||z>=H)continue;if(o.y+d.y*t<=surf(x,z))return [x,z];}
   return [o.x+d.x*te+W/2,o.z+d.z*te+H/2];};
- G3.resize=()=>{if(!R)return;R.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));R.setSize(vw,vh,false);};
+ G3.resize=()=>{if(!R)return;G3.touch();R.setPixelRatio(qPR());R.setSize(vw,vh,false);};
  G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?'3D bu cihazda açılamadı':G3.on?'2D haritaya geç':'3D haritaya geç';};
- G3.set=on=>{
+ /** Switch 2D/3D. persist=true only for an explicit player choice (the boot default is not stored). */
+ G3.set=(on,persist)=>{
   if(on&&!G3.init()){on=false;G3.fail=true;}
   if(on===G3.on){G3.label();return G3.on;}
-  if(on){G3.s=cam.s;const c=[(vw/2-cam.x)/cam.s,(vh/2-cam.y)/cam.s];G3.mx=c[0];G3.my=c[1];G3.on=true;G3.resize();G3.clamp();G3.texDirty=true;G3.objDirty=true;}
+  if(on){G3.s=cam.s;const c=[(vw/2-cam.x)/cam.s,(vh/2-cam.y)/cam.s];G3.mx=c[0];G3.my=c[1];G3.on=true;G3.resize();G3.clamp();G3.texDirty=true;G3.objDirty=true;G3.armySig='';G3.armyDirty=true;G3.touch();}
   else{G3.on=false;cam.s=clamp(G3.s,fitS*.85,5);cam.x=vw/2-G3.mx*cam.s;cam.y=vh/2-G3.my*cam.s;clampCam();}
-  document.getElementById('gl').hidden=!G3.on;try{localStorage.setItem('ke-3d',G3.on?'1':'0');}catch(e){}
+  document.getElementById('gl').hidden=!G3.on;if(persist){try{localStorage.setItem('ke-3d',G3.on?'1':'0');}catch(e){}}
   G3.label();
   polDirty=true;hlKey='';req();return G3.on;};
 })();
-/** Whether to start in 3D at boot (saved preference, default on). */
-G3.wantOnBoot=()=>{let want3=true;try{want3=localStorage.getItem('ke-3d')!=='0';}catch(e){}return !!want3;};
+/** Whether to start in 3D at boot: the player's saved choice, else only on a strong desktop-class device
+ (more than 4 cores, smallest screen side >= 700 px, hardware WebGL). Phones and software GL start in 2D (bug B10). */
+G3.wantOnBoot=()=>{let v=null;try{v=localStorage.getItem('ke-3d');}catch(e){}
+ if(v==='1')return true;if(v==='0')return false;
+ return !!window.THREE&&(navigator.hardwareConcurrency||0)>4&&Math.min(innerWidth,innerHeight)>=700&&!aSoftGL();};
+/** True for software WebGL (SwiftShader, llvmpipe) or no WebGL at all. */
+function aSoftGL(){try{const c=document.createElement('canvas'),g=c.getContext('webgl')||c.getContext('experimental-webgl');if(!g)return true;
+ const e=g.getExtension('WEBGL_debug_renderer_info'),r=String(e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER));
+ const l=g.getExtension('WEBGL_lose_context');if(l)l.loseContext();return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(r);}catch(e){return true;}}
+/** Phone-class device: small screen or coarse pointer. */
+function aMobile(){return Math.min(innerWidth,innerHeight)<700||!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);}
 function curS(){return G3.on?G3.s:cam.s;}
 function pj(x,y,h=0){if(G3.on)return G3.proj(x,y,h);return [cam.x+x*cam.s,cam.y+y*cam.s,true];}
 function panBy(dx,dy){if(G3.on)G3.panBy(dx,dy);else{cam.x+=dx;cam.y+=dy;clampCam();}req();}

@@ -7,7 +7,8 @@ let dpr=1,vw=0,vh=0,cam={x:0,y:0,s:1},fitS=1,polDirty=true,need=false;
 let sel=-1,tgt=-1,hlKey='',startPick=null,facLabels=[];
 function resize(){dpr=Math.min(window.devicePixelRatio||1,2);vw=innerWidth;vh=innerHeight;document.documentElement.style.setProperty('--toph',Math.round(topH())+'px');cv.width=vw*dpr;cv.height=vh*dpr;fitS=Math.min(vw/W,vh/H);if(G3.on){G3.resize();G3.clamp();}clampCam();req();}
 function topH(){const t=document.getElementById('top');return t&&!t.hidden?t.getBoundingClientRect().bottom:0;}
-function clampCam(){const minS=fitS*.85;cam.s=clamp(cam.s,minS,5);const mw=W*cam.s,mh=H*cam.s,th=topH(),vis=vh-th,px=Math.max(80,vw*.45),py=Math.max(80,vis*.4);
+/* Bug B12: the map may be panned at most min(45% of the view, 160 px) past its edge. */
+function clampCam(){const minS=fitS*.85;cam.s=clamp(cam.s,minS,5);const mw=W*cam.s,mh=H*cam.s,th=topH(),vis=vh-th,px=Math.max(60,Math.min(vw*.45,160)),py=Math.max(60,Math.min(vis*.4,160));
  cam.x=mw<vw?clamp(cam.x,(vw-mw)/2-px,(vw-mw)/2+px):clamp(cam.x,vw-mw-px,px);cam.y=mh<vis?clamp(cam.y,th+(vis-mh)/2-py,th+(vis-mh)/2+py):clamp(cam.y,vh-mh-py,th+py);}
 function req(){if(!need){need=true;requestAnimationFrame(draw);}}
 function centerOn(x,y,s,off=0){const th=topH();if(G3.on){G3.center(x,y,s,off,th);req();return;}cam.s=s;cam.x=off+(vw-off)/2-x*s;cam.y=th+(vh-th)/2-y*s;clampCam();req();}
@@ -64,13 +65,24 @@ function updateHL(){const k=startPick?'f'+startPick+S.turn:sel+'|'+tgt+'|'+S.tur
 const FCOL={};FK.forEach(f=>FCOL[f]=hex2(FAC[f].c));
 const fx=[];
 function addFx(o){o.t0=performance.now();fx.push(o);if(!need){need=true;requestAnimationFrame(draw);}}
+KE.stats.draws=0;let aHotT=0;
+/* hovered province (mouse only), so its garrison chip shows even when decluttered */
+let aHover=-1,aHovT=0;
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||aHovT||!S)return;aHovT=setTimeout(()=>{aHovT=0;},70);const id=pickAt(e.clientX,e.clientY);if(id!==aHover){aHover=id;req();}});
+cv.addEventListener('pointerleave',()=>{if(aHover>=0){aHover=-1;req();}});
+/** Garrison ceiling (B's garrisonMax when present, else the planned formula). */
+function aGarMax(i){if(typeof garrisonMax==='function')return garrisonMax(i);const p=S.prov[i];return Math.round((500+p.dev*200+p.fort*400)/100)*100;}
+/** Greedy label placement: rects [x0,y0,x1,y1] already taken this frame. */
+const aOcc=[];
+function aFree(r){for(let k=0;k<aOcc.length;k++){const o=aOcc[k];if(r[0]<o[2]&&r[2]>o[0]&&r[1]<o[3]&&r[3]>o[1])return false;}return true;}
+KE.aLabels=()=>aOcc.map(r=>r.map(v=>Math.round(v)));
 function draw(){
  need=false;if(!baseC||!S)return;
  if(polDirty){renderPol();hlKey='';}
  updateHL();
- const now=performance.now(),s=curS(),g3=G3.on;
+ const now=performance.now(),s=curS(),g3=G3.on;KE.stats.draws++;
  ctx.setTransform(1,0,0,1,0,0);
- if(g3){G3.render(now);ctx.clearRect(0,0,cv.width,cv.height);}
+ if(g3){if(G3.needs(now))G3.render(now);ctx.clearRect(0,0,cv.width,cv.height);}
  else{ctx.fillStyle='#1c120a';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=40;ctx.fillStyle='#2e2114';ctx.fillRect(cam.x,cam.y,W*s,H*s);ctx.shadowBlur=0;
   ctx.setTransform(dpr*s,0,0,dpr*s,dpr*cam.x,dpr*cam.y);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
@@ -85,7 +97,10 @@ function draw(){
   facLabels.forEach(l=>{const fs=l.sz*s;if(fs<9)return;const q=pj(l.x,l.y,g3?14:0);if(!q[2])return;const c=FCOL[l.f];ctx.font=`800 ${fs}px "Cinzel", Georgia, serif`;
    ctx.globalAlpha=clamp((1.5-s)/.4,0,1)*.92;ctx.lineWidth=Math.max(2.5,fs*.14);ctx.strokeStyle='rgba(248,240,218,.6)';ctx.lineJoin='round';
    const txt=FAC[l.f].s.toLocaleUpperCase('tr'),sp=fs*.2,chars=[...txt],ws=chars.map(ch=>ctx.measureText(ch).width),tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);let cx=q[0]-tot/2;
-   ctx.textAlign='left';ctx.fillStyle=`rgb(${c[0]*.3|0},${c[1]*.3|0},${c[2]*.3|0})`;chars.forEach((ch,k)=>{ctx.strokeText(ch,cx,q[1]);ctx.fillText(ch,cx,q[1]);cx+=ws[k]+sp;});});
+   ctx.textAlign='left';ctx.fillStyle=`rgb(${c[0]*.3|0},${c[1]*.3|0},${c[2]*.3|0})`;chars.forEach((ch,k)=>{ctx.strokeText(ch,cx,q[1]);ctx.fillText(ch,cx,q[1]);cx+=ws[k]+sp;});
+   // far zoom: the realm's total troops (garrisons + field armies) instead of hundreds of small chips
+   if(s<.95&&fs>=11){const ts=clamp(fs*.42,10,15);ctx.globalAlpha=clamp((.95-s)/.2,0,1)*.9;ctx.font=`700 ${ts}px "EB Garamond", Georgia, serif`;ctx.textAlign='center';
+    const tt='⚔ '+fmtK(strength(l.f)),ty=q[1]+fs*.62+ts*.2;ctx.lineWidth=3;ctx.strokeStyle='rgba(248,240,218,.75)';ctx.strokeText(tt,q[0],ty);ctx.fillText(tt,q[0],ty);}});
   ctx.globalAlpha=1;}
  // move arrow
  if(sel>=0&&tgt>=0){const a=PD[sel],b=PD[tgt];const A=pj(a.lx,a.ly,3),B=pj(b.lx,b.ly,3);const ax=A[0],ay=A[1],bx=B[0],by=B[1];const mx=(ax+bx)/2-(by-ay)*.2,my=(ay+by)/2+(bx-ax)*.2;
@@ -93,26 +108,63 @@ function draw(){
   ctx.lineCap='round';ctx.strokeStyle='rgba(10,8,4,.55)';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();
   ctx.strokeStyle=cl;ctx.lineWidth=5;ctx.setLineDash([12,7]);ctx.lineDashOffset=-(now/40)%19;ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=cl;ctx.strokeStyle='rgba(10,8,4,.7)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx+4*Math.cos(an),by+4*Math.sin(an));ctx.lineTo(bx-18*Math.cos(an-.5),by-18*Math.sin(an-.5));ctx.lineTo(bx-18*Math.cos(an+.5),by-18*Math.sin(an+.5));ctx.closePath();ctx.fill();ctx.stroke();}
- // cities, names, banners
+ // layout: army tokens are fixed first, then garrison chips and city names are placed greedily around them (A4)
+ aOcc.length=0;const toks=tokLayout(s,g3,now);for(const t of toks)aOcc.push(t.r);
  const vis=[],P0={};for(const d of PD){const q=pj(d.lx,d.ly);if(!q[2]||q[0]<-70||q[1]<-50||q[0]>vw+70||q[1]>vh+50)continue;P0[d.i]=q;vis.push(d);}
  vis.sort((a,b)=>P0[a.i][1]-P0[b.i][1]);
  const nearSel=new Set(sel>=0?[sel,...PD[sel].adj]:[]);const recent=new Set(S.battles.filter(b=>b.turn>=S.turn-1).map(b=>b.to));
- const szs={};
+ const szs={},phone=vw<760;
  for(const d of vis){const p=S.prov[d.i],[sx,sy]=P0[d.i],isCap=S.fac[p.o]&&S.fac[p.o].cap===d.i;
   if(g3){szs[d.i]=(1.9+p.dev*.3)*s*1.4;continue;}
-  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);}
+  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6]);}
   else if(isCap){szs[d.i]=4;ctx.font='13px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle='rgba(20,14,8,.7)';ctx.strokeText('★',sx,sy);ctx.fillStyle='#f1cf72';ctx.fillText('★',sx,sy);}}
- if(s>=1.3){ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
-  for(const d of vis){const [sx,sy0]=P0[d.i],sy=sy0+(g3?Math.min(szs[d.i],26)*.9+10:(szs[d.i]||4)*.7+9);ctx.font=`700 ${s>2?13:12}px "Cinzel", Georgia, serif`;
-   ctx.lineWidth=3.5;ctx.strokeStyle='rgba(248,240,218,.85)';ctx.strokeText(d.name,sx,sy);ctx.fillStyle='#24190e';ctx.fillText(d.name,sx,sy);}}
- for(const d of vis){const p=S.prov[d.i],mine=p.o===S.player;if(p.t<=0)continue;
-  if(!(s>=(vw<760?1.3:.8)||nearSel.has(d.i)||p.t>=(mine?4000:8000)))continue;
-  let bx,by;if(g3&&G3.anchor[d.i]){const an=G3.anchor[d.i],q=pj(an[0],an[1],an[2]);bx=q[0];by=q[1];}else{bx=P0[d.i][0]+(szs[d.i]||3)*.95+2;by=P0[d.i][1]+(szs[d.i]||3)*.45;}
-  drawBanner(bx,by,fmtK(p.t),FAC[p.o].c,mine,mine&&p.mv>=p.t*.5,p.o);
-  if(recent.has(d.i))swords(P0[d.i][0]-(g3?12:(szs[d.i]||3)*1.2+8),P0[d.i][1]-(g3?14:4));}
+ // garrison chips: hidden under 0.1k; shown near the selection, on hover, for big stacks, or when zoomed in and the garrison is at least half full
+ const chips=[],pl=S.player,zMin=phone?1.1:.75;
+ for(const d of vis){const p=S.prov[d.i];if(p.t<150&&d.i!==sel)continue;const mine=p.o===pl,force=d.i===sel||d.i===aHover,near=nearSel.has(d.i);
+  if(!(force||near||(s>=zMin&&p.t>=aGarMax(d.i)*.5)||p.t>=(mine?4000:8000)))continue;
+  const war=!!pl&&!mine&&atWar(pl,p.o);chips.push({d,p,mine,war,force,pr:(force?4e6:near?3e6:mine?2e6:war?1e6:0)+p.t});}
+ chips.sort((a,b)=>b.pr-a.pr);
+ ctx.font='700 12px "EB Garamond", Georgia, serif';
+ for(const c of chips){const i=c.d.i,txt=fmtK(c.p.t),w=ctx.measureText(txt).width+19,h=15,sz=szs[i]||3;let cand;
+  if(g3&&G3.anchor[i]){const an=G3.anchor[i],q=pj(an[0],an[1],an[2]);cand=[[q[0],q[1]-h/2],[q[0]-w-sz*1.6,q[1]-h/2],[q[0]-w/2-sz*.8,q[1]-h-sz*1.4]];}
+  else{const [x,y]=P0[i];cand=[[x+sz*.95+3,y-h/2-3],[x-sz*.95-3-w,y-h/2-3],[x-w/2,y-sz*1.25-h-1],[x+sz*.6,y+sz*.5+2]];}
+  let pos=null;for(const q of cand){const r=[q[0]-1,q[1]-1,q[0]+w+1,q[1]+h+1];if(aFree(r)){pos=q;break;}}
+  if(!pos){if(!c.force)continue;pos=cand[0];}
+  aOcc.push([pos[0]-1,pos[1]-1,pos[0]+w+1,pos[1]+h+1]);c.x=pos[0];c.y=pos[1];c.w=w;c.txt=txt;}
+ // city names fade in with zoom; a name that would cover a chip, token or another name tries above the city, else waits for more zoom
+ const na=clamp((s-1.1)/.3,0,1);
+ if(na>0){ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.font=`700 ${s>2?13:12}px "Cinzel", Georgia, serif`;ctx.globalAlpha=na;
+  const byPr=vis.slice().sort((a,b)=>((S.fac[S.prov[b.i].o].cap===b.i)-(S.fac[S.prov[a.i].o].cap===a.i))||(S.prov[b.i].dev-S.prov[a.i].dev));
+  for(const d of byPr){const [sx,sy0]=P0[d.i],sz=szs[d.i]||4,w=ctx.measureText(d.name).width+4,hh=13;
+   const ys=[sy0+(g3?Math.min(sz,26)*.9+10:sz*.7+9),sy0-(g3?Math.min(sz,26)*1.4+14:sz*1.4+11)];let y=null;
+   for(const yy of ys){if(aFree([sx-w/2,yy-hh/2,sx+w/2,yy+hh/2])){y=yy;break;}}
+   if(y==null){if(d.i!==sel&&s<2.6)continue;y=ys[0];}
+   aOcc.push([sx-w/2,y-hh/2,sx+w/2,y+hh/2]);
+   ctx.lineWidth=3.5;ctx.strokeStyle='rgba(248,240,218,.85)';ctx.strokeText(d.name,sx,y);ctx.fillStyle='#24190e';ctx.fillText(d.name,sx,y);}
+  ctx.globalAlpha=1;}
+ for(const c of chips)if(c.x!=null)drawGar(c.x,c.y,c.w,c.txt,FAC[c.p.o].c,c.mine,c.war,c.mine&&c.p.mv>=c.p.t*.5,c.force);
+ for(const d of vis)if(recent.has(d.i)&&P0[d.i])swords(P0[d.i][0]-(g3?12:(szs[d.i]||3)*1.2+8),P0[d.i][1]-(g3?14:4));
  let more=false;for(const id in DRAW_LAYERS){try{if(DRAW_LAYERS[id](ctx,now,s,g3))more=true;}catch(e){console.error('draw layer '+id,e);}}
  drawFx(now);
- if(g3||fx.length||(sel>=0&&tgt>=0)||more){need=true;requestAnimationFrame(draw);}
+ // render on demand: keep the loop alive only for animations; a "hot" 3D view idles down at ~20 fps for 3 s, then stops
+ if(fx.length||(sel>=0&&tgt>=0)||more){need=true;requestAnimationFrame(draw);}
+ else if(g3&&now<G3.hot&&!aHotT)aHotT=setTimeout(()=>{aHotT=0;req();},50);
+}
+/** Garrison chip: a small plaque with a tower in the owner's colour and the troop count. */
+function drawGar(x,y,w,txt,col,mine,war,dim,force){const h=15;
+ ctx.globalAlpha=dim?.72:1;
+ ctx.fillStyle='rgba(20,12,4,.32)';rr(x+1.2,y+1.6,w,h,3);ctx.fill();
+ const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#fbf2d8');g.addColorStop(1,'#e2cc98');ctx.fillStyle=g;rr(x,y,w,h,3);ctx.fill();
+ ctx.lineWidth=mine?1.7:1;ctx.strokeStyle=mine?'#b8862c':war?'#9d2a1b':'#5e3f1f';ctx.stroke();
+ if(force){ctx.lineWidth=1;ctx.strokeStyle='rgba(255,246,214,.9)';rr(x-1.5,y-1.5,w+3,h+3,4);ctx.stroke();}
+ // tower: body, three merlons, door
+ const tx=x+3.5,tb=y+h-2.5,tw=8,th=8.5;ctx.fillStyle=col;ctx.strokeStyle='#2a1a0c';ctx.lineWidth=.9;
+ ctx.beginPath();ctx.moveTo(tx,tb);ctx.lineTo(tx,tb-th);for(let k=0;k<3;k++){const mx=tx+k*3;ctx.lineTo(mx,tb-th-2.2);ctx.lineTo(mx+2,tb-th-2.2);ctx.lineTo(mx+2,tb-th);if(k<2)ctx.lineTo(mx+3,tb-th);}
+ ctx.lineTo(tx+tw,tb-th);ctx.lineTo(tx+tw,tb);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(tx+.6,tb-th+.4,2,th-.8);
+ ctx.fillStyle='#2a1a0c';ctx.beginPath();ctx.arc(tx+tw/2,tb-2.4,1.5,Math.PI,0);ctx.lineTo(tx+tw/2+1.5,tb);ctx.lineTo(tx+tw/2-1.5,tb);ctx.closePath();ctx.fill();
+ ctx.font='700 12px "EB Garamond", Georgia, serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=war?'#7d1a10':'#2a1a0c';ctx.fillText(txt,x+15,y+h/2+.5);
+ ctx.globalAlpha=1;
 }
 function drawCity(x,y,sz,col,cap){
  const w=sz*1.8,h=sz*.85,x0=x-w/2,yb=y+sz*.45;
