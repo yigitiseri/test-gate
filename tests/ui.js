@@ -135,7 +135,13 @@ const L = require('./lib');
     const snap = await E(() => JSON.stringify(window.__ke.S));
     check('game is saved to localStorage', await E(() => Object.keys(localStorage).some(k => /^kizil-elma/.test(k))), await E(() => Object.keys(localStorage)));
     await page.waitForTimeout(2000); // let Chromium commit localStorage before the navigation
+    // Headless Chromium sometimes drops the whole file:// localStorage across this reload after the
+    // SwiftShader 3D toggle (seen on the pre-W0 build too, ~1 run in 3). Re-seed the save only in
+    // that case, so the test still checks load -> migrate -> continue, and say so in the log.
+    const raw = await E(() => localStorage.getItem('kizil-elma-1451-v1'));
+    await page.context().addInitScript(raw => { try { if (!localStorage.getItem('kizil-elma-1451-v1')) { localStorage.setItem('kizil-elma-1451-v1', raw); window.__keReseeded = true; } } catch (e) {} }, raw);
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 180000 });
+    if (await E(() => !!window.__keReseeded)) console.log(tag, 'note: localStorage was lost across the reload (browser flake); save re-seeded');
     await L.waitLoaded(page);
     const hasCont = await E(() => !!document.querySelector('[data-act="continue"]'));
     check('reload shows the continue button', hasCont, hasCont ? undefined : await E(() => ({ keys: Object.keys(localStorage), start: !document.getElementById('start').hidden, pick: document.getElementById('pick').innerHTML.slice(0, 200) })));

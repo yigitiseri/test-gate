@@ -146,6 +146,8 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
   G3.label();
   polDirty=true;hlKey='';req();return G3.on;};
 })();
+/** Whether to start in 3D at boot (saved preference, default on). */
+G3.wantOnBoot=()=>{let want3=true;try{want3=localStorage.getItem('ke-3d')!=='0';}catch(e){}return !!want3;};
 function curS(){return G3.on?G3.s:cam.s;}
 function pj(x,y,h=0){if(G3.on)return G3.proj(x,y,h);return [cam.x+x*cam.s,cam.y+y*cam.s,true];}
 function panBy(dx,dy){if(G3.on)G3.panBy(dx,dy);else{cam.x+=dx;cam.y+=dy;clampCam();}req();}

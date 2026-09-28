@@ -89,4 +89,4 @@ const SND=(()=>{
 document.addEventListener('pointerdown',()=>SND.init(),{passive:true});
 document.addEventListener('keydown',()=>SND.init());
 function sndIcon(){const b=$('#sndBtn');if(b)b.textContent=SND.st.on?'🔊':'🔇';}
-
+ACTS.snd=()=>{SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');};

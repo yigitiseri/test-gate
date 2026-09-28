@@ -83,3 +83,5 @@ function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
  <div class="gbody">${guideBody(t)}</div>
  <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
+ACTS.help=()=>showGuide('genel');
+ACTS.guide=t=>showGuide(t.dataset.t);

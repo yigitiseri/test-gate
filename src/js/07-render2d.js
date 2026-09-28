@@ -110,8 +110,9 @@ function draw(){
   let bx,by;if(g3&&G3.anchor[d.i]){const an=G3.anchor[d.i],q=pj(an[0],an[1],an[2]);bx=q[0];by=q[1];}else{bx=P0[d.i][0]+(szs[d.i]||3)*.95+2;by=P0[d.i][1]+(szs[d.i]||3)*.45;}
   drawBanner(bx,by,fmtK(p.t),FAC[p.o].c,mine,mine&&p.mv>=p.t*.5,p.o);
   if(recent.has(d.i))swords(P0[d.i][0]-(g3?12:(szs[d.i]||3)*1.2+8),P0[d.i][1]-(g3?14:4));}
+ let more=false;for(const id in DRAW_LAYERS){try{if(DRAW_LAYERS[id](ctx,now,s,g3))more=true;}catch(e){console.error('draw layer '+id,e);}}
  drawFx(now);
- if(g3||fx.length||(sel>=0&&tgt>=0)){need=true;requestAnimationFrame(draw);}
+ if(g3||fx.length||(sel>=0&&tgt>=0)||more){need=true;requestAnimationFrame(draw);}
 }
 function drawCity(x,y,sz,col,cap){
  const w=sz*1.8,h=sz*.85,x0=x-w/2,yb=y+sz*.45;

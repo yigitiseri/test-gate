@@ -190,7 +190,8 @@ input[type=range]{width:100%;accent-color:var(--brass)}
 .pick .row2 .btn{flex:1;justify-content:center;padding:11px}
 #loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font:700 22px var(--display);color:var(--brass)}
 #loading small{display:block;font:500 13px var(--body);color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.1em}
-
+#hud{position:fixed;inset:0;pointer-events:none;z-index:12}#hud>*{pointer-events:auto}
+#card{position:fixed;z-index:14}#card[hidden]{display:none}
 @media (max-width:1560px){
   nav.tabs .lbl{display:none}
   #top{gap:10px}
@@ -357,14 +358,7 @@ input[type=range]{accent-color:var(--brass)}
     <div class="stat"><label>Eyalet</label><b id="provs">0</b></div>
     <div class="stat"><label>Savaş</label><b id="wars">0</b></div>
   </div>
-  <nav class="tabs">
-    <button class="nb" data-act="diplo">⚖<span class="lbl"> Diplomasi</span></button>
-    <button class="nb" data-act="missions">✦<span class="lbl"> Hedefler</span></button>
-    <button class="nb" data-act="chron">❧<span class="lbl"> Vakayiname</span></button>
-    <button class="nb" data-act="guide" data-t="genel" aria-label="Oyun rehberi" title="Oyun rehberi"><b style="font:700 15px var(--display)">i</b><span class="lbl"> Rehber</span></button>
-    <button class="nb" data-act="snd" id="sndBtn" aria-label="Sesi aç/kapat">🔊</button>
-    <button class="nb" data-act="menu">☰</button>
-  </nav>
+  <nav class="tabs" id="navTabs"></nav>
   <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
   <button id="endTurn" data-act="end">Turu Bitir</button>
 </header>
@@ -372,6 +366,8 @@ input[type=range]{accent-color:var(--brass)}
 <aside id="panel" hidden><div class="band"></div><div class="in" id="panelIn"></div></aside>
 <div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır">+</button><button data-act="zout" aria-label="Uzaklaştır">−</button><button data-act="fit" aria-label="Haritayı sığdır" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" title="Arazi haritası" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" style="font:800 13px var(--body)">2D</button></div>
 <div id="tip" hidden></div>
+<div id="hud"></div>
+<div id="card" hidden></div>
 <div id="toasts"></div>
 <div id="modal" hidden><div class="card" role="dialog" aria-modal="true"></div></div>
 
@@ -483,6 +479,74 @@ const REGION_LABELS=[
  ['Deşt-i Kıpçak',44.2,46.8,17,'land'],['Sahrâ-yı Libya',24.4,30.2,18,'land'],['Şam Çölü',39.6,32.3,16,'land'],['Vahşi Topraklar',33.2,48.2,13,'land']
 ];
 
+/* =====================================================================
+   CORE REGISTRY (frozen after Wave 0: only the orchestrator edits this file)
+   Every shared mutable collection lives here, so later files can register into
+   them at load time without TDZ errors. See CONTRIBUTING.md for the contracts.
+
+   HOOKS (name(args): order slots). hook(name,fn,order=50) creates lists lazily,
+   so a track may fire / listen to a NEW name without editing this file.
+    newGame(S,player)          end of newGame(); create your S fields here
+    migrate(S,fromV)           loadGame -> migrate(); fill the same fields (idempotent!)
+    turnStart()                start of endTurn compute (after S.news/S.report/TURN_TRACE reset)
+    preAI(f)                   before aiTurn(f) of every AI faction
+    roundEnd()                 before S.turn++: 10 B economy, 20 B sieges, 30 B exhaustion,
+                               40 C characters, 50 D AI bookkeeping (opinion drift)
+    newTurn()                  after S.turn++: 20 C historic/chains
+    afterRound()               after endRound: 10 C missions, 50 D advisor
+    events()                   after the victory check, only if !S.over: C random events
+    capture(i,newOwner,oldOwner)   end of capture()
+    battleResolved(rep)        end of battle(), every battle
+    playerBattle(rep)          end of battle(), when the player is attacker or defender
+    warDeclared(a,b)           a declared on b (also allies joining: (c,a), Safavid spawn)
+    peace(a,b,terms)           end of makePeace(); terms={silent}
+    eliminate(f,by)            end of eliminate()
+    armyCreated(army) / armyRemoved(army,reason)
+    charDied(ch) / succession(f,old,neu)
+    boot()                     end of boot(), start screen shown
+    enterGame()                end of enterGame() (new game or loaded game)
+    renderAll()                end of renderAll()
+   ===================================================================== */
+const HOOKS={};                                   // name -> [{fn,order}]
+function hook(name,fn,order=50){(HOOKS[name]||(HOOKS[name]=[])).push({fn,order});HOOKS[name].sort((a,b)=>a.order-b.order);}
+function runHooks(name,...a){const L=HOOKS[name];if(!L)return;for(const h of L){try{h.fn(...a);}catch(e){console.error('hook '+name,e);}}}
+const ACTS={};                                    // data-act name -> (t,f,F)=>void   (t = clicked element, f = S.player, F = S.fac[f])
+const OVERBLOCK=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','dwar','dp-war','dp-peace','dp-trib','dp-ally','dp-gift','dp-break','off']); // blocked once S.over
+const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begin','ev','dp-peace','dp-trib','dp-ally','dp-gift','off','snd']); // no generic click sound
+const PANEL_SECTIONS=[];   // {id,order,when(ctx),html(ctx),bind?(root,ctx)}   ctx={i,d,p,f,F,mine,isCap,tgt}
+const TOP_BUTTONS=[];      // {act,icon,label?,title?,aria?,id?,order,data?:{k:v}}
+const REPORT_SECTIONS=[];  // {id,order,html()}      (Mevsim Raporu)
+const STATE_SECTIONS=[];   // {id,order,html(f)}     (Devlet defteri)
+const DIPLO_ROW=[];        // {id,order,meta?(f),buttons?(f)}   each returns an HTML string
+const MENU_SECTIONS=[];    // {id,order,html(),bind?(root)}
+const BATTLE_MODS=[];      // ctx=>[{l:'Kale 3',m:1.45,side:'def'|'att',k:'fort'}]  ctx={kind,att,def,from,to,n}
+const ECON_ROWS=[];        // f=>[{l,v,k:'inc'|'exp',id?,tip?}]  (v>=0; income()=sum inc, upkeep()=sum exp)
+const DRAW_LAYERS={};      // id -> (ctx2d,now,s,g3)=>boolean(wantsNextFrame)   drawn after banners, before fx
+const PRESENTERS=[];       // {id,order,run(next)}  sequential end-of-turn presentation (core: fx 50, report 90)
+const TIPS={};             // data-tip key -> el=>html  (D renders)
+const TUT_STEPS=[];        // D
+const TURN_TRACE=[];       // cleared each endTurn; {k:'battle'|'move'|...,f,from,to,path,army,n,win,rep}
+const KE={stats:{turnMs:0,frames:0}}; // debug/test API; 15-boot exposes window.__ke=KE
+let selArmy=null;          // selected army id (B uses; A highlights)
+
+/** Run PRESENTERS in order; each gets next(). A presenter that never calls next() is skipped after 6 s. */
+function present(done){
+ const L=PRESENTERS.slice().sort((a,b)=>a.order-b.order);let k=0;
+ const step=()=>{if(k>=L.length){done();return;}const p=L[k++];let called=false,timer=0;
+  const nx=()=>{if(called)return;called=true;clearTimeout(timer);step();};
+  timer=setTimeout(()=>{console.warn('presenter '+p.id+' timed out');nx();},6000);
+  try{p.run(nx);}catch(e){console.error('presenter '+p.id,e);nx();}};
+ step();
+}
+
+/* Seedable RNG for game logic (03-06 and their splits). Rendering and sound keep Math.random. */
+function mkRng(seed){let s=seed>>>0;
+ const f=()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};
+ f.seed=n=>{s=n>>>0;};return f;}
+const R=mkRng(Math.floor(Math.random()*4294967296));
+KE.seed=n=>R.seed(n);
+KE.reg={HOOKS,ACTS,OVERBLOCK,QUIET,PANEL_SECTIONS,TOP_BUTTONS,REPORT_SECTIONS,STATE_SECTIONS,DIPLO_ROW,MENU_SECTIONS,BATTLE_MODS,ECON_ROWS,DRAW_LAYERS,PRESENTERS,TIPS,TUT_STEPS,TURN_TRACE};
+const bySlot=L=>L.slice().sort((a,b)=>a.order-b.order); // registry entries in order
 /* =====================================================================
    FACTIONS AND PROVINCES (1451)
    ===================================================================== */
@@ -899,7 +963,7 @@ const dateStr=t=>`${SEASONS[t%4]} ${START_YEAR+Math.floor(t/4)}`;
 const alive=f=>S.fac[f]&&S.fac[f].alive;
 const fname=f=>FAC[f].s;
 const fmtK=n=>{n=Math.max(0,Math.round(n));return n>=10000?Math.round(n/1000)+'k':(Math.round(n/100)/10).toFixed(1).replace('.0','')+'k';};
-const rnd=(a,b)=>a+Math.random()*(b-a);
+const rnd=(a,b)=>a+R()*(b-a);
 
 const HIST=[['BYZ','OSM',-45],['KAR','OSM',-35],['HUN','OSM',-50],['ALB','OSM',-70],['AKK','KKY',-70],['GEN','VEN',-30],['HAB','HUN',-25],
  ['AKK','OSM',-10],['KAR','MAM',15],['DUL','MAM',45],['BYZ','VEN',30],['BYZ','GEN',20],['HUN','SRB',10],['OSM','SRB',-5],['GH','KRM',-60],
@@ -907,6 +971,55 @@ const HIST=[['BYZ','OSM',-45],['KAR','OSM',-35],['HUN','OSM',-50],['ALB','OSM',-
  ['HUN','POL',10],['CYP','MAM',-20],['MAM','RHO',-40],['OSM','RHO',-30],['AKK','KAR',30],['HUN','BOS',25]];
 function baseOp(a,b){let v=FAC[a].rel===FAC[b].rel?20:-20;const h=HIST.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a));if(h)v+=h[2];return clamp(v,-100,100);}
 
+function facProvs(f){const r=[];for(let i=0;i<NP;i++)if(S.prov[i].o===f)r.push(i);return r;}
+function strength(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a.n;return s;}
+function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;}
+function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}
+/** All economy rows of faction f (ECON_ROWS registry): [{l,v,k:'inc'|'exp',id?,tip?}]. */
+function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
+function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
+function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;return s;}
+ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:'Eyalet vergileri',v:s,k:'inc'}];});
+ECON_ROWS.push(f=>{const st=strength(f);return [{id:'army',l:`Ordu maaşları (${fmtK(st)})`,v:st/1000*UPK,k:'exp'}];});
+function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
+function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
+function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
+const avail=i=>Math.max(0,S.prov[i].t-S.prov[i].mv);
+
+/** A fresh war record (schema v2). */
+function newWar(a,b){return {t:S.turn,sc:{[a]:0,[b]:0},ex:{},goal:null};}
+const newFac=()=>({gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0,ruler:null,heir:null,gens:[]});
+const newAi=()=>({goal:null,desire:{},nudges:[]});
+function newGame(player){
+ S={v:2,seq:1,turn:0,player,prov:[],fac:{},war:{},truce:{},ally:{},op:{},log:[],flags:{},battles:[],offers:[],news:[],mis:[],misDone:{},stats:{won:0,lost:0,taken:0},
+  armies:[],sieges:{},chars:{},ae:{},coal:{},evs:{},chains:{},ai:{},tut:null,hist:[]};
+ FK.forEach(f=>{S.fac[f]=newFac();S.ai[f]=newAi();});
+ PD.forEach(d=>{const m=FAC[d.o].m;S.prov.push({o:d.o,dev:d.dev,fort:d.fort,mkt:0,brk:0,t:Math.round((d.dev*450+d.fort*250)*m/100)*100,mv:0,un:0});});
+ FK.forEach(f=>{const ps=facProvs(f);if(!ps.length)return;const F=S.fac[f];F.alive=true;F.cap=PK[FAC[f].cap]??ps[0];
+  S.prov[F.cap].t+=Math.round(2500*FAC[f].m/100)*100;const ds=devSum(f);F.gold=Math.round(50+ds*1.2);F.mp=ds*350;});
+ for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++)S.op[key(FK[a],FK[b])]=baseOp(FK[a],FK[b]);
+ [['AKK','KKY'],['OSM','ALB'],['KRM','GH']].forEach(([a,b])=>S.war[key(a,b)]=newWar(a,b));
+ [['MAM','DUL'],['AKK','KAR'],['HUN','BOS'],['VEN','BYZ']].forEach(([a,b])=>S.ally[key(a,b)]=true);
+ if(player)addLog(`${FAC[player].n} tahtında: ${rulerName(player)}. Tarihin yeni bir sayfası açılıyor.`,'cap');
+ runHooks('newGame',S,player);
+}
+function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
+
+/* economy at the end of every round (roundEnd slot 10) */
+hook('roundEnd',()=>{
+ FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;const inc=income(f),up=upkeep(f);F.gold+=inc-up;
+  const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
+  if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}F.gold=0;
+   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordu −10%).','war');}});
+ for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
+},10);
+
+function addLog(m,k='info'){S.log.push({t:S.turn,m,k});if(S.log.length>400)S.log.shift();}
+function news(m,k='info'){S.news.push({m,k});addLog(m,k);}
+
+/* =====================================================================
+   MISSIONS (historic goals of the player's faction)
+   ===================================================================== */
 const MIS={
  OSM:[{t:'Konstantiniyye\'nin Fethi',d:'Şehri al; Rumeli ile Anadolu birleşsin.',own:['istanbul'],g:150,dev:['istanbul',2]},
       {t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
@@ -945,62 +1058,65 @@ const MIS={
       {t:'Kıyıları Birleştir',d:'İşkodra, Dıraç ve Avlonya\'yı al.',own:['iskodra','drac','avlonya'],g:90},
       {t:'Üsküp',d:'Üsküp\'ü al.',own:['uskup'],g:80}]
 };
-
-function facProvs(f){const r=[];for(let i=0;i<NP;i++)if(S.prov[i].o===f)r.push(i);return r;}
-function strength(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;return s;}
-function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;}
-function income(f){let s=0;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o!==f)continue;s+=p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}return s;}
-function upkeep(f){return strength(f)/1000*UPK;}
-function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
-function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
-function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
-const avail=i=>Math.max(0,S.prov[i].t-S.prov[i].mv);
-function atkMul(f){return (S.turn%4===3?.85:1);}
-function atkPower(n,f){return n*atkMul(f);}
-function defPower(i,att){const p=S.prov[i],d=PD[i];const mil=p.dev*150+p.fort*700;const fm=1+.15*p.fort*(att&&S.fac[att].cannon?.4:1);
- return (p.t+mil)*fm*(d.mtn?1.3:1)*(d.des?1.1:1);}
-
-function newGame(player){
- S={v:1,turn:0,player,prov:[],fac:{},war:{},truce:{},ally:{},op:{},log:[],flags:{},battles:[],offers:[],news:[],mis:[],misDone:{},stats:{won:0,lost:0,taken:0}};
- FK.forEach(f=>{S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});
- PD.forEach(d=>{const m=FAC[d.o].m;S.prov.push({o:d.o,dev:d.dev,fort:d.fort,mkt:0,brk:0,t:Math.round((d.dev*450+d.fort*250)*m/100)*100,mv:0,un:0});});
- FK.forEach(f=>{const ps=facProvs(f);if(!ps.length)return;const F=S.fac[f];F.alive=true;F.cap=PK[FAC[f].cap]??ps[0];
-  S.prov[F.cap].t+=Math.round(2500*FAC[f].m/100)*100;const ds=devSum(f);F.gold=Math.round(50+ds*1.2);F.mp=ds*350;});
- for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++)S.op[key(FK[a],FK[b])]=baseOp(FK[a],FK[b]);
- [['AKK','KKY'],['OSM','ALB'],['KRM','GH']].forEach(([a,b])=>S.war[key(a,b)]={t:0,sc:{[a]:0,[b]:0}});
- [['MAM','DUL'],['AKK','KAR'],['HUN','BOS'],['VEN','BYZ']].forEach(([a,b])=>S.ally[key(a,b)]=true);
- if(player){
-  const ms=MIS[player]||genericMissions(player);S.mis=ms.map(m=>({...m}));
-  addLog(`${FAC[player].n} tahtında: ${FAC[player].r}. Tarihin yeni bir sayfası açılıyor.`,'cap');
- }
-}
 function genericMissions(f){const n=facProvs(f).length;
  const nb=nbrs(f).filter(g=>g!=='SAF').sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
  const r=[{t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{t:'Dolu Hazine',d:'Hazinende 400 altın biriktir.',gold:400,g:0,dev:['cap',1]}];
  if(tgt)r.push({t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
  r.push({t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
 
-function addLog(m,k='info'){S.log.push({t:S.turn,m,k});if(S.log.length>400)S.log.shift();}
-function news(m,k='info'){S.news.push({m,k});addLog(m,k);}
-
+function checkMissions(){
+ if(!S.player)return;const pl=S.player;
+ S.mis.forEach((m,k)=>{if(S.misDone[k])return;let ok=false;
+  if(m.own)ok=m.own.every(x=>S.prov[PK[x]].o===pl);
+  else if(m.count)ok=facProvs(pl).length>=m.count;
+  else if(m.gold)ok=S.fac[pl].gold>=m.gold;
+  else if(m.hold)ok=S.turn>=m.until&&S.prov[PK[m.hold]].o===pl;
+  if(ok){S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
+   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
+   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');}});
+}
+function showMissions(){
+ const pl=S.player;const rows=S.mis.map((m,k)=>{const done=S.misDone[k]!=null;let prog='';
+  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;prog=`${n}/${m.own.length}`;}else if(m.count)prog=`${facProvs(pl).length}/${m.count}`;else if(m.gold)prog=`${Math.floor(S.fac[pl].gold)}/${m.gold}`;else if(m.hold)prog=S.turn>=m.until?'':`${m.until-S.turn} tur`;
+  return `<div class="mis ${done?'done':''}"><span class="ck">${done?'✓':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&prog?` · ${prog}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;}).join('');
+ openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2><div class="rows">${rows}</div>
+  <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+}
+hook('newGame',(S,player)=>{if(player){const ms=MIS[player]||genericMissions(player);S.mis=ms.map(m=>({...m}));}},10);
+hook('afterRound',()=>checkMissions(),10);
+ACTS.missions=()=>showMissions();
+/* =====================================================================
+   CHARACTERS (W0 stub; Track C replaces the internals, keeps the signatures)
+   S.chars={[id]:{id,n,f,role:'ruler'|'heir'|'gen'|'claimant',born,died:null,traits:[],skill,dyn,ep}}
+   S.fac[f].ruler / .heir = char id or null; S.fac[f].gens = [char ids]
+   ===================================================================== */
+/** Display name of f's ruler. Every UI place that shows a ruler must use this (never FAC[f].r). */
+function rulerName(f){return FAC[f].r;}
+function chRuler(f){return null;}
+function chHeir(f){return null;}
+function chGenerals(f){return [];}
+KE.rulerName=f=>rulerName(f);
 /* ---------------- war & peace ---------------- */
 function declareWar(a,b){
  if(atWar(a,b)||a===b)return;
  delete S.ally[key(a,b)];
- S.war[key(a,b)]={t:S.turn,sc:{[a]:0,[b]:0}};addOp(a,b,-60);
+ S.war[key(a,b)]=newWar(a,b);addOp(a,b,-60);
  alliesOf(b).forEach(c=>addOp(a,c,-25));
  const msg=`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`;
  if(a===S.player||b===S.player){news(msg,'war');if(b===S.player)toast(msg,'war');}else addLog(msg,'war');
- alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a)||inTruce(c,a))return;S.war[key(c,a)]={t:S.turn,sc:{[a]:0,[c]:0}};
+ const joined=[];
+ alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a)||inTruce(c,a))return;S.war[key(c,a)]=newWar(a,c);joined.push(c);
   const m2=`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`;if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
+ runHooks('warDeclared',a,b);joined.forEach(c=>runHooks('warDeclared',c,a));
 }
 function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);pruneOffers();
- const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');}
+ const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');
+ runHooks('peace',a,b,{silent:!!silent});}
 function offerOk(o){const w=alive(o.f)&&S.war[key(o.f,S.player)];return !!w&&(o.wt==null||o.wt===w.t);}
 function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
 function warScore(a,b){const w=S.war[key(a,b)];return w?(w.sc[a]||0)-(w.sc[b]||0):0;}
 function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,other);
- const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return Math.random()<.5;return false;}
+ const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return R()<.5;return false;}
 function aiAcceptPeace(ai,pl){const w=S.war[key(ai,pl)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,pl);
  if(ws<=-1)return true;if(strength(ai)<strength(pl)*.75)return true;if(dur>=10&&ws<=2)return true;return false;}
 function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return tributeAmt(ai)>=10&&(ws<=-4||strength(ai)<strength(pl)*.4);}
@@ -1009,28 +1125,53 @@ function aiAcceptAlliance(ai,pl){if(atWar(ai,pl)||inTruce(ai,pl)&&getOp(ai,pl)<2
  const common=warsOf(ai).some(e=>atWar(pl,e));return o>=40||(o>=10&&common);}
 
 /* ---------------- battles ---------------- */
+/* Combat modifiers come from the BATTLE_MODS registry: ctx={kind:'assault'|'field'|'sally',att,def,from,to,n}
+   -> [{l:label,m:multiplier,side:'att'|'def',k:key}]. ctx.to / ctx.n may be missing (e.g. atkMul(f)). */
+function battleMods(ctx){const out=[];for(const fn of BATTLE_MODS){const r=fn(ctx);if(r)for(const m of r)out.push(m);}return out;}
+function modMul(v,mods,side){for(const m of mods)if(m.side===side)v*=m.m;return v;}
+BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:'Kış seferi',m:.85,side:'att',k:'winter'}]:null);
+BATTLE_MODS.push(ctx=>{if(ctx.to==null)return null;const p=S.prov[ctx.to],d=PD[ctx.to],r=[];
+ if(p.fort>0)r.push({l:`Kale ${p.fort}`,m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?.4:1),side:'def',k:'fort'});
+ if(d.mtn)r.push({l:'Dağlık arazi',m:1.3,side:'def',k:'mtn'});
+ if(d.des)r.push({l:'Çöl',m:1.1,side:'def',k:'des'});
+ return r;});
+/** Garrison plus local militia defending province i, before modifiers. */
+function defBase(i){const p=S.prov[i];return p.t+p.dev*150+p.fort*700;}
+function atkMul(f,ctx){return modMul(1,battleMods(ctx||{kind:'assault',att:f}),'att');}
+function atkPower(n,f,ctx){return modMul(n,battleMods(ctx||{kind:'assault',att:f,n}),'att');}
+function defPower(i,att){return modMul(defBase(i),battleMods({kind:'assault',att,def:S.prov[i].o,to:i}),'def');}
+/** Deterministic estimate for an attack: ctx={att,to,n,from?,kind?} -> {p (win chance 0..1), a, d, r, mods}.
+ p is a logistic in log(a/d) matching the two independent rnd(.85,1.2) rolls of battle(). */
+function battleOdds(ctx){const c={kind:'assault',def:S.prov[ctx.to].o,...ctx},mods=battleMods(c);
+ const a=modMul(c.n,mods,'att'),d=modMul(defBase(c.to),mods,'def'),r=a/Math.max(d,1);
+ return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.085)),a,d,r,mods};}
 function battle(from,to,n){
  const A=S.prov[from],D=S.prov[to],att=A.o,def=D.o;if(att===def||!atWar(att,def)||!PD[from].adj.includes(to))return null;n=Math.min(n,avail(from));if(n<=0)return null;
  A.t-=n;
- const aP=atkPower(n,att)*rnd(.85,1.2),dP=defPower(to,att)*rnd(.85,1.2),r=aP/dP,defT=D.t;
- const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0};
+ const ctx={kind:'assault',att,def,from,to,n},mods=battleMods(ctx),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
+ const aP=modMul(n,mods,'att')*ra,dP=modMul(defBase(to),mods,'def')*rd,r=aP/dP,defT=D.t;
+ const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0,kind:'assault',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3}};
  const w=S.war[key(att,def)];
  if(r>1){
   const aLoss=Math.round(n*clamp(.3/r,.04,.3)/100)*100;const dLoss=Math.round(defT*.65/100)*100;const flee=defT-dLoss;
-  if(flee>0){const ret=PD[to].adj.filter(j=>S.prov[j].o===def);if(ret.length){const j=ret[Math.floor(Math.random()*ret.length)];S.prov[j].t+=flee;S.prov[j].mv+=flee;rep.retreat=j;}}
+  if(flee>0){const ret=PD[to].adj.filter(j=>S.prov[j].o===def);if(ret.length){const j=ret[Math.floor(R()*ret.length)];S.prov[j].t+=flee;S.prov[j].mv+=flee;rep.retreat=j;}}
   const wasCap=S.fac[def].cap===to;
   D.t=0;D.mv=0;capture(to,att);D.t=n-aLoss;D.mv=D.t;
   rep.win=true;rep.aLoss=aLoss;rep.dLoss=defT;if(w){w.sc[att]=(w.sc[att]||0)+2+(wasCap?3:0);}
  }else{
   const aLoss=Math.round(n*clamp(.55-.25*r,.25,.55)/100)*100,dLoss=Math.min(defT,Math.round(defT*clamp(.3*r,.03,.3)/100)*100);
   D.t-=dLoss;const back=n-aLoss;A.t+=back;A.mv+=back;
-  if(D.fort>0&&r>.8&&Math.random()<.3){D.fort--;rep.fortDmg=true;}
+  if(D.fort>0&&r>.8&&R()<.3){D.fort--;rep.fortDmg=true;}
   rep.aLoss=aLoss;rep.dLoss=dLoss;if(w)w.sc[def]=(w.sc[def]||0)+1;
  }
  S.battles.push(rep);if(S.battles.length>60)S.battles.shift();
- if(att===S.player||def===S.player){S.report=S.report||[];S.report.push(rep);
+ TURN_TRACE.push({k:'battle',f:att,from,to,path:[from,to],army:null,n,win:rep.win,rep});
+ const mine=att===S.player||def===S.player;
+ if(mine){S.report=S.report||[];S.report.push(rep);
   if(att===S.player){rep.win?S.stats.won++:S.stats.lost++;}else{rep.win?S.stats.lost++:S.stats.won++;}}
- polDirty=true;return rep;
+ polDirty=true;
+ runHooks('battleResolved',rep);if(mine)runHooks('playerBattle',rep);
+ return rep;
 }
 function capture(i,f){
  const p=S.prov[i],old=p.o;p.o=f;p.un=8;p.mv=0;if(p.fort>1)p.fort--;
@@ -1048,15 +1189,35 @@ function capture(i,f){
   else if(old!==f){news(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,'cap');}
  }
  polDirty=true;
+ runHooks('capture',i,f,old);
 }
 function eliminate(f,by){const F=S.fac[f];F.alive=false;
  Object.keys(S.war).forEach(k=>{if(k.split('|').includes(f))delete S.war[k];});
  Object.keys(S.ally).forEach(k=>{if(k.split('|').includes(f))delete S.ally[k];});
  S.offers=S.offers.filter(o=>o.f!==f);
+ if(S.armies)armyList(f).forEach(a=>armyRemove(a.id,'eliminated'));
  news(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,'cap');
  if(f===S.player){S.over='lose';}
+ runHooks('eliminate',f,by);
 }
 
+/* =====================================================================
+   ARMIES: data-level API (W0, no rules). Track B replaces the internals freely
+   but keeps these signatures. Schema (S.armies[]):
+   {id,f,loc,n,gen:null|charId,mp:0,mpMax:2,path:[],morale:1,st:'idle'|'moving'|'siege'}
+   ===================================================================== */
+function armyCreate(f,loc,n,o={}){
+ const a={id:S.seq++,f,loc,n,gen:null,mp:0,mpMax:2,path:[],morale:1,st:'idle',...o};
+ S.armies.push(a);runHooks('armyCreated',a);return a;}
+function armyRemove(id,reason){const k=S.armies.findIndex(a=>a.id===id);if(k<0)return null;
+ const a=S.armies.splice(k,1)[0];if(selArmy===id)selArmy=null;runHooks('armyRemoved',a,reason);return a;}
+function armyById(id){return S.armies.find(a=>a.id===id)||null;}
+function armyList(f){return f==null?S.armies.slice():S.armies.filter(a=>a.f===f);}
+function armyAt(i,f){return S.armies.filter(a=>a.loc===i&&(f==null||a.f===f));}
+/** Raw teleport, no rules. */
+function armySetLoc(id,i){const a=armyById(id);if(a)a.loc=i;return a;}
+KE.armyCreate=(f,loc,n,o)=>armyCreate(f,loc,n,o);
+KE.armyList=f=>armyList(f);
 /* ---------------- AI ---------------- */
 function aiTurn(f){
  const F=S.fac[f];if(!F.alive)return;const mine=facProvs(f);if(!mine.length)return;
@@ -1066,10 +1227,10 @@ function aiTurn(f){
  aiEconomy(f,mine,front,border,enemies.size>0);
  // attacks
  if(enemies.size){
-  const order=[...front].sort((a,b)=>avail(b)-avail(a));
+  const order=[...front].sort((a,b)=>avail(b)-avail(a));const prio=new Map();for(const t of aiTargets(f))prio.set(t.i,t.prio);
   for(const i of order){const av=avail(i);if(av<800)continue;let best=-1,bs=0,bd=0;
    for(const j of PD[i].adj){const q=S.prov[j];if(!enemies.has(q.o))continue;const dp=defPower(j,f),ap=atkPower(av,f);
-    if(ap>dp*1.25){const sc=(q.dev+(S.fac[q.o].cap===j?5:0)+1)/(dp+800);if(sc>bs){bs=sc;best=j;bd=dp;}}}
+    if(ap>dp*1.25){const sc=prio.get(j)||0;if(sc>bs){bs=sc;best=j;bd=dp;}}}
    if(best>=0){const need=Math.ceil(bd*1.7/atkMul(f)/100)*100;const send=Math.min(av,Math.max(need,Math.round(av*.6/100)*100));battle(i,best,send);}
   }
   // concentrate: front provinces that face a strong target pull from front neighbours
@@ -1092,40 +1253,89 @@ function aiEconomy(f,mine,front,border,war){
  const F=S.fac[f];const inc=income(f);let upk=upkeep(f);const cap=inc*(war?1.05:.72);
  const spots=front.size?[...front]:border.size?[...border]:[F.cap];let g=0;
  while(F.gold>=RC+15&&F.mp>=1000&&upk+UPK<=cap&&g++<40){
-  let i=spots[Math.floor(Math.random()*spots.length)];
-  if(war&&Math.random()<.6){let bt=-1,bv=-1;for(const s of spots){let th=0;for(const j of PD[s].adj){const o=S.prov[j].o;if(o!==f&&atWar(f,o))th+=S.prov[j].t;}const v=th-S.prov[s].t;if(v>bv){bv=v;bt=s;}}if(bt>=0)i=bt;}
+  let i=spots[Math.floor(R()*spots.length)];
+  if(war&&R()<.6){let bt=-1,bv=-1;for(const s of spots){let th=0;for(const j of PD[s].adj){const o=S.prov[j].o;if(o!==f&&atWar(f,o))th+=S.prov[j].t;}const v=th-S.prov[s].t;if(v>bv){bv=v;bt=s;}}if(bt>=0)i=bt;}
   S.prov[i].t+=1000;S.prov[i].mv+=1000;F.gold-=RC;F.mp-=1000;upk+=UPK;}
- if(F.gold>150&&Math.random()<.35){const c=mine.filter(i=>!S.prov[i].mkt).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];if(c!=null){S.prov[c].mkt=1;F.gold-=60;}}
- else if(F.gold>200&&Math.random()<.3){const c=F.cap;if(S.prov[c].dev<12&&F.gold>=25*S.prov[c].dev){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
- if(war&&F.gold>100&&front.size&&Math.random()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4&&F.gold>=40*(p.fort+1)){F.gold-=40*(p.fort+1);p.fort++;}}
+ if(F.gold>150&&R()<.35){const c=mine.filter(i=>!S.prov[i].mkt).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];if(c!=null){S.prov[c].mkt=1;F.gold-=60;}}
+ else if(F.gold>200&&R()<.3){const c=F.cap;if(S.prov[c].dev<12&&F.gold>=25*S.prov[c].dev){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
+ if(war&&F.gold>100&&front.size&&R()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4&&F.gold>=40*(p.fort+1)){F.gold-=40*(p.fort+1);p.fort++;}}
 }
+/* =====================================================================
+   AI STRATEGY (Track D): diplomacy, target selection, defence needs, nudges
+   ===================================================================== */
 function aiDiplo(f){
  const my=strength(f);
  warsOf(f).forEach(g=>{
-  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&Math.random()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
-  else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(aiWantsPeace(f,g)&&Math.random()<.25))makePeace(f,g);
+  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
+  else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(aiWantsPeace(f,g)&&R()<.25))makePeace(f,g);
  });
  if(S.turn<3)return;
- const nw=warsOf(f).length;if(nw>=(my>70000?2:1))return;if(Math.random()>.2)return;
+ const nw=warsOf(f).length;if(nw>=(my>70000?2:1))return;if(R()>.2)return;
  let best=null,bs=0;
  for(const g of nbrs(f)){if(isAlly(f,g)||inTruce(f,g)||atWar(f,g))continue;if(g===S.player&&S.turn<6)continue;const o=getOp(f,g);if(o>5)continue;
   let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*.5;});const ratio=my/Math.max(th,1);if(ratio<(g===S.player?1.45:1.3))continue;
   const sc=ratio*(1+(-o)/60);if(sc>bs){bs=sc;best=g;}}
- if(best&&Math.random()<.65)declareWar(f,best);
- if(Math.random()<.03){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
+ if(best&&R()<.65)declareWar(f,best);
+ if(R()<.03){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
 }
 
-/* ---------------- turn flow ---------------- */
-function endRound(){
- FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;const inc=income(f),up=upkeep(f);F.gold+=inc-up;
-  const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
-  if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}F.gold=0;
-   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordu −10%).','war');}});
- for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
- for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++){const k=key(FK[a],FK[b]),bo=baseOp(FK[a],FK[b]),v=S.op[k]||0;if(v<bo)S.op[k]=v+1;else if(v>bo)S.op[k]=v-1;}
- S.turn++;
- historic();
+/** Strategic targets of AI faction f: [{i:province,prio}] (higher prio = more attractive).
+ Default: every enemy province adjacent to f's land, scored as the pre-W0 attack loop did. */
+function aiTargets(f){const out=[],seen=new Set();
+ for(let i=0;i<NP;i++){if(S.prov[i].o!==f)continue;
+  for(const j of PD[i].adj){if(seen.has(j))continue;const q=S.prov[j];if(q.o===f||!atWar(f,q.o))continue;seen.add(j);
+   out.push({i:j,prio:(q.dev+(S.fac[q.o].cap===j?5:0)+1)/(defPower(j,f)+800)});}}
+ return out;}
+/** Provinces AI faction f must defend: [{i,need}] (W0 default: none). */
+function aiDefendNeeds(f){return [];}
+/** Push a strategic nudge to AI faction f (stored; consumed by Track D): spec={war?,target?,prio?,until?}. */
+function aiNudge(f,spec){(S.ai[f]||(S.ai[f]=newAi())).nudges.push(spec);}
+/* opinions drift back toward their historical base (roundEnd slot 50) */
+hook('roundEnd',()=>{for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++){const k=key(FK[a],FK[b]),bo=baseOp(FK[a],FK[b]),v=S.op[k]||0;if(v<bo)S.op[k]=v+1;else if(v>bo)S.op[k]=v-1;}},50);
+/* =====================================================================
+   TURN FLOW (frozen core pipeline; only the orchestrator edits this file)
+   endTurn: turnStart -> [preAI(f), aiTurn(f)] for every AI in random order -> endRound
+            (roundEnd, S.turn++, newTurn) -> afterRound -> checkVictory -> events -> save/render
+            -> present(PRESENTERS) -> end-turn button enabled again.
+   ===================================================================== */
+function endRound(){runHooks('roundEnd');S.turn++;runHooks('newTurn');}
+function checkVictory(){if(S.over)return;const n=facProvs(S.player).length;if(n>=Math.ceil(NP*.5))S.over='win';else if(S.turn>=END_TURN)S.over='time';}
+
+let busy=false;
+function endTurn(){
+ if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
+ $('#endTurn').textContent='Hamleler…';
+ setTimeout(()=>{
+  const t0=performance.now();
+  S.news=[];S.report=[];TURN_TRACE.length=0;pruneOffers();
+  runHooks('turnStart');
+  const order=FK.filter(f=>f!==S.player&&alive(f));for(let i=order.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  order.forEach(f=>{runHooks('preAI',f);aiTurn(f);});
+  endRound();
+  runHooks('afterRound');
+  checkVictory();
+  if(!S.over)runHooks('events');
+  KE.stats.turnMs=performance.now()-t0;
+  save();polDirty=true;renderAll();
+  const fin=()=>{$('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';$('#endTurn').disabled=false;busy=false;};
+  if(S.over){fin();queueModal(showEnd);return;}
+  present(fin);
+ },30);
 }
+
+/* default presenters: battle fx (A replaces 'fx' with a replay by id) and the season report */
+PRESENTERS.push({id:'fx',order:50,run(next){
+ S.battles.filter(b=>b.turn===S.turn-1).slice(-30).forEach((b,k)=>{const me=b.att===S.player||b.def===S.player;
+  if(me)addFx({type:'march',a:b.from,b:b.to,dur:420,delay:k*140,col:FAC[b.att].c});
+  addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
+ next();}});
+PRESENTERS.push({id:'report',order:90,run(next){
+ if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);
+ if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
+ next();}});
+/* =====================================================================
+   HISTORY (Track C): scripted historic events, Safavids, random events
+   ===================================================================== */
 function historic(){
  const t=S.turn;
  if(t===8&&alive('OSM')){S.fac.OSM.cannon=1;news('Macar dökümcü Urban, Osmanlı için dev toplar döktü. Osmanlı ordusu kale surlarını artık çok daha kolay aşıyor.','cap');
@@ -1143,50 +1353,14 @@ function spawnSafavid(){
  take.forEach(i=>{const p=S.prov[i];p.o='SAF';p.t+=3500;p.un=0;});F.cap=take.has(tb)?tb:[...take].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];
  FK.forEach(g=>{if(g!=='SAF')S.op[key('SAF',g)]=baseOp('SAF',g);});
  if(S.fac[old].alive&&!facProvs(old).length)eliminate(old,'SAF');
- if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]={t:S.turn,sc:{SAF:0,[old]:0}};}
+ if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]=newWar('SAF',old);runHooks('warDeclared','SAF',old);}
  const hasTb=take.has(tb);
  news(hasTb?`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`:`Şah İsmail ${PD[F.cap].name} merkezli bir ayaklanmayla taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu; Tebriz hâlâ ${fname(old)} elinde.`,'cap');polDirty=true;
  if(old===S.player&&S.fac[old].alive)queueModal(()=>eventModal({t:'Kızılbaş Ayaklanması',e:dateStr(S.turn),d:`Şah İsmail'in müritleri ${take.size} eyalette ayaklandı ve Safevî devletini kurdu. ${hasTb?'Tebriz düştü':'Tebriz surları dayandı, ama çevresindeki eyaletler elden çıktı'}; Safevîler sana savaş açtı.`,ch:[{l:'Kılıçlar kınından çıksın'}]}));
 }
-function checkMissions(){
- if(!S.player)return;const pl=S.player;
- S.mis.forEach((m,k)=>{if(S.misDone[k])return;let ok=false;
-  if(m.own)ok=m.own.every(x=>S.prov[PK[x]].o===pl);
-  else if(m.count)ok=facProvs(pl).length>=m.count;
-  else if(m.gold)ok=S.fac[pl].gold>=m.gold;
-  else if(m.hold)ok=S.turn>=m.until&&S.prov[PK[m.hold]].o===pl;
-  if(ok){S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
-   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
-   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');}});
-}
-function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
-
-let busy=false;
-function endTurn(){
- if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
- $('#endTurn').textContent='Hamleler…';
- setTimeout(()=>{
-  S.news=[];S.report=[];pruneOffers();
-  const order=FK.filter(f=>f!==S.player&&alive(f));for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
-  order.forEach(aiTurn);
-  endRound();
-  checkMissions();
-  if(!S.over){const n=facProvs(S.player).length;if(n>=Math.ceil(NP*.5))S.over='win';else if(S.turn>=END_TURN)S.over='time';}
-  if(!S.over&&S.turn>1&&Math.random()<.3)randomEvent();
-  save();polDirty=true;renderAll();
-  S.battles.filter(b=>b.turn===S.turn-1).slice(-30).forEach((b,k)=>{const me=b.att===S.player||b.def===S.player;
-   if(me)addFx({type:'march',a:b.from,b:b.to,dur:420,delay:k*140,col:FAC[b.att].c});
-   addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
-  $('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';$('#endTurn').disabled=false;busy=false;
-  if(S.over){queueModal(showEnd);return;}
-  if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);
-  if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
- },30);
-}
-
 /* ---------------- random events ---------------- */
 function randomEvent(seed){
- const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length){delete S.pendEv;return;}if(seed==null)seed=Math.floor(Math.random()*2147483647);S.pendEv=seed;
+ const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length){delete S.pendEv;return;}if(seed==null)seed=Math.floor(R()*2147483647);S.pendEv=seed;
  let rs=seed>>>0;const rng=()=>{rs=(rs+0x6D2B79F5)>>>0;let t=rs;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};const pick=a=>a[Math.floor(rng()*a.length)];
  const isM=FAC[f].rel==='İslam';const p=pick(mine),pn=PD[p].name;const un=mine.filter(i=>S.prov[i].un>0);
  const ev=[
@@ -1208,6 +1382,8 @@ function randomEvent(seed){
  queueModal(()=>eventModal({...e,e:dateStr(S.turn),pend:1}));
 }
 
+hook('newTurn',()=>historic(),20);
+hook('events',()=>{if(S.turn>1&&R()<.3)randomEvent();},50);
 /* =====================================================================
    RENDERING
    ===================================================================== */
@@ -1320,8 +1496,9 @@ function draw(){
   let bx,by;if(g3&&G3.anchor[d.i]){const an=G3.anchor[d.i],q=pj(an[0],an[1],an[2]);bx=q[0];by=q[1];}else{bx=P0[d.i][0]+(szs[d.i]||3)*.95+2;by=P0[d.i][1]+(szs[d.i]||3)*.45;}
   drawBanner(bx,by,fmtK(p.t),FAC[p.o].c,mine,mine&&p.mv>=p.t*.5,p.o);
   if(recent.has(d.i))swords(P0[d.i][0]-(g3?12:(szs[d.i]||3)*1.2+8),P0[d.i][1]-(g3?14:4));}
+ let more=false;for(const id in DRAW_LAYERS){try{if(DRAW_LAYERS[id](ctx,now,s,g3))more=true;}catch(e){console.error('draw layer '+id,e);}}
  drawFx(now);
- if(g3||fx.length||(sel>=0&&tgt>=0)){need=true;requestAnimationFrame(draw);}
+ if(g3||fx.length||(sel>=0&&tgt>=0)||more){need=true;requestAnimationFrame(draw);}
 }
 function drawCity(x,y,sz,col,cap){
  const w=sz*1.8,h=sz*.85,x0=x-w/2,yb=y+sz*.45;
@@ -1372,6 +1549,14 @@ function drawFx(now){
 }
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
+/* =====================================================================
+   MAP CONTROLS (Track A): zoom, fit, map mode, 2D/3D toggle
+   ===================================================================== */
+ACTS.zin=()=>zoomAt(vw/2,vh/2,curS()*1.35);
+ACTS.zout=()=>zoomAt(vw/2,vh/2,curS()/1.35);
+ACTS.fit=()=>centerOn(W/2,H/2,fitS);
+ACTS.v3d=()=>{const on=G3.set(!G3.on);toast(on?'3D harita':(G3.fail?'3D bu cihazda açılamadı':'2D harita'));};
+ACTS.mode=t=>{mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?'Arazi haritası':'Siyasi harita';toast(mapMode==='pol'?'Siyasi harita':'Arazi haritası');polDirty=true;req();};
 /* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
@@ -1520,6 +1705,8 @@ const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[]};
   G3.label();
   polDirty=true;hlKey='';req();return G3.on;};
 })();
+/** Whether to start in 3D at boot (saved preference, default on). */
+G3.wantOnBoot=()=>{let want3=true;try{want3=localStorage.getItem('ke-3d')!=='0';}catch(e){}return !!want3;};
 function curS(){return G3.on?G3.s:cam.s;}
 function pj(x,y,h=0){if(G3.on)return G3.proj(x,y,h);return [cam.x+x*cam.s,cam.y+y*cam.s,true];}
 function panBy(dx,dy){if(G3.on)G3.panBy(dx,dy);else{cam.x+=dx;cam.y+=dy;clampCam();}req();}
@@ -1547,7 +1734,9 @@ cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,cu
 function pickAt(sx,sy){let x,y;if(G3.on){const m=G3.pick(sx,sy);if(!m)return -1;x=Math.floor(m[0]);y=Math.floor(m[1]);}else{x=Math.floor((sx-cam.x)/cam.s);y=Math.floor((sy-cam.y)/cam.s);}if(x<0||y<0||x>=W||y>=H)return -1;return idMap[y*W+x];}
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id];
  tip.innerHTML=`<b>${PD[id].name}</b> · ${FAC[p.o].s} · ${fmtK(p.t)}`;tip.style.left=sx+'px';tip.style.top=sy+'px';tip.hidden=false;}
-
+/* =====================================================================
+   MAP SELECTION (Track B): province click -> select / target, clear, target check
+   ===================================================================== */
 function mapClick(sx,sy){
  if(!S||!S.player||busy||!$('#start').hidden)return;
  const id=pickAt(sx,sy);
@@ -1653,11 +1842,11 @@ const SND=(()=>{
 document.addEventListener('pointerdown',()=>SND.init(),{passive:true});
 document.addEventListener('keydown',()=>SND.init());
 function sndIcon(){const b=$('#sndBtn');if(b)b.textContent=SND.st.on?'🔊':'🔇';}
-
+ACTS.snd=()=>{SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');};
 /* =====================================================================
    UI
    ===================================================================== */
-let amt=0,confirmKey='';
+let confirmKey='';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function shield(f,big){return `<span class="shield${big?' big':''}" title="${esc(FAC[f].n)}">${armsSVG(f)}</span>`;}
 function relChip(f){const pl=S.player;if(f===pl)return '<span class="chip ally">Senin</span>';
@@ -1665,8 +1854,15 @@ function relChip(f){const pl=S.player;if(f===pl)return '<span class="chip ally">
  if(inTruce(pl,f))return `<span class="chip truce">Ateşkes · ${S.truce[key(pl,f)]-S.turn} tur</span>`;return '<span class="chip">Barış</span>';}
 function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800);while($('#toasts').children.length>4)$('#toasts').firstChild.remove();}
 
+let navKey='';
+/** Top-bar nav from TOP_BUTTONS (rebuilt only when the registry changes). */
+function renderNav(){const L=bySlot(TOP_BUTTONS),k=L.map(b=>b.act+(b.label||'')).join();if(k===navKey)return;navKey=k;
+ $('#navTabs').innerHTML=L.map(b=>`<button class="nb" data-act="${b.act}"${Object.entries(b.data||{}).map(([k,v])=>` data-${k}="${esc(v)}"`).join('')}${b.id?` id="${b.id}"`:''}${b.aria?` aria-label="${esc(b.aria)}"`:''}${b.title?` title="${esc(b.title)}"`:''}>${b.icon}${b.label?`<span class="lbl"> ${esc(b.label)}</span>`:''}</button>`).join('');sndIcon();}
+TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:'Diplomasi',order:10},{act:'missions',icon:'✦',label:'Hedefler',order:20},{act:'chron',icon:'❧',label:'Vakayiname',order:30},
+ {act:'guide',icon:'<b style="font:700 15px var(--display)">i</b>',label:'Rehber',aria:'Oyun rehberi',title:'Oyun rehberi',data:{t:'genel'},order:40},
+ {act:'snd',icon:'🔊',id:'sndBtn',aria:'Sesi aç/kapat',order:50},{act:'menu',icon:'☰',order:60});
 function renderTop(){
- if(!S||!S.player)return;const f=S.player,F=S.fac[f];
+ if(!S||!S.player)return;const f=S.player,F=S.fac[f];renderNav();
  $('#pShield').outerHTML=shield(f).replace('class="shield','id="pShield" class="shield');$('#pName').textContent=FAC[f].s;
  const net=income(f)-upkeep(f);$('#gold').textContent=Math.floor(F.gold);const gd=$('#goldd');gd.textContent=(net>=0?'+':'')+net.toFixed(0);gd.className=net>=0?'pos':'neg';
  $('#mp').textContent=fmtK(F.mp);$('#army').textContent=fmtK(strength(f));$('#provs').textContent=facProvs(f).length;
@@ -1680,100 +1876,81 @@ function renderPanel(){
  const terr=d.mtn?'Dağlık · +30% savunma':d.des?'Çöl · +10% savunma':'Ova';
  let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="Kapat">×</button></div>
  <div class="chips">${relChip(p.o)}<span class="chip">${terr}</span>${p.un>0?`<span class="chip un">Huzursuz · ${p.un} tur</span>`:''}${p.mkt?'<span class="chip">Pazar</span>':''}${p.brk?'<span class="chip">Kışla</span>':''}</div>
- <div class="grid4"><div><label>Gelişim</label><b>${p.dev}</b></div><div><label>Kale</label><b>${p.fort}</b></div><div><label>Garnizon</label><b>${fmtK(p.t)}</b></div><div><label>Gelir</label><b>${(p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)).toFixed(1)}</b></div></div>`;
- if(tgt>=0){
-  const td=PD[tgt],tp=S.prov[tgt],av=avail(sel),war=tp.o!==f;amt=clamp(amt,Math.min(100,av),av);
-  h+=`<div class="sec"><h3>${war?'Sefer':'Asker yürüt'} → ${esc(td.name)}</h3>
-   <div class="amt"><span>Gönderilecek</span><b id="amtv">${amt.toLocaleString('tr')}</b><span>/ ${av.toLocaleString('tr')}</span></div>
-   <input type="range" id="amt" min="${Math.min(100,av)}" max="${av}" step="100" value="${amt}" aria-label="Asker sayısı"></div>`;
-  if(war){h+=`<div class="odds" id="odds"></div><div class="hint">Savunma: ${fmtK(tp.t)} asker + yerel milis, kale ${tp.fort}${PD[tgt].mtn?', dağlık arazi':''}${F.cannon?' (topçun kale etkisini kırıyor)':''}${S.turn%4===3?'. Kış seferi: saldırı gücü −15%':''}.</div>`;}
-  h+=`<div class="acts"><button class="btn ${war?'danger':'primary'}" data-act="go">${war?'Saldır':'Yürüt'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div>`;
- }else if(mine){
-  const av=avail(sel);
-  h+=`<div class="hint">${av>0?`Hazır asker: <b>${av.toLocaleString('tr')}</b>. Yürütmek ya da saldırmak için komşu bir eyalete dokun. <span style="color:#1f6f4a;font-weight:700">Yeşil</span> kendi toprağın, <span style="color:#a3301e;font-weight:700">kırmızı</span> savaştaki düşman.`:'Bu eyaletteki askerler bu tur hareket etti.'}</div>
-  <div class="sec"><h3>Asker topla</h3><div class="acts">
-   <button class="btn" data-act="rec1" ${F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
-   <button class="btn" data-act="rec5" ${F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>
-  <div class="sec"><h3>İnşa et</h3><div class="acts">
-   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>İmar +1 <span class="c">${25*p.dev}</span></button>
-   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?'Pazar var':'Pazar'} <span class="c">${p.mkt?'✓':'60'}</span></button>
-   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>Kale ${p.fort+1} <span class="c">${p.fort>=5?'azami':40*(p.fort+1)}</span></button>
-   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?'Kışla var':'Kışla'} <span class="c">${p.brk?'✓':'50'}</span></button></div>
-   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır.</div></div>`;
- }else{
-  const o=p.o,dp=defPower(sel,f);
-  h+=`<div class="meta"><span>Hükümdar <b>${esc(FAC[o].r)}</b></span><span>İlişki <b>${getOp(f,o)}</b></span><span>Ordu <b>${fmtK(strength(o))}</b></span><span>Tahmini savunma <b>${fmtK(dp)}</b></span></div>`;
-  if(!atWar(f,o)){const ck='war:'+o;
-   if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin.</div>`;
-   else if(inTruce(f,o))h+=`<div class="hint">Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.</div>`;
-   else h+=`<div class="hint">Bu eyalete saldırmak için önce savaş ilan etmelisin.</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?'Emin misin? Savaş ilan et':'Savaş ilan et'}</button>`;}
-  else h+=`<div class="hint">Savaştasın. Komşu eyaletini seçip buraya dokunarak saldır.</div>`;
- }
+ <div class="grid4"><div><label>Gelişim</label><b>${p.dev}</b></div><div><label>Kale</label><b>${p.fort}</b></div><div><label>Garnizon</label><b>${fmtK(p.t)}</b></div><div><label>Gelir</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
+ const ctx={i:sel,d,p,f,F,mine,isCap,tgt};
+ const secs=bySlot(PANEL_SECTIONS).filter(x=>{try{return x.when(ctx);}catch(e){console.error('panel '+x.id,e);return false;}});
+ for(const x of secs){try{h+=x.html(ctx);}catch(e){console.error('panel '+x.id,e);}}
  el.innerHTML=h;
- const r=$('#amt');if(r){const upd=()=>{amt=+r.value;$('#amtv').textContent=amt.toLocaleString('tr');const od=$('#odds');if(od){const ratio=atkPower(amt,f)/defPower(tgt,f);
-   const [t,c]=ratio>1.6?['Ezici üstünlük','var(--ok)']:ratio>1.15?['Üstünüz','#4f7d2a']:ratio>.9?['Başa baş','var(--brass)']:ratio>.6?['Riskli','#a0521a']:['Umutsuz','var(--war2)'];
-   od.innerHTML=`<span>Güç ${fmtK(atkPower(amt,f))} : ${fmtK(defPower(tgt,f))}</span><b style="color:${c}">${t}</b>`;}};r.addEventListener('input',upd);upd();}
+ for(const x of secs)if(x.bind){try{x.bind(el,ctx);}catch(e){console.error('panel '+x.id,e);}}
 }
 
-const OVERBLOCK=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','dwar','dp-war','dp-peace','dp-trib','dp-ally','dp-gift','dp-break','off']);
+/** Click dispatcher: OVERBLOCK check, then the ACTS registry. */
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
  if(f&&S.over&&OVERBLOCK.has(a)){toast('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.');return;}
  if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
- switch(a){
-  case 'close':clearSel();break;
-  case 'cancel':tgt=-1;renderPanel();req();break;
-  case 'go':{if(!tgtOk()){tgt=-1;toast('Bu hedefe artık saldıramazsın: savaş sona erdi ya da eyalet el değiştirdi.');renderPanel();req();break;}const n=Math.min(amt,avail(sel));if(n<=0)break;const o=S.prov[tgt].o;
-   if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});SND.play('march');const to=tgt;sel=to;tgt=-1;}
-   else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){SND.play('march');const cn=!!S.fac[f].cannon,w=rep.win;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[b0].fort>=2}),420);addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
-     if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
-   renderAll();break;}
-  case 'rec1':case 'rec5':{const n=a==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)break;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;SND.play('recruit');renderAll();break;}
-  case 'bdev':{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)break;F.gold-=c;p.dev++;SND.play('build');renderAll();break;}
-  case 'bmkt':{const p=S.prov[sel];if(p.mkt||F.gold<60)break;F.gold-=60;p.mkt=1;SND.play('build');renderAll();break;}
-  case 'bbrk':{const p=S.prov[sel];if(p.brk||F.gold<50)break;F.gold-=50;p.brk=1;SND.play('build');renderAll();break;}
-  case 'bfort':{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)break;F.gold-=c;p.fort++;SND.play('build');renderAll();break;}
-  case 'dwar':{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();break;}confirmKey='';declareWar(f,o);SND.play('war');toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();break;}
-  case 'end':endTurn();break;
-  case 'diplo':showDiplo();break;
-  case 'missions':showMissions();break;
-  case 'chron':showChron();break;
-  case 'menu':showMenu();break;
-  case 'state':showState();break;
-  case 'mclose':closeModal();break;
-  case 'zin':zoomAt(vw/2,vh/2,curS()*1.35);break;
-  case 'zout':zoomAt(vw/2,vh/2,curS()/1.35);break;
-  case 'fit':if(G3.on){G3.center(W/2,H/2,fitS);}else{cam.s=fitS;clampCam();}req();break;
-  case 'v3d':{const on=G3.set(!G3.on);toast(on?'3D harita':(G3.fail?'3D bu cihazda açılamadı':'2D harita'));break;}
-  case 'mode':mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?'Arazi haritası':'Siyasi harita';toast(mapMode==='pol'?'Siyasi harita':'Arazi haritası');polDirty=true;req();break;
-  case 'dp-war':{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();break;}confirmKey='';declareWar(f,o);SND.play('war');renderAll();showDiplo();break;}
-  case 'dp-peace':{const o=t.dataset.f;if(!atWar(f,o))break;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();break;}
-  case 'dp-trib':{const o=t.dataset.f;if(!atWar(f,o))break;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(tributeAmt(o)<10?`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`:`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();break;}
-  case 'dp-ally':{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();break;}
-  case 'dp-gift':{const o=t.dataset.f;if(F.gold<50)break;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();break;}
-  case 'dp-break':{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();break;}
-  case 'off':{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)break;S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast('Bu teklif artık geçerli değil.');renderAll();showReport();break;}
-   if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();break;}
-  case 'ev':{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();break;}
-  case 'pick':{startPick=t.dataset.f;renderStart();hlKey='';startCenter(startPick);break;}
-  case 'begin':SND.play('fanfare');beginGame(startPick);break;
-  case 'snd':SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');break;
-  case 'snd-music':SND.set('music',!SND.st.music);showMenu();break;
-  case 'snd-sfx':SND.set('sfx',!SND.st.sfx);showMenu();break;
-  case 'continue':loadGame();break;
-  case 'newgame':modalQ.length=0;closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();break;
-  case 'help':showGuide('genel');break;
-  case 'guide':showGuide(t.dataset.t);break;
- }
+ const h=ACTS[a];if(h)h(t,f,F);
 }
-const QUIET=new Set(['go','rec1','rec5','bdev','bmkt','bbrk','bfort','end','begin','ev','dp-peace','dp-trib','dp-ally','dp-gift','off','snd']);
+ACTS.end=()=>endTurn();
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
 addEventListener('pagehide',()=>{if(S&&S.player&&!busy)save();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.player&&!busy)save();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden){if(!$('#modal .ev')&&!$('#modal .endm'))closeModal();}else clearSel();}});
 
-function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.player&&!busy)save();}
+function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.player&&!busy)save();runHooks('renderAll');}
+/* =====================================================================
+   PROVINCE PANEL SECTIONS + ACTIONS (Track B)
+   Panel order slots: 30 armies B, 35 general C, 40 orders B (data-sheet="action"),
+   50 recruit B, 60 build B, 70 foreign B, 90 advisor D.
+   ===================================================================== */
+let amt=0;
+PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0,html(c){
+ const {f,F}=c,td=PD[tgt],tp=S.prov[tgt],av=avail(sel),war=tp.o!==f;amt=clamp(amt,Math.min(100,av),av);
+ let h=`<div class="sec" data-sheet="action"><h3>${war?'Sefer':'Asker yürüt'} → ${esc(td.name)}</h3>
+   <div class="amt"><span>Gönderilecek</span><b id="amtv">${amt.toLocaleString('tr')}</b><span>/ ${av.toLocaleString('tr')}</span></div>
+   <input type="range" id="amt" min="${Math.min(100,av)}" max="${av}" step="100" value="${amt}" aria-label="Asker sayısı"></div>`;
+ if(war){h+=`<div class="odds" id="odds"></div><div class="hint">Savunma: ${fmtK(tp.t)} asker + yerel milis, kale ${tp.fort}${PD[tgt].mtn?', dağlık arazi':''}${F.cannon?' (topçun kale etkisini kırıyor)':''}${S.turn%4===3?'. Kış seferi: saldırı gücü −15%':''}.</div>`;}
+ h+=`<div class="acts"><button class="btn ${war?'danger':'primary'}" data-act="go">${war?'Saldır':'Yürüt'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div>`;
+ return h;},
+ bind(root,c){const f=c.f,r=$('#amt');if(!r)return;const upd=()=>{amt=+r.value;$('#amtv').textContent=amt.toLocaleString('tr');const od=$('#odds');if(od){const ratio=atkPower(amt,f)/defPower(tgt,f);
+   const [t,cl]=ratio>1.6?['Ezici üstünlük','var(--ok)']:ratio>1.15?['Üstünüz','#4f7d2a']:ratio>.9?['Başa baş','var(--brass)']:ratio>.6?['Riskli','#a0521a']:['Umutsuz','var(--war2)'];
+   od.innerHTML=`<span>Güç ${fmtK(atkPower(amt,f))} : ${fmtK(defPower(tgt,f))}</span><b style="color:${cl}">${t}</b>`;}};r.addEventListener('input',upd);upd();}});
+PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine,html(c){const F=c.F,av=avail(sel);
+ return `<div class="hint">${av>0?`Hazır asker: <b>${av.toLocaleString('tr')}</b>. Yürütmek ya da saldırmak için komşu bir eyalete dokun. <span style="color:#1f6f4a;font-weight:700">Yeşil</span> kendi toprağın, <span style="color:#a3301e;font-weight:700">kırmızı</span> savaştaki düşman.`:'Bu eyaletteki askerler bu tur hareket etti.'}</div>
+  <div class="sec"><h3>Asker topla</h3><div class="acts">
+   <button class="btn" data-act="rec1" ${F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
+   <button class="btn" data-act="rec5" ${F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>`;}});
+PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine,html(c){const {F,p}=c;
+ return `
+  <div class="sec"><h3>İnşa et</h3><div class="acts">
+   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>İmar +1 <span class="c">${25*p.dev}</span></button>
+   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?'Pazar var':'Pazar'} <span class="c">${p.mkt?'✓':'60'}</span></button>
+   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>Kale ${p.fort+1} <span class="c">${p.fort>=5?'azami':40*(p.fort+1)}</span></button>
+   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?'Kışla var':'Kışla'} <span class="c">${p.brk?'✓':'50'}</span></button></div>
+   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır.</div></div>`;}});
+PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
+ const f=c.f,o=c.p.o,dp=defPower(sel,f);
+ let h=`<div class="meta"><span>Hükümdar <b>${esc(rulerName(o))}</b></span><span>İlişki <b>${getOp(f,o)}</b></span><span>Ordu <b>${fmtK(strength(o))}</b></span><span>Tahmini savunma <b>${fmtK(dp)}</b></span></div>`;
+ if(!atWar(f,o)){const ck='war:'+o;
+  if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin.</div>`;
+  else if(inTruce(f,o))h+=`<div class="hint">Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.</div>`;
+  else h+=`<div class="hint">Bu eyalete saldırmak için önce savaş ilan etmelisin.</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?'Emin misin? Savaş ilan et':'Savaş ilan et'}</button>`;}
+ else h+=`<div class="hint">Savaştasın. Komşu eyaletini seçip buraya dokunarak saldır.</div>`;
+ return h;}});
 
+ACTS.close=()=>clearSel();
+ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
+ACTS.go=(t,f,F)=>{if(!tgtOk()){tgt=-1;toast('Bu hedefe artık saldıramazsın: savaş sona erdi ya da eyalet el değiştirdi.');renderPanel();req();return;}const n=Math.min(amt,avail(sel));if(n<=0)return;const o=S.prov[tgt].o;
+ if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});SND.play('march');const to=tgt;sel=to;tgt=-1;}
+ else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){SND.play('march');const cn=!!S.fac[f].cannon,w=rep.win;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[b0].fort>=2}),420);addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
+   if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
+ renderAll();};
+ACTS.rec1=ACTS.rec5=(t,f,F)=>{const n=t.dataset.act==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)return;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;SND.play('recruit');renderAll();};
+ACTS.bdev=(t,f,F)=>{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)return;F.gold-=c;p.dev++;SND.play('build');renderAll();};
+ACTS.bmkt=(t,f,F)=>{const p=S.prov[sel];if(p.mkt||F.gold<60)return;F.gold-=60;p.mkt=1;SND.play('build');renderAll();};
+ACTS.bbrk=(t,f,F)=>{const p=S.prov[sel];if(p.brk||F.gold<50)return;F.gold-=50;p.brk=1;SND.play('build');renderAll();};
+ACTS.bfort=(t,f,F)=>{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)return;F.gold-=c;p.fort++;SND.play('build');renderAll();};
+ACTS.dwar=(t,f)=>{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';declareWar(f,o);SND.play('war');toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();};
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
@@ -1784,45 +1961,61 @@ function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;evPend=!!ev.pend;SND.play(/
  {const y=START_YEAR+Math.floor(S.turn/4);ev={...ev,e:`${ev.e||''} · ${roman(y)} · ${hijri(y)} H`};}
  openModal(`${S.player?`<div class="seal">${shield(S.player)}</div>`:''}<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
  <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
+function showReport(){pruneOffers();
+ let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>Mevsim Raporu</h2>`;
+ for(const x of bySlot(REPORT_SECTIONS)){try{h+=x.html()||'';}catch(e){console.error('report '+x.id,e);}}
+ h+=`<div class="foot"><button class="btn primary" data-act="mclose">Devam</button></div>`;openModal(h);
+}
+REPORT_SECTIONS.push({id:'news',order:30,html:()=>S.news.length?`<div class="sec"><h3>Haberler</h3><div class="logl">${S.news.map(n=>`<div><time>${dateStr(S.turn)}</time><span class="${n.k}">${esc(n.m)}</span></div>`).join('')}</div></div>`:''});
+function showChron(){const l=S.log.slice().reverse().slice(0,160);
+ openModal(`<div class="eyebrow">Tarih kaydı</div><h2>Vakayiname</h2><div class="logl">${l.map(e=>`<div><time>${dateStr(e.t)}</time><span class="${e.k}">${esc(e.m)}</span></div>`).join('')||'<div>Henüz kayıt yok.</div>'}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+function showState(){const f=S.player,F=S.fac[f];
+ openModal(`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · Başkent ${esc(PD[F.cap].name)}</div></div></div>
+ ${bySlot(STATE_SECTIONS).map(x=>{try{return x.html(f)||'';}catch(e){console.error('state '+x.id,e);return '';}}).join('')}
+ <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+STATE_SECTIONS.push({id:'ledger',order:10,html(f){const rows=econRows(f);let inc=0,up=0;for(const e of rows){if(e.k==='inc')inc+=e.v;else if(e.k==='exp')up+=e.v;}
+ return `<div class="ledger">${rows.map(e=>e.k==='inc'?`<span>${esc(e.l)}</span><b class="pos">+${e.v.toFixed(1)}</b>`:`<span>${esc(e.l)}</span><b class="neg">−${e.v.toFixed(1)}</b>`).join('')}<span class="tot">Tur başına net</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>`;}});
+STATE_SECTIONS.push({id:'meta',order:20,html(f){const F=S.fac[f],ps=facProvs(f),mk=ps.filter(i=>S.prov[i].mkt).length,un=ps.filter(i=>S.prov[i].un>0).length,ds=devSum(f);
+ return `<div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>`;}});
+ACTS.ev=t=>{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();};
+ACTS.mclose=()=>closeModal();
+ACTS.state=()=>showState();
+ACTS.chron=()=>showChron();
+/* =====================================================================
+   DIPLOMACY UI (Track B): Divan, peace offers, battle report rows
+   ===================================================================== */
 function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
  const title=mineAtk?`${PD[r.to].name} seferi`:`${FAC[r.att].s} saldırısı: ${PD[r.to].name}`;
  return `<div class="btl"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
   <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>Savunan <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}</div></div>`;}
-function showReport(){pruneOffers();
- const rep=(S.report||[]).filter(r=>r.att!==S.player);
- let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>Mevsim Raporu</h2>`;
- if(S.offers.length)h+=`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`;
- if(rep.length)h+=`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`;
- if(S.news.length)h+=`<div class="sec"><h3>Haberler</h3><div class="logl">${S.news.map(n=>`<div><time>${dateStr(S.turn)}</time><span class="${n.k}">${esc(n.m)}</span></div>`).join('')}</div></div>`;
- h+=`<div class="foot"><button class="btn primary" data-act="mclose">Devam</button></div>`;openModal(h);
-}
+REPORT_SECTIONS.push({id:'offers',order:10,html:()=>S.offers.length?`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`:''});
+REPORT_SECTIONS.push({id:'battles',order:20,html(){const rep=(S.report||[]).filter(r=>r.att!==S.player);return rep.length?`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`:'';}});
 function showDiplo(){
- const pl=S.player,F=S.fac[pl];const nb=new Set(nbrs(pl));
+ const pl=S.player;const nb=new Set(nbrs(pl));
  const list=FK.filter(f=>f!==pl&&alive(f)).sort((a,b)=>(atWar(pl,b)-atWar(pl,a))||(nb.has(b)-nb.has(a))||(strength(b)-strength(a)));
- const rows=list.map(f=>{const w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f),op=getOp(pl,f);let b='';
+ const parts=bySlot(DIPLO_ROW),cat=(f,k)=>parts.map(x=>{try{return x[k]?x[k](f)||'':'';}catch(e){console.error('diplo '+x.id,e);return '';}}).join('');
+ const rows=list.map(f=>`<div class="row">${shield(f)}<div class="nm">${esc(FAC[f].n)}<small>${esc(rulerName(f))}${nb.has(f)?' · komşu':''}</small></div><div>${relChip(f)}</div></div>
+   <div class="row sub"><div class="meta">${cat(f,'meta')}</div><div class="ra" style="justify-content:flex-start;margin-top:6px">${cat(f,'buttons')}</div></div>`).join('');
+ openModal(`<div class="eyebrow">Divan-ı Hümayun</div><h2>Diplomasi</h2><p class="lead" style="font-size:14px">Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+}
+DIPLO_ROW.push({id:'core',order:10,
+ meta(f){const pl=S.player,w=atWar(pl,f),op=getOp(pl,f);return `<span>Eyalet <b>${facProvs(f).length}</b></span><span>Ordu <b>${fmtK(strength(f))}</b></span><span>İlişki <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>Savaş skoru <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span>`;},
+ buttons(f){const pl=S.player,F=S.fac[pl],w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f);let b='';
   if(w){b+=`<button class="btn" data-act="dp-peace" data-f="${f}">Barış teklif et</button><button class="btn" data-act="dp-trib" data-f="${f}">Haraç iste</button>`;}
   else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">İttifakı boz</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">İttifak öner</button>`;
    b+=`<button class="btn" data-act="dp-gift" data-f="${f}" ${F.gold<50?'disabled':''}>Hediye (50)</button>`;
    if(!al&&!tr)b+=`<button class="btn danger" data-act="dp-war" data-f="${f}">${confirmKey==='dw:'+f?'Emin misin?':'Savaş ilan et'}</button>`;}
-  return `<div class="row">${shield(f)}<div class="nm">${esc(FAC[f].n)}<small>${esc(FAC[f].r)}${nb.has(f)?' · komşu':''}</small></div><div>${relChip(f)}</div></div>
-   <div class="row sub"><div class="meta"><span>Eyalet <b>${facProvs(f).length}</b></span><span>Ordu <b>${fmtK(strength(f))}</b></span><span>İlişki <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>Savaş skoru <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span></div><div class="ra" style="justify-content:flex-start;margin-top:6px">${b}</div></div>`;}).join('');
- openModal(`<div class="eyebrow">Divan-ı Hümayun</div><h2>Diplomasi</h2><p class="lead" style="font-size:14px">Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
-}
-function showMissions(){
- const pl=S.player;const rows=S.mis.map((m,k)=>{const done=S.misDone[k]!=null;let prog='';
-  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;prog=`${n}/${m.own.length}`;}else if(m.count)prog=`${facProvs(pl).length}/${m.count}`;else if(m.gold)prog=`${Math.floor(S.fac[pl].gold)}/${m.gold}`;else if(m.hold)prog=S.turn>=m.until?'':`${m.until-S.turn} tur`;
-  return `<div class="mis ${done?'done':''}"><span class="ck">${done?'✓':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&prog?` · ${prog}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;}).join('');
- openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2><div class="rows">${rows}</div>
-  <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
-}
-function showChron(){const l=S.log.slice().reverse().slice(0,160);
- openModal(`<div class="eyebrow">Tarih kaydı</div><h2>Vakayiname</h2><div class="logl">${l.map(e=>`<div><time>${dateStr(e.t)}</time><span class="${e.k}">${esc(e.m)}</span></div>`).join('')||'<div>Henüz kayıt yok.</div>'}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
-function showState(){const f=S.player,F=S.fac[f],inc=income(f),up=upkeep(f),ps=facProvs(f);
- const mk=ps.filter(i=>S.prov[i].mkt).length,un=ps.filter(i=>S.prov[i].un>0).length,ds=devSum(f);
- openModal(`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(FAC[f].r)} · Başkent ${esc(PD[F.cap].name)}</div></div></div>
- <div class="ledger"><span>Eyalet vergileri</span><b class="pos">+${inc.toFixed(1)}</b><span>Ordu maaşları (${fmtK(strength(f))})</span><b class="neg">−${up.toFixed(1)}</b><span class="tot">Tur başına net</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>
- <div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>
- <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+  return b;}});
+
+ACTS.diplo=()=>showDiplo();
+ACTS['dp-war']=(t,f)=>{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();return;}confirmKey='';declareWar(f,o);SND.play('war');renderAll();showDiplo();};
+ACTS['dp-peace']=(t,f)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();};
+ACTS['dp-trib']=(t,f,F)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(tributeAmt(o)<10?`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`:`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();};
+ACTS['dp-ally']=(t,f)=>{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();};
+ACTS['dp-gift']=(t,f,F)=>{const o=t.dataset.f;if(F.gold<50)return;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();};
+ACTS['dp-break']=(t,f)=>{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();};
+ACTS.off=(t,f)=>{const k=+t.dataset.k,ok=t.dataset.v==='1',of=S.offers[k];if(!of)return;S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast('Bu teklif artık geçerli değil.');renderAll();showReport();return;}
+ if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();};
 /* ---------------- guide ---------------- */
 const GUIDE_TABS=[['genel','Genel'],['para','Para'],['savas','Savaş'],['bina','Binalar'],['diplo','Diplomasi'],['olay','Olaylar']];
 function guideBody(t){
@@ -1908,6 +2101,8 @@ function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
  <div class="gbody">${guideBody(t)}</div>
  <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
+ACTS.help=()=>showGuide('genel');
+ACTS.guide=t=>showGuide(t.dataset.t);
 function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
  <div class="logl">
  <div><time>Seç</time><span>Kendi eyaletine dokun. Yeşil komşular kendi toprağın, kırmızılar savaşta olduğun düşmanın.</span></div>
@@ -1921,12 +2116,14 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
 function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
  <p class="lead" style="font-size:14px">Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>
- <div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
- <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>
+ ${bySlot(MENU_SECTIONS).map(x=>{try{return x.html()||'';}catch(e){console.error('menu '+x.id,e);return '';}}).join('')}
  <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">Oyun rehberi</button>
  <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
  <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
- const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}
+ const root=$('#modal .card');for(const x of bySlot(MENU_SECTIONS))if(x.bind){try{x.bind(root);}catch(e){console.error('menu '+x.id,e);}}}
+MENU_SECTIONS.push({id:'sound',order:20,html:()=>`<div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
+ <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>`,
+ bind(){const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}});
 function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
  const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
  const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
@@ -1940,7 +2137,7 @@ function renderStart(){
  const groups=[[1,'Güçlü başlangıç'],[2,'Dengeli'],[3,'Zorlu']];
  $('#flist').innerHTML=groups.map(([g,t])=>`<div class="fgroup"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('');
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
- $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(FAC[f].r)} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
   <div class="row2">${has?'<button class="btn" data-act="continue">Kayıtlı oyuna dön</button>':''}<button class="btn primary" data-act="begin">Sefere başla</button></div>`
   :`<p>Soldan bir devlet seç. Haritada toprakları parlayacak.</p>${has?'<div class="row2"><button class="btn primary" data-act="continue">Kayıtlı oyuna dön</button></div>':''}`;
 }
@@ -1953,27 +2150,53 @@ function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
  queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
 function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
- if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);}
+ if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);
+ runHooks('enterGame');}
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
-function loadGame(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(!s||!s.prov||s.prov.length!==NP)throw 0;S=s;(S.mis||[]).forEach(m=>{if(m.t==='Kızıl Elma'){m.t='Roma Seferi';m.d='Roma\'yı fethet.';}});FK.forEach(f=>{if(!S.fac[f])S.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};});S.offers=S.offers||[];pruneOffers();$('#start').hidden=true;enterGame();}
+/** Bring any saved state up to schema v2 (idempotent: a v2 state is left byte-identical). */
+function migrate(s){const from=s.v||1;
+ (s.mis||[]).forEach(m=>{if(m.t==='Kızıl Elma'){m.t='Roma Seferi';m.d='Roma\'yı fethet.';}});
+ FK.forEach(f=>{if(!s.fac[f])s.fac[f]={gold:0,mp:0,alive:false,cap:-1,cannon:0,nextOffer:0};const F=s.fac[f];
+  if(!('ruler' in F))F.ruler=null;if(!('heir' in F))F.heir=null;if(!Array.isArray(F.gens))F.gens=[];});
+ s.offers=s.offers||[];
+ if(s.seq==null)s.seq=1;
+ for(const k of ['armies','hist'])if(!Array.isArray(s[k]))s[k]=[];
+ for(const k of ['sieges','chars','ae','coal','evs','chains','ai'])if(!s[k]||typeof s[k]!=='object')s[k]={};
+ if(!('tut' in s))s.tut=null;
+ FK.forEach(f=>{if(!s.ai[f])s.ai[f]=newAi();});
+ for(const k in s.war){const w=s.war[k];if(!w.ex)w.ex={};if(!('goal' in w))w.goal=null;}
+ runHooks('migrate',s,from);
+ s.v=2;return s;}
+KE.migrate=s=>migrate(s);
+function loadGame(){try{const raw=localStorage.getItem(SAVE),s=JSON.parse(raw);if(!s||!s.prov||s.prov.length!==NP)throw 0;
+  if((s.v||1)<2){try{if(!localStorage.getItem(SAVE+'-backup'))localStorage.setItem(SAVE+'-backup',raw);}catch(e){}}
+  S=migrate(s);pruneOffers();$('#start').hidden=true;enterGame();}
  catch(e){toast('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','war');}}
+ACTS.menu=()=>showMenu();
+ACTS['snd-music']=()=>{SND.set('music',!SND.st.music);showMenu();};
+ACTS['snd-sfx']=()=>{SND.set('sfx',!SND.st.sfx);showMenu();};
+ACTS.pick=t=>{startPick=t.dataset.f;renderStart();hlKey='';startCenter(startPick);};
+ACTS.begin=()=>{SND.play('fanfare');beginGame(startPick);};
+ACTS.continue=()=>loadGame();
+ACTS.newgame=()=>{modalQ.length=0;closeModal();try{localStorage.removeItem(SAVE);}catch(e){}showStart();};
 
-/* ---------------- boot ---------------- */
+/* ---------------- boot (frozen core; only the orchestrator edits this file) ---------------- */
 async function boot(){
  resize();addEventListener('resize',resize);
  try{await Promise.race([Promise.all([document.fonts.load('700 20px Cinzel'),document.fonts.load('italic 500 20px "EB Garamond"'),document.fonts.load('700 13px "EB Garamond"')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
  await new Promise(r=>setTimeout(r,30));
  buildMap();
- let want3=true;try{want3=localStorage.getItem('ke-3d')!=='0';}catch(e){}
- G3.set(!!want3);
+ G3.set(G3.wantOnBoot());
  $('#loading').remove();
- let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
  showStart();
+ runHooks('boot');
  req();
 }
 boot();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&document.querySelector('link[rel=manifest]'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-window.__ke={get S(){return S;},PD,endTurn,aiTurn,beginGame,proj:(x,y)=>pj(x,y)};
+Object.defineProperty(KE,'S',{get(){return S;},enumerable:true});
+Object.assign(KE,{PD,W,H,endTurn,aiTurn,beginGame,proj:(x,y)=>pj(x,y),battleOdds,hook,runHooks,save,loadGame});
+window.__ke=KE;
 })();
 </script>
 </body>

@@ -35,14 +35,7 @@
     <div class="stat"><label>Eyalet</label><b id="provs">0</b></div>
     <div class="stat"><label>Savaş</label><b id="wars">0</b></div>
   </div>
-  <nav class="tabs">
-    <button class="nb" data-act="diplo">⚖<span class="lbl"> Diplomasi</span></button>
-    <button class="nb" data-act="missions">✦<span class="lbl"> Hedefler</span></button>
-    <button class="nb" data-act="chron">❧<span class="lbl"> Vakayiname</span></button>
-    <button class="nb" data-act="guide" data-t="genel" aria-label="Oyun rehberi" title="Oyun rehberi"><b style="font:700 15px var(--display)">i</b><span class="lbl"> Rehber</span></button>
-    <button class="nb" data-act="snd" id="sndBtn" aria-label="Sesi aç/kapat">🔊</button>
-    <button class="nb" data-act="menu">☰</button>
-  </nav>
+  <nav class="tabs" id="navTabs"></nav>
   <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
   <button id="endTurn" data-act="end">Turu Bitir</button>
 </header>
@@ -50,6 +43,8 @@
 <aside id="panel" hidden><div class="band"></div><div class="in" id="panelIn"></div></aside>
 <div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır">+</button><button data-act="zout" aria-label="Uzaklaştır">−</button><button data-act="fit" aria-label="Haritayı sığdır" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" title="Arazi haritası" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" style="font:800 13px var(--body)">2D</button></div>
 <div id="tip" hidden></div>
+<div id="hud"></div>
+<div id="card" hidden></div>
 <div id="toasts"></div>
 <div id="modal" hidden><div class="card" role="dialog" aria-modal="true"></div></div>
 

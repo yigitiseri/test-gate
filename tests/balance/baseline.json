@@ -1,0 +1,2453 @@
+{
+ "note": "Recorded from the pre-W0 build (commit b39f8f6) with tests/sim.js. That build has no seedable RNG, so every run is an independent sample (compare distributions, not seeds). turnMs there is wall time minus the 30 ms endTurn delay; W0+ builds report pure compute (KE.stats.turnMs), so compare wallMsAvg for speed. Compare: node tests/sim.js --faction=F --policy=P --turns=N --seed=1..3 --compare",
+ "build": "b39f8f6",
+ "configs": {
+  "OSM-ai-160": {
+   "name": "osm-ai",
+   "summary": {
+    "turnsPlayed": {
+     "n": 5,
+     "mean": 160,
+     "sd": 0,
+     "min": 160,
+     "max": 160
+    },
+    "aliveEnd": {
+     "n": 5,
+     "mean": 13,
+     "sd": 1.22,
+     "min": 11,
+     "max": 14
+    },
+    "warsMean": {
+     "n": 5,
+     "mean": 0.84,
+     "sd": 0.3,
+     "min": 0.56,
+     "max": 1.33
+    },
+    "warsMeanAfter80": {
+     "n": 5,
+     "mean": 0.4,
+     "sd": 0.32,
+     "min": 0,
+     "max": 0.8
+    },
+    "playerProvsEnd": {
+     "n": 5,
+     "mean": 60.2,
+     "sd": 15.4,
+     "min": 43,
+     "max": 76
+    },
+    "pingPongMax": {
+     "n": 5,
+     "mean": 3.8,
+     "sd": 0.84,
+     "min": 3,
+     "max": 5
+    },
+    "pingPongMean": {
+     "n": 5,
+     "mean": 0.08,
+     "sd": 0.02,
+     "min": 0.06,
+     "max": 0.11
+    },
+    "maxArmy": {
+     "n": 5,
+     "mean": 89140,
+     "sd": 17358.08,
+     "min": 70100,
+     "max": 108000
+    },
+    "maxArmyBefore1480": {
+     "n": 5,
+     "mean": 76760,
+     "sd": 20094.97,
+     "min": 57200,
+     "max": 105500
+    },
+    "turnMsAvg": {
+     "n": 5,
+     "mean": 9.68,
+     "sd": 2.59,
+     "min": 6.4,
+     "max": 12.8
+    },
+    "turnMsMax": {
+     "n": 5,
+     "mean": 414.94,
+     "sd": 287.54,
+     "min": 191.8,
+     "max": 834.6
+    },
+    "wallMsAvg": {
+     "n": 5,
+     "mean": 39.68,
+     "sd": 2.59,
+     "min": 36.4,
+     "max": 42.8
+    },
+    "saveSize": {
+     "n": 5,
+     "mean": 52786,
+     "sd": 1951.59,
+     "min": 50368,
+     "max": 54905
+    },
+    "eventsTotal": {
+     "n": 5,
+     "mean": 48,
+     "sd": 6.16,
+     "min": 38,
+     "max": 53
+    },
+    "eventMaxTitle": {
+     "n": 5,
+     "mean": 8.2,
+     "sd": 1.64,
+     "min": 7,
+     "max": 11
+    },
+    "istFallTurn": {
+     "n": 3,
+     "mean": 95.33,
+     "sd": 12.22,
+     "min": 82,
+     "max": 106
+    },
+    "playerGoldEnd": {
+     "n": 5,
+     "mean": 255.6,
+     "sd": 247.98,
+     "min": 68,
+     "max": 621
+    },
+    "istFallen": "3/5"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 160,
+     "alive": [
+      27,
+      22,
+      20,
+      17,
+      14,
+      14,
+      14,
+      14,
+      13
+     ],
+     "activeWars": [
+      3,
+      0,
+      1,
+      0,
+      0,
+      0,
+      2,
+      2,
+      0
+     ],
+     "playerProvs": [
+      49,
+      54,
+      55,
+      60,
+      63,
+      58,
+      61,
+      73,
+      76
+     ],
+     "warsMeanAfter80": 0.8,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.114
+     },
+     "maxArmy": 105500,
+     "maxArmyBefore1480": 105500,
+     "turnMs": {
+      "avg": 12.8,
+      "max": 834.6
+     },
+     "wallMs": {
+      "avg": 42.8,
+      "max": 864.6
+     },
+     "saveSize": 53928,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "İpek Yolu Kervanı": 5,
+      "Ayaklanma": 4,
+      "Veba Salgını": 3,
+      "Mevsim Raporu": 65,
+      "Urban'ın Topları": 1,
+      "Gezgin Âlim": 8,
+      "Sert Kış": 3,
+      "Boğdan Elçisi": 1,
+      "Bereketli Hasat": 4,
+      "Akıncı Beyleri": 4,
+      "Deprem": 1,
+      "Papalık Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Büyük Orda Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 98,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 160,
+      "provs": 76,
+      "gold": 621,
+      "stats": {
+       "won": 91,
+       "lost": 64,
+       "taken": 91
+      },
+      "misDone": 3
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 160,
+     "alive": [
+      27,
+      24,
+      21,
+      18,
+      16,
+      14,
+      12,
+      12,
+      11
+     ],
+     "activeWars": [
+      3,
+      1,
+      3,
+      3,
+      2,
+      0,
+      0,
+      0,
+      0
+     ],
+     "playerProvs": [
+      49,
+      52,
+      53,
+      57,
+      56,
+      65,
+      68,
+      68,
+      76
+     ],
+     "warsMeanAfter80": 0.4,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.098
+     },
+     "maxArmy": 74400,
+     "maxArmyBefore1480": 57200,
+     "turnMs": {
+      "avg": 11.3,
+      "max": 595.2
+     },
+     "wallMs": {
+      "avg": 41.3,
+      "max": 625.2
+     },
+     "saveSize": 54905,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 59,
+      "Bereketli Hasat": 7,
+      "Ayaklanma": 4,
+      "Urban'ın Topları": 1,
+      "Veba Salgını": 7,
+      "Ceneviz Elçisi": 1,
+      "Akıncı Beyleri": 6,
+      "Gezgin Âlim": 3,
+      "Boğdan Elçisi": 1,
+      "Deprem": 5,
+      "İpek Yolu Kervanı": 6,
+      "Sert Kış": 2,
+      "Konstantiniyye Fethedildi": 1,
+      "Hafsî Elçisi": 1,
+      "Memlük Elçisi": 1,
+      "Macar Elçisi": 1,
+      "Büyük Orda Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 82,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 160,
+      "provs": 76,
+      "gold": 68,
+      "stats": {
+       "won": 60,
+       "lost": 33,
+       "taken": 60
+      },
+      "misDone": 2
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 160,
+     "alive": [
+      27,
+      23,
+      22,
+      21,
+      20,
+      16,
+      15,
+      15,
+      14
+     ],
+     "activeWars": [
+      3,
+      2,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+     ],
+     "playerProvs": [
+      49,
+      54,
+      55,
+      58,
+      58,
+      56,
+      53,
+      47,
+      43
+     ],
+     "warsMeanAfter80": 0.2,
+     "pingPong": {
+      "max": 5,
+      "mean": 0.081
+     },
+     "maxArmy": 87700,
+     "maxArmyBefore1480": 62100,
+     "turnMs": {
+      "avg": 10.1,
+      "max": 252.4
+     },
+     "wallMs": {
+      "avg": 40.1,
+      "max": 282.4
+     },
+     "saveSize": 53637,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 51,
+      "Gezgin Âlim": 7,
+      "Urban'ın Topları": 1,
+      "İpek Yolu Kervanı": 5,
+      "Deprem": 2,
+      "Akıncı Beyleri": 2,
+      "Ayaklanma": 4,
+      "Veba Salgını": 7,
+      "Dulkadir Elçisi": 1,
+      "Bereketli Hasat": 5,
+      "Sert Kış": 5,
+      "Macar Elçisi": 1,
+      "Sırbistan Elçisi": 1,
+      "Hafsî Elçisi": 1,
+      "Venedik Elçisi": 1,
+      "Memlük Elçisi": 1,
+      "Bosna Elçisi": 1,
+      "Karaman Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 160,
+      "provs": 43,
+      "gold": 82,
+      "stats": {
+       "won": 48,
+       "lost": 54,
+       "taken": 48
+      },
+      "misDone": 1
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 160,
+     "alive": [
+      27,
+      23,
+      20,
+      20,
+      17,
+      16,
+      14,
+      13,
+      13
+     ],
+     "activeWars": [
+      3,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0
+     ],
+     "playerProvs": [
+      49,
+      50,
+      52,
+      52,
+      49,
+      49,
+      43,
+      48,
+      48
+     ],
+     "warsMeanAfter80": 0.6,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.058
+     },
+     "maxArmy": 70100,
+     "maxArmyBefore1480": 70100,
+     "turnMs": {
+      "avg": 7.8,
+      "max": 200.7
+     },
+     "wallMs": {
+      "avg": 37.8,
+      "max": 230.7
+     },
+     "saveSize": 50368,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 44,
+      "Bereketli Hasat": 7,
+      "Sert Kış": 1,
+      "Urban'ın Topları": 1,
+      "Ayaklanma": 4,
+      "İpek Yolu Kervanı": 8,
+      "Gezgin Âlim": 8,
+      "Akıncı Beyleri": 3,
+      "Veba Salgını": 7,
+      "Venedik Elçisi": 1,
+      "Napoli Elçisi": 1,
+      "Karakoyunlu Elçisi": 1,
+      "Deprem": 3,
+      "Bosna Elçisi": 2,
+      "Karaman Elçisi": 2,
+      "Bizans Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Dulkadir Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 106,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 160,
+      "provs": 48,
+      "gold": 407,
+      "stats": {
+       "won": 22,
+       "lost": 23,
+       "taken": 22
+      },
+      "misDone": 1
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 160,
+     "alive": [
+      27,
+      24,
+      22,
+      19,
+      16,
+      16,
+      15,
+      14,
+      14
+     ],
+     "activeWars": [
+      3,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "playerProvs": [
+      49,
+      50,
+      53,
+      55,
+      47,
+      49,
+      60,
+      58,
+      58
+     ],
+     "warsMeanAfter80": 0,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.068
+     },
+     "maxArmy": 108000,
+     "maxArmyBefore1480": 88900,
+     "turnMs": {
+      "avg": 6.4,
+      "max": 191.8
+     },
+     "wallMs": {
+      "avg": 36.4,
+      "max": 221.8
+     },
+     "saveSize": 51092,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 49,
+      "Sert Kış": 2,
+      "İpek Yolu Kervanı": 8,
+      "Bereketli Hasat": 11,
+      "Urban'ın Topları": 1,
+      "Deprem": 4,
+      "Veba Salgını": 4,
+      "Akıncı Beyleri": 10,
+      "Lehistan Elçisi": 2,
+      "Bosna Elçisi": 1,
+      "Gezgin Âlim": 3,
+      "Dulkadir Elçisi": 1,
+      "Karaman Elçisi": 2,
+      "Bizans Elçisi": 1,
+      "Ayaklanma": 1,
+      "Memlük Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 160,
+      "provs": 58,
+      "gold": 100,
+      "stats": {
+       "won": 32,
+       "lost": 23,
+       "taken": 32
+      },
+      "misDone": 1
+     }
+    }
+   ]
+  },
+  "OSM-ai-60": {
+   "name": "osm-ai-60",
+   "summary": {
+    "turnsPlayed": {
+     "n": 3,
+     "mean": 60,
+     "sd": 0,
+     "min": 60,
+     "max": 60
+    },
+    "aliveEnd": {
+     "n": 3,
+     "mean": 19.33,
+     "sd": 1.15,
+     "min": 18,
+     "max": 20
+    },
+    "warsMean": {
+     "n": 3,
+     "mean": 1.33,
+     "sd": 0.14,
+     "min": 1.25,
+     "max": 1.5
+    },
+    "warsMeanAfter80": null,
+    "playerProvsEnd": {
+     "n": 3,
+     "mean": 53.33,
+     "sd": 4.04,
+     "min": 51,
+     "max": 58
+    },
+    "pingPongMax": {
+     "n": 3,
+     "mean": 2.67,
+     "sd": 1.53,
+     "min": 1,
+     "max": 4
+    },
+    "pingPongMean": {
+     "n": 3,
+     "mean": 0.07,
+     "sd": 0.01,
+     "min": 0.06,
+     "max": 0.08
+    },
+    "maxArmy": {
+     "n": 3,
+     "mean": 77066.67,
+     "sd": 12267.98,
+     "min": 63100,
+     "max": 86100
+    },
+    "maxArmyBefore1480": {
+     "n": 3,
+     "mean": 77066.67,
+     "sd": 12267.98,
+     "min": 63100,
+     "max": 86100
+    },
+    "turnMsAvg": {
+     "n": 3,
+     "mean": 18.13,
+     "sd": 5.57,
+     "min": 11.7,
+     "max": 21.4
+    },
+    "turnMsMax": {
+     "n": 3,
+     "mean": 442.73,
+     "sd": 250.53,
+     "min": 155,
+     "max": 612.5
+    },
+    "wallMsAvg": {
+     "n": 3,
+     "mean": 48.13,
+     "sd": 5.57,
+     "min": 41.7,
+     "max": 51.4
+    },
+    "saveSize": {
+     "n": 3,
+     "mean": 41655,
+     "sd": 371.94,
+     "min": 41337,
+     "max": 42064
+    },
+    "eventsTotal": {
+     "n": 3,
+     "mean": 20.67,
+     "sd": 5.51,
+     "min": 17,
+     "max": 27
+    },
+    "eventMaxTitle": {
+     "n": 3,
+     "mean": 4.67,
+     "sd": 1.15,
+     "min": 4,
+     "max": 6
+    },
+    "istFallTurn": null,
+    "playerGoldEnd": {
+     "n": 3,
+     "mean": 41.33,
+     "sd": 24.09,
+     "min": 25,
+     "max": 69
+    },
+    "istFallen": "0/3"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 60,
+     "alive": [
+      27,
+      24,
+      21,
+      18
+     ],
+     "activeWars": [
+      3,
+      0,
+      2,
+      0
+     ],
+     "playerProvs": [
+      49,
+      51,
+      54,
+      58
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 1,
+      "mean": 0.057
+     },
+     "maxArmy": 63100,
+     "maxArmyBefore1480": 63100,
+     "turnMs": {
+      "avg": 21.3,
+      "max": 612.5
+     },
+     "wallMs": {
+      "avg": 51.3,
+      "max": 642.5
+     },
+     "saveSize": 42064,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 16,
+      "Bereketli Hasat": 5,
+      "Urban'ın Topları": 1,
+      "İpek Yolu Kervanı": 1,
+      "Gezgin Âlim": 1,
+      "Akıncı Beyleri": 3,
+      "Avusturya Elçisi": 1,
+      "Sırbistan Elçisi": 1,
+      "Veba Salgını": 2,
+      "Eflak Elçisi": 1,
+      "Deprem": 2,
+      "Ayaklanma": 6,
+      "Sert Kış": 2
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 60,
+      "provs": 58,
+      "gold": 30,
+      "stats": {
+       "won": 10,
+       "lost": 1,
+       "taken": 10
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 60,
+     "alive": [
+      27,
+      25,
+      23,
+      20
+     ],
+     "activeWars": [
+      3,
+      1,
+      1,
+      0
+     ],
+     "playerProvs": [
+      49,
+      49,
+      51,
+      51
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.081
+     },
+     "maxArmy": 86100,
+     "maxArmyBefore1480": 86100,
+     "turnMs": {
+      "avg": 11.7,
+      "max": 155
+     },
+     "wallMs": {
+      "avg": 41.7,
+      "max": 185
+     },
+     "saveSize": 41337,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 19,
+      "İpek Yolu Kervanı": 2,
+      "Urban'ın Topları": 1,
+      "Veba Salgını": 4,
+      "Ayaklanma": 3,
+      "Deprem": 1,
+      "Bosna Elçisi": 1,
+      "Akıncı Beyleri": 2,
+      "Gezgin Âlim": 1,
+      "Sert Kış": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 60,
+      "provs": 51,
+      "gold": 25,
+      "stats": {
+       "won": 6,
+       "lost": 4,
+       "taken": 6
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 60,
+     "alive": [
+      27,
+      25,
+      24,
+      20
+     ],
+     "activeWars": [
+      3,
+      1,
+      1,
+      1
+     ],
+     "playerProvs": [
+      49,
+      51,
+      49,
+      51
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.074
+     },
+     "maxArmy": 82000,
+     "maxArmyBefore1480": 82000,
+     "turnMs": {
+      "avg": 21.4,
+      "max": 560.7
+     },
+     "wallMs": {
+      "avg": 51.4,
+      "max": 590.7
+     },
+     "saveSize": 41564,
+     "events": {
+      "Osmanlı Devleti": 1,
+      "Mevsim Raporu": 26,
+      "Bereketli Hasat": 2,
+      "Urban'ın Topları": 1,
+      "İpek Yolu Kervanı": 2,
+      "Sert Kış": 2,
+      "Gezgin Âlim": 4,
+      "Rodos Elçisi": 1,
+      "Bosna Elçisi": 1,
+      "Akıncı Beyleri": 3,
+      "Veba Salgını": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 60,
+      "provs": 51,
+      "gold": 69,
+      "stats": {
+       "won": 5,
+       "lost": 3,
+       "taken": 5
+      },
+      "misDone": 0
+     }
+    }
+   ]
+  },
+  "HAF-passive-320": {
+   "name": "world-passive",
+   "summary": {
+    "turnsPlayed": {
+     "n": 3,
+     "mean": 320,
+     "sd": 0,
+     "min": 320,
+     "max": 320
+    },
+    "aliveEnd": {
+     "n": 3,
+     "mean": 9.33,
+     "sd": 1.53,
+     "min": 8,
+     "max": 11
+    },
+    "warsMean": {
+     "n": 3,
+     "mean": 0.75,
+     "sd": 0.12,
+     "min": 0.65,
+     "max": 0.88
+    },
+    "warsMeanAfter80": {
+     "n": 3,
+     "mean": 0.59,
+     "sd": 0.12,
+     "min": 0.46,
+     "max": 0.69
+    },
+    "playerProvsEnd": {
+     "n": 3,
+     "mean": 3,
+     "sd": 0,
+     "min": 3,
+     "max": 3
+    },
+    "pingPongMax": {
+     "n": 3,
+     "mean": 4.33,
+     "sd": 0.58,
+     "min": 4,
+     "max": 5
+    },
+    "pingPongMean": {
+     "n": 3,
+     "mean": 0.07,
+     "sd": 0.01,
+     "min": 0.07,
+     "max": 0.09
+    },
+    "maxArmy": {
+     "n": 3,
+     "mean": 185400,
+     "sd": 76133.3,
+     "min": 98800,
+     "max": 241800
+    },
+    "maxArmyBefore1480": {
+     "n": 3,
+     "mean": 97866.67,
+     "sd": 1285.82,
+     "min": 96400,
+     "max": 98800
+    },
+    "turnMsAvg": {
+     "n": 3,
+     "mean": 11.97,
+     "sd": 2.71,
+     "min": 9.8,
+     "max": 15
+    },
+    "turnMsMax": {
+     "n": 3,
+     "mean": 734.77,
+     "sd": 330.34,
+     "min": 358.8,
+     "max": 978.5
+    },
+    "wallMsAvg": {
+     "n": 3,
+     "mean": 41.97,
+     "sd": 2.71,
+     "min": 39.8,
+     "max": 45
+    },
+    "saveSize": {
+     "n": 3,
+     "mean": 59240.33,
+     "sd": 1519.55,
+     "min": 57486,
+     "max": 60145
+    },
+    "eventsTotal": {
+     "n": 3,
+     "mean": 93.67,
+     "sd": 5.86,
+     "min": 87,
+     "max": 98
+    },
+    "eventMaxTitle": {
+     "n": 3,
+     "mean": 21.33,
+     "sd": 2.08,
+     "min": 19,
+     "max": 23
+    },
+    "istFallTurn": {
+     "n": 3,
+     "mean": 107.67,
+     "sd": 47.5,
+     "min": 74,
+     "max": 162
+    },
+    "playerGoldEnd": {
+     "n": 3,
+     "mean": 141,
+     "sd": 123.12,
+     "min": 64,
+     "max": 283
+    },
+    "istFallen": "3/3"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": "time",
+     "turnsPlayed": 320,
+     "alive": [
+      27,
+      25,
+      22,
+      21,
+      20,
+      19,
+      14,
+      13,
+      12,
+      11,
+      12,
+      12,
+      12,
+      11,
+      10,
+      9,
+      8
+     ],
+     "activeWars": [
+      3,
+      1,
+      1,
+      0,
+      2,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1
+     ],
+     "playerProvs": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+     ],
+     "warsMeanAfter80": 0.46,
+     "pingPong": {
+      "max": 5,
+      "mean": 0.088
+     },
+     "maxArmy": 215600,
+     "maxArmyBefore1480": 96400,
+     "turnMs": {
+      "avg": 15,
+      "max": 978.5
+     },
+     "wallMs": {
+      "avg": 45,
+      "max": 1008.5
+     },
+     "saveSize": 60145,
+     "events": {
+      "Hafsîler": 1,
+      "Mevsim Raporu": 29,
+      "Gezgin Âlim": 7,
+      "Deprem": 7,
+      "Bereketli Hasat": 22,
+      "İpek Yolu Kervanı": 16,
+      "Veba Salgını": 9,
+      "Akıncı Beyleri": 12,
+      "Osmanlı Elçisi": 3,
+      "Konstantiniyye Fethedildi": 1,
+      "Sert Kış": 2,
+      "Bosna Elçisi": 1,
+      "Macar Elçisi": 2,
+      "Ceneviz Elçisi": 1,
+      "Venedik Elçisi": 1,
+      "Karaman Elçisi": 1,
+      "1531: Bir Devrin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 74,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 320,
+      "provs": 3,
+      "gold": 64,
+      "stats": {
+       "won": 0,
+       "lost": 0,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "time",
+     "turnsPlayed": 320,
+     "alive": [
+      27,
+      22,
+      18,
+      17,
+      16,
+      15,
+      15,
+      15,
+      14,
+      14,
+      12,
+      12,
+      11,
+      11,
+      10,
+      10,
+      9
+     ],
+     "activeWars": [
+      3,
+      2,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      3,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      1
+     ],
+     "playerProvs": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+     ],
+     "warsMeanAfter80": 0.69,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.067
+     },
+     "maxArmy": 241800,
+     "maxArmyBefore1480": 98400,
+     "turnMs": {
+      "avg": 11.1,
+      "max": 867
+     },
+     "wallMs": {
+      "avg": 41.1,
+      "max": 897
+     },
+     "saveSize": 57486,
+     "events": {
+      "Hafsîler": 1,
+      "Mevsim Raporu": 29,
+      "Bereketli Hasat": 17,
+      "Veba Salgını": 17,
+      "Gezgin Âlim": 12,
+      "İpek Yolu Kervanı": 19,
+      "Avusturya Elçisi": 4,
+      "Napoli Elçisi": 1,
+      "Memlük Elçisi": 1,
+      "Karakoyunlu Elçisi": 1,
+      "Deprem": 6,
+      "Venedik Elçisi": 1,
+      "Akıncı Beyleri": 7,
+      "Bosna Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Macar Elçisi": 1,
+      "Sert Kış": 1,
+      "Osmanlı Elçisi": 2,
+      "Dulkadir Elçisi": 1,
+      "Safevî Elçisi": 1,
+      "1531: Bir Devrin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 162,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 320,
+      "provs": 3,
+      "gold": 283,
+      "stats": {
+       "won": 0,
+       "lost": 0,
+       "taken": 0
+      },
+      "misDone": 1
+     }
+    },
+    {
+     "seeded": false,
+     "over": "time",
+     "turnsPlayed": 320,
+     "alive": [
+      27,
+      22,
+      20,
+      17,
+      16,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      14,
+      13,
+      12,
+      11,
+      11
+     ],
+     "activeWars": [
+      3,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      3,
+      3,
+      1,
+      0,
+      0,
+      0,
+      0
+     ],
+     "playerProvs": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+     ],
+     "warsMeanAfter80": 0.62,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.069
+     },
+     "maxArmy": 98800,
+     "maxArmyBefore1480": 98800,
+     "turnMs": {
+      "avg": 9.8,
+      "max": 358.8
+     },
+     "wallMs": {
+      "avg": 39.8,
+      "max": 388.8
+     },
+     "saveSize": 60090,
+     "events": {
+      "Hafsîler": 1,
+      "Mevsim Raporu": 36,
+      "Gezgin Âlim": 8,
+      "İpek Yolu Kervanı": 22,
+      "Sert Kış": 3,
+      "Bizans Elçisi": 2,
+      "Bereketli Hasat": 23,
+      "Veba Salgını": 11,
+      "Akıncı Beyleri": 12,
+      "Deprem": 6,
+      "Memlük Elçisi": 1,
+      "Bosna Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Avusturya Elçisi": 1,
+      "Osmanlı Elçisi": 2,
+      "Lehistan Elçisi": 1,
+      "Papalık Elçisi": 1,
+      "Karakoyunlu Elçisi": 1,
+      "1531: Bir Devrin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 87,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 320,
+      "provs": 3,
+      "gold": 76,
+      "stats": {
+       "won": 0,
+       "lost": 0,
+       "taken": 0
+      },
+      "misDone": 1
+     }
+    }
+   ]
+  },
+  "ALB-passive-40": {
+   "name": "alb-passive",
+   "summary": {
+    "turnsPlayed": {
+     "n": 5,
+     "mean": 3,
+     "sd": 0,
+     "min": 3,
+     "max": 3
+    },
+    "aliveEnd": {
+     "n": 5,
+     "mean": 26,
+     "sd": 0,
+     "min": 26,
+     "max": 26
+    },
+    "warsMean": {
+     "n": 5,
+     "mean": 1.8,
+     "sd": 0.27,
+     "min": 1.5,
+     "max": 2
+    },
+    "warsMeanAfter80": null,
+    "playerProvsEnd": {
+     "n": 5,
+     "mean": 0,
+     "sd": 0,
+     "min": 0,
+     "max": 0
+    },
+    "pingPongMax": {
+     "n": 5,
+     "mean": 1.2,
+     "sd": 0.45,
+     "min": 1,
+     "max": 2
+    },
+    "pingPongMean": {
+     "n": 5,
+     "mean": 0.03,
+     "sd": 0.01,
+     "min": 0.02,
+     "max": 0.04
+    },
+    "maxArmy": {
+     "n": 5,
+     "mean": 21580,
+     "sd": 2163.79,
+     "min": 17900,
+     "max": 23200
+    },
+    "maxArmyBefore1480": {
+     "n": 5,
+     "mean": 21580,
+     "sd": 2163.79,
+     "min": 17900,
+     "max": 23200
+    },
+    "turnMsAvg": {
+     "n": 5,
+     "mean": 131.36,
+     "sd": 127.8,
+     "min": 17.2,
+     "max": 317.3
+    },
+    "turnMsMax": {
+     "n": 5,
+     "mean": 345.98,
+     "sd": 372.01,
+     "min": 30.5,
+     "max": 927
+    },
+    "wallMsAvg": {
+     "n": 5,
+     "mean": 161.36,
+     "sd": 127.8,
+     "min": 47.2,
+     "max": 347.3
+    },
+    "saveSize": {
+     "n": 5,
+     "mean": 27418.4,
+     "sd": 279.84,
+     "min": 26999,
+     "max": 27680
+    },
+    "eventsTotal": {
+     "n": 5,
+     "mean": 2.2,
+     "sd": 0.45,
+     "min": 2,
+     "max": 3
+    },
+    "eventMaxTitle": {
+     "n": 5,
+     "mean": 1,
+     "sd": 0,
+     "min": 1,
+     "max": 1
+    },
+    "istFallTurn": null,
+    "playerGoldEnd": {
+     "n": 5,
+     "mean": 19.2,
+     "sd": 3.27,
+     "min": 17,
+     "max": 25
+    },
+    "istFallen": "0/5"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 3,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      1
+     ],
+     "playerProvs": [
+      3,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 1,
+      "mean": 0.031
+     },
+     "maxArmy": 21400,
+     "maxArmyBefore1480": 21400,
+     "turnMs": {
+      "avg": 40.8,
+      "max": 87.3
+     },
+     "wallMs": {
+      "avg": 70.8,
+      "max": 117.3
+     },
+     "saveSize": 27680,
+     "events": {
+      "Lezhë Birliği": 1,
+      "Mevsim Raporu": 1,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 3,
+      "provs": 0,
+      "gold": 18,
+      "stats": {
+       "won": 0,
+       "lost": 3,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 3,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      0
+     ],
+     "playerProvs": [
+      3,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 1,
+      "mean": 0.02
+     },
+     "maxArmy": 23200,
+     "maxArmyBefore1480": 23200,
+     "turnMs": {
+      "avg": 17.2,
+      "max": 30.5
+     },
+     "wallMs": {
+      "avg": 47.2,
+      "max": 60.5
+     },
+     "saveSize": 26999,
+     "events": {
+      "Lezhë Birliği": 1,
+      "Mevsim Raporu": 1,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 3,
+      "provs": 0,
+      "gold": 18,
+      "stats": {
+       "won": 0,
+       "lost": 3,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 3,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      1
+     ],
+     "playerProvs": [
+      3,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 1,
+      "mean": 0.02
+     },
+     "maxArmy": 17900,
+     "maxArmyBefore1480": 17900,
+     "turnMs": {
+      "avg": 317.3,
+      "max": 927
+     },
+     "wallMs": {
+      "avg": 347.3,
+      "max": 957
+     },
+     "saveSize": 27371,
+     "events": {
+      "Lezhë Birliği": 1,
+      "Paralı Askerler": 1,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 3,
+      "provs": 0,
+      "gold": 25,
+      "stats": {
+       "won": 0,
+       "lost": 3,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 3,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      1
+     ],
+     "playerProvs": [
+      3,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 2,
+      "mean": 0.039
+     },
+     "maxArmy": 22600,
+     "maxArmyBefore1480": 22600,
+     "turnMs": {
+      "avg": 72.4,
+      "max": 185.2
+     },
+     "wallMs": {
+      "avg": 102.4,
+      "max": 215.2
+     },
+     "saveSize": 27672,
+     "events": {
+      "Lezhë Birliği": 1,
+      "Mevsim Raporu": 1,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 3,
+      "provs": 0,
+      "gold": 18,
+      "stats": {
+       "won": 0,
+       "lost": 3,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 3,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      0
+     ],
+     "playerProvs": [
+      3,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 1,
+      "mean": 0.031
+     },
+     "maxArmy": 22800,
+     "maxArmyBefore1480": 22800,
+     "turnMs": {
+      "avg": 209.1,
+      "max": 499.9
+     },
+     "wallMs": {
+      "avg": 239.1,
+      "max": 529.9
+     },
+     "saveSize": 27370,
+     "events": {
+      "Lezhë Birliği": 1,
+      "Mevsim Raporu": 1,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 3,
+      "provs": 0,
+      "gold": 17,
+      "stats": {
+       "won": 0,
+       "lost": 3,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    }
+   ]
+  },
+  "BYZ-ai-120": {
+   "name": "byz-ai",
+   "summary": {
+    "turnsPlayed": {
+     "n": 3,
+     "mean": 120,
+     "sd": 0,
+     "min": 120,
+     "max": 120
+    },
+    "aliveEnd": {
+     "n": 3,
+     "mean": 14.67,
+     "sd": 0.58,
+     "min": 14,
+     "max": 15
+    },
+    "warsMean": {
+     "n": 3,
+     "mean": 1.24,
+     "sd": 0.46,
+     "min": 0.71,
+     "max": 1.57
+    },
+    "warsMeanAfter80": {
+     "n": 3,
+     "mean": 0.67,
+     "sd": 0.67,
+     "min": 0,
+     "max": 1.33
+    },
+    "playerProvsEnd": {
+     "n": 3,
+     "mean": 7,
+     "sd": 1.73,
+     "min": 6,
+     "max": 9
+    },
+    "pingPongMax": {
+     "n": 3,
+     "mean": 4.33,
+     "sd": 1.53,
+     "min": 3,
+     "max": 6
+    },
+    "pingPongMean": {
+     "n": 3,
+     "mean": 0.08,
+     "sd": 0.01,
+     "min": 0.06,
+     "max": 0.09
+    },
+    "maxArmy": {
+     "n": 3,
+     "mean": 102233.33,
+     "sd": 15632.13,
+     "min": 85000,
+     "max": 115500
+    },
+    "maxArmyBefore1480": {
+     "n": 3,
+     "mean": 102233.33,
+     "sd": 15632.13,
+     "min": 85000,
+     "max": 115500
+    },
+    "turnMsAvg": {
+     "n": 3,
+     "mean": 11.63,
+     "sd": 1.07,
+     "min": 10.7,
+     "max": 12.8
+    },
+    "turnMsMax": {
+     "n": 3,
+     "mean": 311.57,
+     "sd": 97.85,
+     "min": 202.4,
+     "max": 391.4
+    },
+    "wallMsAvg": {
+     "n": 3,
+     "mean": 41.63,
+     "sd": 1.07,
+     "min": 40.7,
+     "max": 42.8
+    },
+    "saveSize": {
+     "n": 3,
+     "mean": 47192.33,
+     "sd": 1908.44,
+     "min": 45068,
+     "max": 48762
+    },
+    "eventsTotal": {
+     "n": 3,
+     "mean": 34.67,
+     "sd": 4.51,
+     "min": 30,
+     "max": 39
+    },
+    "eventMaxTitle": {
+     "n": 3,
+     "mean": 6.67,
+     "sd": 2.31,
+     "min": 4,
+     "max": 8
+    },
+    "istFallTurn": {
+     "n": 2,
+     "mean": 106,
+     "sd": 0,
+     "min": 106,
+     "max": 106
+    },
+    "playerGoldEnd": {
+     "n": 3,
+     "mean": 84,
+     "sd": 54.44,
+     "min": 26,
+     "max": 134
+    },
+    "istFallen": "2/3"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 120,
+     "alive": [
+      27,
+      23,
+      21,
+      19,
+      17,
+      14,
+      14
+     ],
+     "activeWars": [
+      3,
+      2,
+      1,
+      1,
+      0,
+      2,
+      2
+     ],
+     "playerProvs": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      9
+     ],
+     "warsMeanAfter80": 1.33,
+     "pingPong": {
+      "max": 6,
+      "mean": 0.083
+     },
+     "maxArmy": 115500,
+     "maxArmyBefore1480": 115500,
+     "turnMs": {
+      "avg": 12.8,
+      "max": 202.4
+     },
+     "wallMs": {
+      "avg": 42.8,
+      "max": 232.4
+     },
+     "saveSize": 48762,
+     "events": {
+      "Bizans İmparatorluğu": 1,
+      "Mevsim Raporu": 17,
+      "Veba Salgını": 4,
+      "Levanten Tüccarlar": 6,
+      "Bereketli Hasat": 8,
+      "Deprem": 2,
+      "Paralı Askerler": 5,
+      "Hümanist Bilgin": 5,
+      "Sert Kış": 1,
+      "Osmanlı Elçisi": 1,
+      "Papalık Elçisi": 1,
+      "Lehistan Elçisi": 1,
+      "Venedik Elçisi": 1,
+      "Bosna Elçisi": 1,
+      "Ayaklanma": 1,
+      "Macar Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 120,
+      "provs": 9,
+      "gold": 92,
+      "stats": {
+       "won": 4,
+       "lost": 1,
+       "taken": 4
+      },
+      "misDone": 1
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 120,
+     "alive": [
+      27,
+      24,
+      21,
+      18,
+      16,
+      15,
+      15
+     ],
+     "activeWars": [
+      3,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1
+     ],
+     "playerProvs": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6
+     ],
+     "warsMeanAfter80": 0.67,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.062
+     },
+     "maxArmy": 106200,
+     "maxArmyBefore1480": 106200,
+     "turnMs": {
+      "avg": 10.7,
+      "max": 391.4
+     },
+     "wallMs": {
+      "avg": 40.7,
+      "max": 421.4
+     },
+     "saveSize": 45068,
+     "events": {
+      "Bizans İmparatorluğu": 1,
+      "Levanten Tüccarlar": 4,
+      "Gürcistan Elçisi": 1,
+      "Mevsim Raporu": 19,
+      "Veba Salgını": 3,
+      "Eflak Elçisi": 1,
+      "Deprem": 3,
+      "Bereketli Hasat": 4,
+      "Paralı Askerler": 4,
+      "Hümanist Bilgin": 4,
+      "Sert Kış": 3,
+      "Bosna Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 106,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 120,
+      "provs": 6,
+      "gold": 26,
+      "stats": {
+       "won": 5,
+       "lost": 5,
+       "taken": 5
+      },
+      "misDone": 1
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 120,
+     "alive": [
+      27,
+      24,
+      20,
+      18,
+      17,
+      16,
+      15
+     ],
+     "activeWars": [
+      3,
+      3,
+      2,
+      2,
+      0,
+      0,
+      0
+     ],
+     "playerProvs": [
+      6,
+      6,
+      6,
+      6,
+      6,
+      6,
+      6
+     ],
+     "warsMeanAfter80": 0,
+     "pingPong": {
+      "max": 4,
+      "mean": 0.089
+     },
+     "maxArmy": 85000,
+     "maxArmyBefore1480": 85000,
+     "turnMs": {
+      "avg": 11.4,
+      "max": 340.9
+     },
+     "wallMs": {
+      "avg": 41.4,
+      "max": 370.9
+     },
+     "saveSize": 47747,
+     "events": {
+      "Bizans İmparatorluğu": 1,
+      "Hümanist Bilgin": 8,
+      "Veba Salgını": 2,
+      "Mevsim Raporu": 17,
+      "Levanten Tüccarlar": 6,
+      "Paralı Askerler": 4,
+      "Gürcistan Elçisi": 1,
+      "Deprem": 1,
+      "Bereketli Hasat": 7,
+      "Sert Kış": 1,
+      "Lehistan Elçisi": 1,
+      "Hafsî Elçisi": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Ayaklanma": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 106,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 120,
+      "provs": 6,
+      "gold": 134,
+      "stats": {
+       "won": 4,
+       "lost": 4,
+       "taken": 4
+      },
+      "misDone": 1
+     }
+    }
+   ]
+  },
+  "TRB-ai-120": {
+   "name": "trb-ai",
+   "summary": {
+    "turnsPlayed": {
+     "n": 3,
+     "mean": 49.33,
+     "sd": 61.21,
+     "min": 13,
+     "max": 120
+    },
+    "aliveEnd": {
+     "n": 3,
+     "mean": 22.33,
+     "sd": 5.51,
+     "min": 16,
+     "max": 26
+    },
+    "warsMean": {
+     "n": 3,
+     "mean": 2.05,
+     "sd": 0.51,
+     "min": 1.5,
+     "max": 2.5
+    },
+    "warsMeanAfter80": {
+     "n": 1,
+     "mean": 1,
+     "sd": 0,
+     "min": 1,
+     "max": 1
+    },
+    "playerProvsEnd": {
+     "n": 3,
+     "mean": 0.33,
+     "sd": 0.58,
+     "min": 0,
+     "max": 1
+    },
+    "pingPongMax": {
+     "n": 3,
+     "mean": 2.67,
+     "sd": 0.58,
+     "min": 2,
+     "max": 3
+    },
+    "pingPongMean": {
+     "n": 3,
+     "mean": 0.08,
+     "sd": 0.03,
+     "min": 0.05,
+     "max": 0.11
+    },
+    "maxArmy": {
+     "n": 3,
+     "mean": 63800,
+     "sd": 55886.04,
+     "min": 29800,
+     "max": 128300
+    },
+    "maxArmyBefore1480": {
+     "n": 3,
+     "mean": 63800,
+     "sd": 55886.04,
+     "min": 29800,
+     "max": 128300
+    },
+    "turnMsAvg": {
+     "n": 3,
+     "mean": 9.67,
+     "sd": 4.37,
+     "min": 6.3,
+     "max": 14.6
+    },
+    "turnMsMax": {
+     "n": 3,
+     "mean": 64.97,
+     "sd": 46.38,
+     "min": 15.4,
+     "max": 107.3
+    },
+    "wallMsAvg": {
+     "n": 3,
+     "mean": 39.67,
+     "sd": 4.37,
+     "min": 36.3,
+     "max": 44.6
+    },
+    "saveSize": {
+     "n": 3,
+     "mean": 36903,
+     "sd": 10393.58,
+     "min": 30189,
+     "max": 48875
+    },
+    "eventsTotal": {
+     "n": 3,
+     "mean": 16,
+     "sd": 15.62,
+     "min": 6,
+     "max": 34
+    },
+    "eventMaxTitle": {
+     "n": 3,
+     "mean": 5,
+     "sd": 3.61,
+     "min": 2,
+     "max": 9
+    },
+    "istFallTurn": {
+     "n": 1,
+     "mean": 95,
+     "sd": 0,
+     "min": 95,
+     "max": 95
+    },
+    "playerGoldEnd": {
+     "n": 3,
+     "mean": 26.67,
+     "sd": 13.8,
+     "min": 11,
+     "max": 37
+    },
+    "istFallen": "1/3"
+   },
+   "runs": [
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 13,
+     "alive": [
+      27,
+      25
+     ],
+     "activeWars": [
+      3,
+      2
+     ],
+     "playerProvs": [
+      2,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.11
+     },
+     "maxArmy": 29800,
+     "maxArmyBefore1480": 29800,
+     "turnMs": {
+      "avg": 8.1,
+      "max": 15.4
+     },
+     "wallMs": {
+      "avg": 38.1,
+      "max": 45.4
+     },
+     "saveSize": 31645,
+     "events": {
+      "Trabzon İmparatorluğu": 1,
+      "Bereketli Hasat": 4,
+      "Hümanist Bilgin": 1,
+      "Mevsim Raporu": 3
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 13,
+      "provs": 0,
+      "gold": 37,
+      "stats": {
+       "won": 0,
+       "lost": 2,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": null,
+     "turnsPlayed": 120,
+     "alive": [
+      27,
+      26,
+      21,
+      20,
+      17,
+      16,
+      16
+     ],
+     "activeWars": [
+      3,
+      4,
+      4,
+      1,
+      0,
+      1,
+      2
+     ],
+     "playerProvs": [
+      2,
+      2,
+      2,
+      5,
+      4,
+      2,
+      1
+     ],
+     "warsMeanAfter80": 1,
+     "pingPong": {
+      "max": 3,
+      "mean": 0.078
+     },
+     "maxArmy": 128300,
+     "maxArmyBefore1480": 128300,
+     "turnMs": {
+      "avg": 6.3,
+      "max": 107.3
+     },
+     "wallMs": {
+      "avg": 36.3,
+      "max": 137.3
+     },
+     "saveSize": 48875,
+     "events": {
+      "Trabzon İmparatorluğu": 1,
+      "Bereketli Hasat": 9,
+      "Levanten Tüccarlar": 9,
+      "Mevsim Raporu": 25,
+      "Veba Salgını": 4,
+      "Sert Kış": 2,
+      "Bosna Elçisi": 1,
+      "Paralı Askerler": 3,
+      "Deprem": 1,
+      "Hümanist Bilgin": 1,
+      "Konstantiniyye Fethedildi": 1,
+      "Hafsî Elçisi": 1,
+      "Macar Elçisi": 1
+     },
+     "constantinople": {
+      "owner": "OSM",
+      "fall": {
+       "turn": 95,
+       "to": "OSM"
+      }
+     },
+     "final": {
+      "turn": 120,
+      "provs": 1,
+      "gold": 32,
+      "stats": {
+       "won": 6,
+       "lost": 7,
+       "taken": 6
+      },
+      "misDone": 0
+     }
+    },
+    {
+     "seeded": false,
+     "over": "lose",
+     "turnsPlayed": 15,
+     "alive": [
+      27,
+      26
+     ],
+     "activeWars": [
+      3,
+      0
+     ],
+     "playerProvs": [
+      2,
+      0
+     ],
+     "warsMeanAfter80": null,
+     "pingPong": {
+      "max": 2,
+      "mean": 0.047
+     },
+     "maxArmy": 33300,
+     "maxArmyBefore1480": 33300,
+     "turnMs": {
+      "avg": 14.6,
+      "max": 72.2
+     },
+     "wallMs": {
+      "avg": 44.6,
+      "max": 102.2
+     },
+     "saveSize": 30189,
+     "events": {
+      "Trabzon İmparatorluğu": 1,
+      "Sert Kış": 1,
+      "Boğdan Elçisi": 1,
+      "Bereketli Hasat": 1,
+      "Levanten Tüccarlar": 1,
+      "Mevsim Raporu": 3,
+      "Paralı Askerler": 2,
+      "Devletin Sonu": 1
+     },
+     "constantinople": {
+      "owner": "BYZ",
+      "fall": null
+     },
+     "final": {
+      "turn": 15,
+      "provs": 0,
+      "gold": 11,
+      "stats": {
+       "won": 0,
+       "lost": 2,
+       "taken": 0
+      },
+      "misDone": 0
+     }
+    }
+   ]
+  }
+ }
+}
