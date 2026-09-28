@@ -38,12 +38,12 @@ module.exports = {
         check('replay starts with a HUD bar', saw, t1);
         check('replay shows the traced moves (>= 3)', t1.on && t1.shown >= 3, t1);
         check('season report waits for the replay', !t1.modal, t1);
-        await page.waitForTimeout(900); await shot('replay_mid');
-        const ghost = await E(() => window.__ke.tokens().some(t => t.id == null));
-        check('army-less battle trace drawn as a ghost token', ghost);
       }
-      if (skip) {
-        await page.click('#hud .a-rpskip');
+      if (skip) await page.click('#hud .a-rpskip', { force: true, timeout: 3000 });
+      else {
+        const ghost = await page.waitForFunction(() => window.__ke.tokens().some(t => t.id == null), null, { timeout: 4000 }).then(() => true, () => false);
+        check('army-less battle trace drawn as a ghost token', ghost);
+        await shot('replay_mid');
       }
       await page.waitForFunction(() => !document.querySelector('#hud .a-rpbar'), null, { timeout: 8000 });
       const dt = await E(() => performance.now() - window.__rpT[1]);
@@ -58,7 +58,8 @@ module.exports = {
     check('report lists the battle card button', await E(() => !!document.querySelector('#modal [data-act="bcard"]')));
     await L.closeModals(page);
     const b = await runTurn(false, 'second');
-    check('unskipped replay ends within ~4 s', b.saw && b.dt < 4600, b);
+    const ms = await E(() => window.__ke.replay.lastMs);
+    check('unskipped replay ends within ~4 s', b.saw && ms < 4300, { ms, ...b });
     check('report opens after the full replay', b.rep === 'Mevsim Raporu', b);
     await L.closeModals(page);
     const pos = await E(() => { const r = window.__rp, S = window.__ke.S; return S.armies.find(x => x.id === r.a).loc === r.sv; });

@@ -7,7 +7,7 @@
 {const k=PRESENTERS.findIndex(p=>p.id==='fx');if(k>=0)PRESENTERS.splice(k,1);}
 const A_RP={max:12,budget:3700,step:560,pause:430,gap:240,fade:380,booms:14,pan:420};
 const aRp={on:false,items:[],byArmy:{},t0:0,T:0,timer:0,done:null,pan:null,bar:null};
-KE.replay={get on(){return aRp.on;},get shown(){return aRp.items.length;},skip:()=>aRpFinish(true),opt:aOpt};
+KE.replay={get on(){return aRp.on;},get lastMs(){return aRp.lastMs;},get shown(){return aRp.items.length;},skip:()=>aRpFinish(true),opt:aOpt};
 
 /** Build replay items from TURN_TRACE: one item per army (its moves chained), or per army-less battle. */
 function aRpBuild(){const pl=S.player,items=[],byId={};
@@ -77,7 +77,7 @@ function aRpStart(shown,T,next){const pl=S.player,now=performance.now();let lead
  const mine=shown.filter(it=>it.mine);
  if(mine.length&&!mine.some(it=>it.vis)){const it=mine[0],p=PD[it.evs.length?it.evs[0].p:it.pts[it.pts.length-1]];lead=A_RP.pan;
   if(G3.on)G3.center(p.lx,p.ly,G3.s,0,topH());else{const c0={x:cam.x,y:cam.y};centerOn(p.lx,p.ly,cam.s);aRp.pan={x0:c0.x,y0:c0.y,x1:cam.x,y1:cam.y,t0:now,d:lead*.9};cam.x=c0.x;cam.y=c0.y;}}
- Object.assign(aRp,{on:true,items:shown,byArmy:{},t0:now+lead,T,done:next});
+ Object.assign(aRp,{on:true,items:shown,byArmy:{},t0:now+lead,T,done:next,w0:now});
  for(const it of shown)if(it.live)aRp.byArmy[it.army]=it;
  // booms: the replayed battles on arrival, plus other visible battles spread over the replay
  let k=0;for(const it of shown)for(const ev of it.evs){const lb=aBoomLabel(ev);addFx({type:'boom',p:ev.p,dur:1300,delay:lead+(ev.t||0),seed:(k++)*1.7,label:lb.label,good:lb.good,rp:1});}
@@ -92,7 +92,7 @@ function aRpStart(shown,T,next){const pl=S.player,now=performance.now();let lead
  clearTimeout(aRp.timer);aRp.timer=setTimeout(()=>aRpFinish(false),lead+T+260);
  if(G3.on)G3.dirty=true;req();}
 
-function aRpFinish(skipped){if(!aRp.on)return;aRp.on=false;clearTimeout(aRp.timer);aRp.pan=null;
+function aRpFinish(skipped){if(!aRp.on)return;aRp.on=false;aRp.lastMs=performance.now()-aRp.w0;clearTimeout(aRp.timer);aRp.pan=null;
  if(aRp.bar){aRp.bar.remove();aRp.bar=null;}document.body.classList.remove('a-rp-defer');
  if(skipped){const now=performance.now();for(let k=fx.length-1;k>=0;k--)if(fx[k].rp&&now-fx[k].t0<(fx[k].delay||0))fx.splice(k,1);}
  aRp.byArmy={};aRp.items=[];if(G3.on)G3.dirty=true;req();
