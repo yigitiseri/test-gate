@@ -1018,84 +1018,808 @@ function addLog(m,k='info'){S.log.push({t:S.turn,m,k});if(S.log.length>400)S.log
 function news(m,k='info'){S.news.push({m,k});addLog(m,k);}
 
 /* =====================================================================
-   MISSIONS (historic goals of the player's faction)
+   MISSIONS (Track C): historic goal trees for all 28 factions.
+   A mission: {id,br:'A'|'B',t,d,req?:[ids],g?,dev?:[key|'cap',n], and one goal:}
+     own:[province keys]          own all of them
+     hold:key, vs:faction, turns  keep the province while really threatened (at war with vs,
+                                  or an enemy army next to it) for that many turns; done at once if vs is gone
+     ally:faction                 be allied with it
+     devAt:{key:dev}              own these provinces and raise them to that development
+     mkt:n                        markets in n provinces
+     gold:n|'auto'                treasury (auto: scaled to the starting net income)
+     count:n                      number of provinces
+     won:n                        battles won
+   A mission is open once every mission in req is done. MIS_BR names the two branches.
    ===================================================================== */
 const MIS={
- OSM:[{t:'Konstantiniyye\'nin Fethi',d:'Şehri al; Rumeli ile Anadolu birleşsin.',own:['istanbul'],g:150,dev:['istanbul',2]},
-      {t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
-      {t:'Mora Seferi',d:'Mistra ile Korint\'i ele geçir.',own:['mistra','korint'],g:60},
-      {t:'Belgrad Kapısı',d:'Macarların Tuna kalesini düşür.',own:['belgrad'],g:90},
-      {t:'Trabzon Seferi',d:'Komnenosların son kalesini al.',own:['trabzon'],g:60},
-      {t:'Mısır\'ın Anahtarı',d:'Kahire\'yi fethet.',own:['kahire'],g:250},
-      {t:'Roma Seferi',d:'Roma\'yı fethet.',own:['roma'],g:300}],
- BYZ:[{t:'Surları Tut',d:'1455 yazına kadar Konstantiniyye\'yi koru.',hold:'istanbul',until:17,g:120},
-      {t:'Mora\'yı Birleştir',d:'Moton ve Anabolu\'yu al.',own:['moton','anabolu'],g:60},
-      {t:'Selanik\'i Kurtar',d:'Selanik\'i geri al.',own:['selanik'],g:90},
-      {t:'Edirne\'yi Geri Al',d:'Adrianopolis yeniden Roma\'nın olsun.',own:['edirne'],g:120},
-      {t:'Anadolu\'ya Dönüş',d:'Bursa ve İzmit\'i al.',own:['bursa','izmit'],g:120}],
- HUN:[{t:'Belgrad\'ın Savunması',d:'Belgrad elinde kalsın, Semendire\'yi al.',own:['belgrad','semendire'],g:70},
-      {t:'Tuna Hattı',d:'Vidin, Niğbolu ve Silistre\'yi al.',own:['vidin','nigbolu','silistre'],g:90},
-      {t:'Haçlı Seferi',d:'Sofya ve Edirne\'yi al.',own:['sofya','edirne'],g:120},
-      {t:'Konstantiniyye\'ye Yardım',d:'Konstantiniyye Hıristiyan elinde olsun; onu al.',own:['istanbul'],g:200}],
- VEN:[{t:'Ege\'nin Kraliçesi',d:'Sakız ve Midilli\'yi al.',own:['sakiz','midilli'],g:70},
-      {t:'Mora Kıyıları',d:'Mistra ve Korint\'i al.',own:['mistra','korint'],g:70},
-      {t:'Selanik Limanı',d:'Selanik\'i al.',own:['selanik'],g:90},
-      {t:'Kıbrıs',d:'Lefkoşa ve Magosa\'yı al.',own:['kibris','magosa'],g:100}],
- MAM:[{t:'Anadolu Kapıları',d:'Maraş ve Elbistan\'ı al.',own:['maras','elbistan'],g:60},
-      {t:'Bağdat',d:'Abbasi hilafetinin eski merkezini al.',own:['bagdat'],g:120},
-      {t:'Rodos\'u Düşür',d:'Şövalyelerin adasını al.',own:['rodos'],g:90},
-      {t:'Rum Diyarı',d:'Konya\'yı al.',own:['konya'],g:120}],
- KAR:[{t:'Selçuklu Mirası',d:'Ankara ve Kırşehir\'i al.',own:['ankara','kirsehir'],g:70},
-      {t:'Akdeniz Kıyıları',d:'Teke ve Adana\'yı al.',own:['teke','adana'],g:70},
-      {t:'Bursa\'ya Yürüyüş',d:'Osmanlı\'nın eski başkentini al.',own:['bursa'],g:150}],
- AKK:[{t:'Kara Koyun\'u Yık',d:'Tebriz\'i al.',own:['tebriz'],g:150},
-      {t:'Bağdat',d:'Bağdat\'ı al.',own:['bagdat'],g:120},
-      {t:'Erzurum Yaylası',d:'Erzurum ve Kars\'ı al.',own:['erzurum','kars'],g:70}],
- KKY:[{t:'Ak Koyun\'u Ez',d:'Diyarbakır\'ı al.',own:['diyarbakir'],g:120},
-      {t:'Gürcü Seferi',d:'Tiflis\'i al.',own:['tiflis'],g:70},
-      {t:'Halep',d:'Halep\'i al.',own:['halep'],g:120}],
- ALB:[{t:'Kroya Direnişi',d:'1460 yazına kadar Kroya\'yı koru.',hold:'kroya',until:37,g:100},
-      {t:'Kıyıları Birleştir',d:'İşkodra, Dıraç ve Avlonya\'yı al.',own:['iskodra','drac','avlonya'],g:90},
-      {t:'Üsküp',d:'Üsküp\'ü al.',own:['uskup'],g:80}]
+ OSM:[{id:'A1',br:'A',t:'Konstantiniyye\'nin Fethi',d:'Şehri al; Rumeli ile Anadolu birleşsin.',own:['istanbul'],g:150,dev:['istanbul',2]},
+  {id:'A2',br:'A',req:['A1'],t:'Mora Seferi',d:'Despotların Mistra ve Korint kalelerini al.',own:['mistra','korint'],g:60},
+  {id:'A3',br:'A',req:['A1'],t:'Sırp Gümüşü',d:'Semendire kalesi ile Novobırda madenlerini al.',own:['semendire','novobirda'],g:90},
+  {id:'A4',br:'A',req:['A3'],t:'Belgrad Kapısı',d:'Macarların Tuna kalesini düşür.',own:['belgrad'],g:90},
+  {id:'A5',br:'A',req:['A4'],t:'Budin\'e Doğru',d:'Macar başkentini al.',own:['budin'],g:200},
+  {id:'A6',br:'A',req:['A1'],t:'Otranto Seferi',d:'İtalya kıyısında bir köprübaşı kur.',own:['otranto'],g:80},
+  {id:'A7',br:'A',req:['A6'],t:'Kızıl Elma',d:'Roma\'yı fethet.',own:['roma'],g:300},
+  {id:'B1',br:'B',t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
+  {id:'B2',br:'B',req:['B1'],t:'Trabzon Seferi',d:'Komnenosların son kalesini al.',own:['trabzon'],g:60},
+  {id:'B3',br:'B',req:['B1'],t:'Doğu Seferi',d:'Tebriz\'e yürü ve İran kapısını aç.',own:['tebriz'],g:150},
+  {id:'B4',br:'B',req:['B1'],t:'Mısır\'ın Anahtarı',d:'Halep ve Kahire\'yi fethet.',own:['halep','kahire'],g:250}],
+ BYZ:[{id:'A1',br:'A',t:'Surları Tut',d:'Osmanlı kuşatması sürerken Konstantiniyye\'yi 8 tur boyunca elinde tut.',hold:'istanbul',vs:'OSM',turns:8,g:120},
+  {id:'A2',br:'A',req:['A1'],t:'Selanik\'i Kurtar',d:'Selanik\'i geri al.',own:['selanik'],g:90},
+  {id:'A3',br:'A',req:['A2'],t:'Edirne\'yi Geri Al',d:'Adrianopolis yeniden Roma\'nın olsun.',own:['edirne'],g:120},
+  {id:'B1',br:'B',t:'Mora\'yı Birleştir',d:'Thomas ile Demetrios\'un çekişmesine son ver: Mistra\'yı 4, Korint\'i 3 gelişime çıkar.',devAt:{mistra:4,korint:3},g:60},
+  {id:'B2',br:'B',req:['B1'],t:'Atina\'yı Kurtar',d:'Atina\'yı Osmanlı\'dan al.',own:['atina'],g:70},
+  {id:'B3',br:'B',req:['A1'],t:'Anadolu\'ya Dönüş',d:'Bursa ve İzmit\'i al.',own:['bursa','izmit'],g:120}],
+ VEN:[{id:'A1',br:'A',t:'Ege\'nin Kraliçesi',d:'Sakız ve Midilli\'yi al.',own:['sakiz','midilli'],g:70},
+  {id:'A2',br:'A',req:['A1'],t:'Kıbrıs',d:'Lefkoşa ve Magosa\'yı al.',own:['kibris','magosa'],g:100},
+  {id:'A3',br:'A',req:['A1'],t:'Doğu Akdeniz Ticareti',d:'8 eyalette pazar kur.',mkt:8,g:120},
+  {id:'B1',br:'B',t:'Eğriboz Kalesi',d:'Osmanlı saldırırken Eğriboz\'u 8 tur elinde tut.',hold:'egriboz',vs:'OSM',turns:8,g:80},
+  {id:'B2',br:'B',req:['B1'],t:'Selanik Limanı',d:'Selanik\'i al.',own:['selanik'],g:90},
+  {id:'B3',br:'B',req:['B1'],t:'Arnavut Kıyıları',d:'Avlonya\'yı al.',own:['avlonya'],g:70}],
+ HUN:[{id:'A1',br:'A',t:'Belgrad\'ın Savunması',d:'Osmanlı saldırırken Belgrad\'ı 6 tur elinde tut.',hold:'belgrad',vs:'OSM',turns:6,g:70},
+  {id:'A2',br:'A',req:['A1'],t:'Semendire Hattı',d:'Semendire\'yi al.',own:['semendire'],g:70},
+  {id:'A3',br:'A',req:['A2'],t:'Varna\'nın İntikamı',d:'Sofya ve Vidin\'i al.',own:['sofya','vidin'],g:120},
+  {id:'B1',br:'B',t:'Kara Ordu',d:'Paralı askerlere yetecek hazineyi biriktir.',gold:'auto',g:0,dev:['cap',1]},
+  {id:'B2',br:'B',req:['B1'],t:'Tuna Hattı',d:'Niğbolu ve Silistre\'yi al.',own:['nigbolu','silistre'],g:90},
+  {id:'B3',br:'B',req:['B1'],t:'Avusturya Tacı',d:'Viyana\'yı al.',own:['viyana'],g:150}],
+ SRB:[{id:'A1',br:'A',t:'Semendire Kalesi',d:'Osmanlı saldırırken Semendire\'yi 8 tur elinde tut.',hold:'semendire',vs:'OSM',turns:8,g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Novobırda Gümüşü',d:'Novobırda\'yı 4 gelişime çıkar.',devAt:{novobirda:4},g:60},
+  {id:'A3',br:'A',req:['A2'],t:'Kosova\'nın Öcü',d:'Üsküp ve Köstendil\'i al.',own:['uskup','kostendil'],g:100},
+  {id:'B1',br:'B',t:'Macar Dostluğu',d:'Macar Krallığı ile ittifak kur.',ally:'HUN',g:50},
+  {id:'B2',br:'B',req:['B1'],t:'Bosna ile Birlik',d:'Bosna ile ittifak kur.',ally:'BOS',g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Niş\'ten Sofya\'ya',d:'Sofya\'yı al.',own:['sofya'],g:100}],
+ BOS:[{id:'A1',br:'A',t:'Yayçe Kalesi',d:'Osmanlı saldırırken Yayçe\'yi 8 tur elinde tut.',hold:'yayce',vs:'OSM',turns:8,g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Hersek\'i Bağla',d:'Hersek\'i 4 gelişime çıkar.',devAt:{hersek:4},g:60},
+  {id:'A3',br:'A',req:['A2'],t:'Dalmaçya Kıyıları',d:'Split ve Zadar\'ı al.',own:['split','zadar'],g:100},
+  {id:'B1',br:'B',t:'Srebrenice Madenleri',d:'Srebrenice\'yi 3 gelişime çıkar.',devAt:{srebrenice:3},g:50},
+  {id:'B2',br:'B',req:['B1'],t:'Papa\'nın Tacı',d:'Papalık ile ittifak kur.',ally:'PAP',g:60},
+  {id:'B3',br:'B',req:['B1'],t:'Sırp Mirası',d:'Semendire\'yi al.',own:['semendire'],g:100}],
+ WAL:[{id:'A1',br:'A',t:'Tuna Seferi',d:'Niğbolu\'yu al.',own:['nigbolu'],g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Silistre ve Dobruca',d:'Silistre ve Dobruca\'yı al.',own:['silistre','dobruca'],g:90},
+  {id:'A3',br:'A',req:['A2'],t:'Varna',d:'Varna\'yı al.',own:['varna'],g:80},
+  {id:'B1',br:'B',t:'Tergovişte Sarayı',d:'Tergovişte\'yi 5 gelişime çıkar.',devAt:{tergoviste:5},g:50},
+  {id:'B2',br:'B',req:['B1'],t:'Macar Dostluğu',d:'Macar Krallığı ile ittifak kur.',ally:'HUN',g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Boğdan\'la Birlik',d:'Boğdan ile ittifak kur.',ally:'MOL',g:50}],
+ MOL:[{id:'A1',br:'A',t:'Akkerman ve Kili',d:'Osmanlı saldırırken Akkerman\'ı 8 tur elinde tut.',hold:'akkerman',vs:'OSM',turns:8,g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Eflak Tahtı',d:'Tergovişte\'yi al.',own:['tergoviste'],g:100},
+  {id:'A3',br:'A',req:['A2'],t:'İbrail Pazarı',d:'İbrail\'i al.',own:['ibrail'],g:60},
+  {id:'B1',br:'B',t:'Suçava Kalesi',d:'Suçava\'yı 5 gelişime çıkar.',devAt:{sucava:5},g:50},
+  {id:'B2',br:'B',req:['B1'],t:'Lehistan\'la Barış',d:'Lehistan ile ittifak kur.',ally:'POL',g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Putna Manastırı',d:'Manastır ve kiliseler için hazine biriktir.',gold:'auto',g:0,dev:['cap',1]}],
+ ALB:[{id:'A1',br:'A',t:'Kroya Direnişi',d:'Osmanlı saldırırken Kroya\'yı 10 tur elinde tut.',hold:'kroya',vs:'OSM',turns:10,g:100},
+  {id:'A2',br:'A',req:['A1'],t:'Kıyıları Birleştir',d:'İşkodra ve Dıraç\'ı al.',own:['iskodra','drac'],g:90},
+  {id:'A3',br:'A',req:['A1'],t:'Üsküp',d:'Üsküp\'ü al.',own:['uskup'],g:80},
+  {id:'B1',br:'B',t:'Venedik İttifakı',d:'Venedik ile ittifak kur.',ally:'VEN',g:60},
+  {id:'B2',br:'B',req:['B1'],t:'Napoli\'nin Yardımı',d:'Napoli Krallığı ile ittifak kur (Gaeta Antlaşması).',ally:'ARA',g:60},
+  {id:'B3',br:'B',req:['B2'],t:'Avlonya Limanı',d:'Avlonya\'yı al.',own:['avlonya'],g:70}],
+ KRM:[{id:'A1',br:'A',t:'Büyük Orda\'yı Yık',d:'Azak\'ı al.',own:['azak'],g:90},
+  {id:'A2',br:'A',req:['A1'],t:'Kuban Bozkırı',d:'Kuban ve Çerkes\'i al.',own:['kuban','cerkes'],g:70},
+  {id:'A3',br:'A',req:['A1'],t:'Deşt-i Kıpçak',d:'Kıpçak ve Don Boyu\'nu al.',own:['kipcak','don'],g:80},
+  {id:'B1',br:'B',t:'Kefe\'nin Kapıları',d:'Kefe\'yi al.',own:['kefe'],g:90},
+  {id:'B2',br:'B',req:['B1'],t:'Osmanlı Dostluğu',d:'Osmanlı ile ittifak kur.',ally:'OSM',g:60},
+  {id:'B3',br:'B',req:['B1'],t:'Özi Kalesi',d:'Özi\'yi al.',own:['ozi'],g:60}],
+ GEN:[{id:'A1',br:'A',t:'Kefe\'yi Koru',d:'Osmanlı saldırırken Kefe\'yi 8 tur elinde tut.',hold:'kefe',vs:'OSM',turns:8,g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Karadeniz Ticareti',d:'4 eyalette pazar kur.',mkt:4,g:80},
+  {id:'A3',br:'A',req:['A2'],t:'Sinop Limanı',d:'Sinop\'u al.',own:['sinop'],g:70},
+  {id:'B1',br:'B',t:'Sakız Mastiği',d:'Sakız\'ı 3 gelişime çıkar.',devAt:{sakiz:3},g:50},
+  {id:'B2',br:'B',req:['B1'],t:'Midilli\'nin Zenginliği',d:'Midilli\'yi 3 gelişime çıkar.',devAt:{midilli:3},g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Lefkoşa',d:'Lefkoşa\'yı al.',own:['kibris'],g:90}],
+ KAR:[{id:'A1',br:'A',t:'Selçuklu Mirası',d:'Ankara ve Kırşehir\'i al.',own:['ankara','kirsehir'],g:70},
+  {id:'A2',br:'A',req:['A1'],t:'Bursa\'ya Yürüyüş',d:'Osmanlı\'nın eski başkentini al.',own:['bursa'],g:150},
+  {id:'A3',br:'A',req:['A1'],t:'Germiyan ve Hamid',d:'Kütahya ve Hamid\'i al.',own:['kutahya','hamid'],g:80},
+  {id:'B1',br:'B',t:'Akdeniz Kıyıları',d:'Teke ve Adana\'yı al.',own:['teke','adana'],g:70},
+  {id:'B2',br:'B',req:['B1'],t:'Dulkadir Ovası',d:'Maraş\'ı al.',own:['maras'],g:70},
+  {id:'B3',br:'B',req:['B1'],t:'Karaman Akçesi',d:'Hazinede para biriktir.',gold:'auto',g:0,dev:['cap',1]}],
+ CAN:[{id:'A1',br:'A',t:'Sinop Limanı',d:'Sinop\'u 4 gelişime çıkar.',devAt:{sinop:4},g:60},
+  {id:'A2',br:'A',req:['A1'],t:'Bakır Madenleri',d:'Küre bakırından hazine biriktir.',gold:'auto',g:0,dev:['kastamonu',1]},
+  {id:'A3',br:'A',req:['A2'],t:'Amasra',d:'Amasra\'yı al.',own:['amasra'],g:50},
+  {id:'B1',br:'B',t:'Karaman Dostluğu',d:'Karaman ile ittifak kur.',ally:'KAR',g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Çankırı ve Bolu',d:'Çankırı ve Bolu\'yu al.',own:['cankiri','bolu'],g:80},
+  {id:'B3',br:'B',req:['B2'],t:'Canik Beyliği',d:'Canik\'i al.',own:['canik'],g:60}],
+ DUL:[{id:'A1',br:'A',t:'Elbistan Yaylası',d:'Elbistan\'ı 3 gelişime çıkar.',devAt:{elbistan:3},g:40},
+  {id:'A2',br:'A',req:['A1'],t:'Kayseri',d:'Kayseri\'yi al.',own:['kayseri'],g:70},
+  {id:'A3',br:'A',req:['A2'],t:'Sivas ve Bozok',d:'Sivas ve Bozok\'u al.',own:['sivas','bozok'],g:80},
+  {id:'B1',br:'B',t:'Divriği Kalesi',d:'Divriği\'yi 2 gelişime çıkar.',devAt:{divrigi:2},g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Harput',d:'Harput\'u al.',own:['harput'],g:60},
+  {id:'B3',br:'B',req:['B1'],t:'Osmanlı ile Akrabalık',d:'Osmanlı ile ittifak kur (Sitti Mükrime Hatun\'un düğünü).',ally:'OSM',g:50}],
+ MAM:[{id:'A1',br:'A',t:'Kilikya Kıyıları',d:'İçel ve Alaiye\'yi al.',own:['icel','alaiye'],g:60},
+  {id:'A2',br:'A',req:['A1'],t:'Rum Diyarı',d:'Konya\'yı al.',own:['konya'],g:120},
+  {id:'A3',br:'A',req:['A1'],t:'Rodos\'u Düşür',d:'Şövalyelerin adasını al.',own:['rodos'],g:90},
+  {id:'B1',br:'B',t:'Fırat Hattı',d:'Ruha\'yı al.',own:['urfa'],g:70},
+  {id:'B2',br:'B',req:['B1'],t:'Bağdat',d:'Abbasi hilafetinin eski merkezini al.',own:['bagdat'],g:120},
+  {id:'B3',br:'B',req:['B1'],t:'Kıbrıs Haracı',d:'Lefkoşa\'yı al.',own:['kibris'],g:80}],
+ AKK:[{id:'A1',br:'A',t:'Kara Koyun\'u Yık',d:'Tebriz\'i al.',own:['tebriz'],g:150},
+  {id:'A2',br:'A',req:['A1'],t:'Bağdat',d:'Bağdat\'ı al.',own:['bagdat'],g:120},
+  {id:'A3',br:'A',req:['A1'],t:'Azerbaycan\'ın Efendisi',d:'Revan ve Nahçıvan\'ı al.',own:['revan','nahcivan'],g:80},
+  {id:'B1',br:'B',t:'Erzurum Yaylası',d:'Erzurum ve Kars\'ı al.',own:['erzurum','kars'],g:70},
+  {id:'B2',br:'B',req:['B1'],t:'Trabzon Evliliği',d:'Trabzon ile ittifak kur (Despina Hatun\'un düğünü).',ally:'TRB',g:60},
+  {id:'B3',br:'B',req:['B1'],t:'Venedik İttifakı',d:'Venedik ile ittifak kur; Osmanlı\'ya karşı top ve tüfek gelsin.',ally:'VEN',g:80}],
+ KKY:[{id:'A1',br:'A',t:'Ak Koyun\'u Ez',d:'Diyarbakır\'ı al.',own:['diyarbakir'],g:120},
+  {id:'A2',br:'A',req:['A1'],t:'Halep',d:'Halep\'i al.',own:['halep'],g:120},
+  {id:'A3',br:'A',req:['A1'],t:'Anadolu Yolu',d:'Harput ve Erzincan\'ı al.',own:['harput','erzincan'],g:70},
+  {id:'B1',br:'B',t:'Gürcü Seferi',d:'Tiflis\'i al.',own:['tiflis'],g:70},
+  {id:'B2',br:'B',req:['B1'],t:'Kafkas Kapıları',d:'Kaheti ve Ahıska\'yı al.',own:['kaheti','ahiska'],g:70},
+  {id:'B3',br:'B',req:['B1'],t:'Ticaret Şehri Tebriz',d:'5 eyalette pazar kur.',mkt:5,g:80}],
+ TRB:[{id:'A1',br:'A',t:'Akkoyunlu Evliliği',d:'Akkoyunlu ile ittifak kur (Despina Hatun\'un düğünü).',ally:'AKK',g:60},
+  {id:'A2',br:'A',req:['A1'],t:'Pontus Kıyıları',d:'Canik\'i al.',own:['canik'],g:60},
+  {id:'A3',br:'A',req:['A2'],t:'Kafkas Ticareti',d:'3 eyalette pazar kur.',mkt:3,g:60},
+  {id:'B1',br:'B',t:'Trabzon Surları',d:'Osmanlı saldırırken Trabzon\'u 8 tur elinde tut.',hold:'trabzon',vs:'OSM',turns:8,g:80},
+  {id:'B2',br:'B',req:['B1'],t:'Kerasunt\'u İmar Et',d:'Kerasunt\'u 3 gelişime çıkar.',devAt:{kerasunt:3},g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Gürcü Dostluğu',d:'Gürcistan ile ittifak kur.',ally:'GEO',g:50}],
+ GEO:[{id:'A1',br:'A',t:'Gürcistan\'ın Birliği',d:'Tiflis\'i 5 gelişime çıkar.',devAt:{tiflis:5},g:60},
+  {id:'A2',br:'A',req:['A1'],t:'Şirvan Yolu',d:'Şirvan\'ı al.',own:['sirvan'],g:80},
+  {id:'A3',br:'A',req:['A1'],t:'Ermeni Yaylası',d:'Revan ve Kars\'ı al.',own:['revan','kars'],g:80},
+  {id:'B1',br:'B',t:'Trabzon Dostluğu',d:'Trabzon ile ittifak kur.',ally:'TRB',g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Kafkas Kalkanı',d:'Karakoyunlu saldırırken Tiflis\'i 8 tur elinde tut.',hold:'tiflis',vs:'KKY',turns:8,g:80},
+  {id:'B3',br:'B',req:['B2'],t:'Derbent Kapısı',d:'Derbent\'i al.',own:['derbent'],g:90}],
+ HAB:[{id:'A1',br:'A',t:'Macar Tacı',d:'Pojon ve Yanık\'ı al.',own:['pojon','yanik'],g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Budin',d:'Macar başkentini al.',own:['budin'],g:200},
+  {id:'A3',br:'A',req:['A1'],t:'Hırvat Kıyıları',d:'Zağrep\'i al.',own:['zagrep'],g:80},
+  {id:'B1',br:'B',t:'Viyana Surları',d:'Viyana\'yı 7 gelişime çıkar.',devAt:{viyana:7},g:60},
+  {id:'B2',br:'B',req:['B1'],t:'Friuli',d:'Friuli\'yi al.',own:['friuli'],g:70},
+  {id:'B3',br:'B',req:['B1'],t:'İmparatorluk Tacı',d:'Taç giyme töreni için hazine biriktir.',gold:'auto',g:0,dev:['viyana',1]}],
+ POL:[{id:'A1',br:'A',t:'Özi Limanı',d:'Özi\'yi 2 gelişime çıkar.',devAt:{ozi:2},g:40},
+  {id:'A2',br:'A',req:['A1'],t:'Kili ve Akkerman',d:'Kili ve Akkerman\'ı al.',own:['kili','akkerman'],g:100},
+  {id:'A3',br:'A',req:['A2'],t:'Kırım\'ın Kapısı',d:'Or Kapı\'yı al.',own:['or'],g:80},
+  {id:'B1',br:'B',t:'Haliç Voyvodalığı',d:'Haliç\'i 3 gelişime çıkar.',devAt:{halic:3},g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Macar Tahtı',d:'Budin\'i al.',own:['budin'],g:200},
+  {id:'B3',br:'B',req:['B1'],t:'Boğdan Dostluğu',d:'Boğdan ile ittifak kur.',ally:'MOL',g:50}],
+ GH:[{id:'A1',br:'A',t:'Kırım\'ı Geri Al',d:'Bahçesaray\'ı al.',own:['bahcesaray'],g:100},
+  {id:'A2',br:'A',req:['A1'],t:'Kefe\'nin Hazinesi',d:'Kefe\'yi al.',own:['kefe'],g:90},
+  {id:'A3',br:'A',req:['A1'],t:'Or Kapı',d:'Or Kapı\'yı al.',own:['or'],g:60},
+  {id:'B1',br:'B',t:'Hazar Kıyıları',d:'Terek\'i 2 gelişime çıkar.',devAt:{terek:2},g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Kafkas Kapıları',d:'Derbent\'i al.',own:['derbent'],g:80},
+  {id:'B3',br:'B',req:['B1'],t:'Lehistan İttifakı',d:'Lehistan ile ittifak kur.',ally:'POL',g:50}],
+ ARA:[{id:'A1',br:'A',t:'Otranto Kalesi',d:'Otranto\'yu 4 gelişime çıkar.',devAt:{otranto:4},g:50},
+  {id:'A2',br:'A',req:['A1'],t:'Arnavut Kıyıları',d:'Avlonya\'yı al.',own:['avlonya'],g:80},
+  {id:'A3',br:'A',req:['A1'],t:'İskender Bey İttifakı',d:'Arnavutluk ile ittifak kur (Gaeta Antlaşması).',ally:'ALB',g:50},
+  {id:'B1',br:'B',t:'Abruzzo Sınırı',d:'Abruzzo\'yu 3 gelişime çıkar.',devAt:{abruzzo:3},g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Roma\'ya Baskı',d:'Ankona\'yı al.',own:['ankona'],g:90},
+  {id:'B3',br:'B',req:['B1'],t:'Sicilya Buğdayı',d:'Palermo\'yu 5 gelişime çıkar.',devAt:{palermo:5},g:60}],
+ PAP:[{id:'A1',br:'A',t:'Haçlı Çağrısı',d:'Macar Krallığı ile ittifak kur.',ally:'HUN',g:60},
+  {id:'A2',br:'A',req:['A1'],t:'Haçlı Donanması',d:'Venedik ile ittifak kur.',ally:'VEN',g:60},
+  {id:'A3',br:'A',req:['A2'],t:'Haçlı Seferi',d:'10 muharebe kazan.',won:10,g:150},
+  {id:'B1',br:'B',t:'Tolfa Şap Madenleri',d:'Şap gelirinden hazine biriktir.',gold:'auto',g:0,dev:['roma',1]},
+  {id:'B2',br:'B',req:['B1'],t:'Romagna\'yı Bağla',d:'Ravenna\'yı al.',own:['ravenna'],g:70},
+  {id:'B3',br:'B',req:['B1'],t:'Ankona Limanı',d:'Ankona\'yı 4 gelişime çıkar.',devAt:{ankona:4},g:50}],
+ CYP:[{id:'A1',br:'A',t:'Magosa\'yı Geri Al',d:'Magosa\'yı Cenevizlilerden al.',own:['magosa'],g:80},
+  {id:'A2',br:'A',req:['A1'],t:'Rodos Dostluğu',d:'Rodos Şövalyeleri ile ittifak kur.',ally:'RHO',g:40},
+  {id:'A3',br:'A',req:['A2'],t:'Venedik Himayesi',d:'Venedik ile ittifak kur.',ally:'VEN',g:50},
+  {id:'B1',br:'B',t:'Kahire ile Barış',d:'Memlük Sultanlığı ile ittifak kur.',ally:'MAM',g:60},
+  {id:'B2',br:'B',req:['B1'],t:'Şeker Kamışı',d:'Lefkoşa\'yı 4 gelişime çıkar.',devAt:{kibris:4},g:50},
+  {id:'B3',br:'B',req:['B1'],t:'Korykos\'u Geri Al',d:'İçel\'i al.',own:['icel'],g:80}],
+ RHO:[{id:'A1',br:'A',t:'Rodos Kuşatması',d:'Osmanlı saldırırken Rodos\'u 8 tur elinde tut.',hold:'rodos',vs:'OSM',turns:8,g:100},
+  {id:'A2',br:'A',req:['A1'],t:'Bodrum Kalesi',d:'Bodrum\'u 2 gelişime çıkar.',devAt:{bodrum:2},g:40},
+  {id:'A3',br:'A',req:['A1'],t:'Menteşe Kıyısı',d:'Menteşe\'yi al.',own:['mentese'],g:70},
+  {id:'B1',br:'B',t:'Hospitalier Hazinesi',d:'Tarikat için hazine biriktir.',gold:'auto',g:0,dev:['rodos',1]},
+  {id:'B2',br:'B',req:['B1'],t:'Kıbrıs Dostluğu',d:'Kıbrıs ile ittifak kur.',ally:'CYP',g:40},
+  {id:'B3',br:'B',req:['B1'],t:'Venedik İttifakı',d:'Venedik ile ittifak kur.',ally:'VEN',g:50}],
+ HAF:[{id:'A1',br:'A',t:'Trablusgarp Limanı',d:'Trablusgarp\'ı 4 gelişime çıkar.',devAt:{trablusgarp:4},g:50},
+  {id:'A2',br:'A',req:['A1'],t:'Bingazi',d:'Bingazi\'yi al.',own:['barka'],g:70},
+  {id:'A3',br:'A',req:['A2'],t:'Derne ve Tobruk',d:'Derne ve Tobruk\'u al.',own:['derne','tobruk'],g:70},
+  {id:'B1',br:'B',t:'Korsan Limanları',d:'2 eyalette pazar kur.',mkt:2,g:40},
+  {id:'B2',br:'B',req:['B1'],t:'Kayrevan Hazinesi',d:'Hazinede para biriktir.',gold:'auto',g:0,dev:['trablusgarp',1]},
+  {id:'B3',br:'B',req:['B2'],t:'Sirt Çölü',d:'Sirt\'i 2 gelişime çıkar.',devAt:{sirt:2},g:40}],
+ SAF:[{id:'A1',br:'A',t:'Tebriz Tahtı',d:'Tebriz\'i al.',own:['tebriz'],g:100},
+  {id:'A2',br:'A',req:['A1'],t:'Bağdat',d:'Bağdat\'ı al.',own:['bagdat'],g:120},
+  {id:'A3',br:'A',req:['A2'],t:'Anadolu Kızılbaşları',d:'Erzincan ve Sivas\'ı al.',own:['erzincan','sivas'],g:100},
+  {id:'B1',br:'B',t:'Şirvan Seferi',d:'Şirvan\'ı al.',own:['sirvan'],g:80},
+  {id:'B2',br:'B',req:['B1'],t:'Diyarbakır',d:'Diyarbakır\'ı al.',own:['diyarbakir'],g:100},
+  {id:'B3',br:'B',req:['B1'],t:'Gürcü Haracı',d:'Tiflis\'i al.',own:['tiflis'],g:80}]
 };
+const MIS_BR={OSM:['Rumeli ve Batı','Anadolu ve Doğu'],BYZ:['Kuşatma ve Trakya','Mora ve Anadolu'],VEN:['Ege ve Levant','Deniz Devleti'],HUN:['Tuna Savaşları','Korvin\'in Krallığı'],
+ SRB:['Despotluğun Savunması','Dostlar ve Öç'],BOS:['Kaleler ve Kıyılar','Madenler ve Taç'],WAL:['Tuna Seferleri','Voyvodalık'],MOL:['Karadeniz Kaleleri','Ştefan\'ın Mirası'],
+ ALB:['Dağların Direnişi','Latin Dostlar'],KRM:['Bozkırın Hâkimi','Kefe ve Dostlar'],GEN:['Kefe ve Karadeniz','Ege Adaları'],KAR:['Selçuklu Mirası','Kıyılar ve Hazine'],
+ CAN:['Sinop ve Madenler','Beylik Toprakları'],DUL:['Yayla ve Şehir','Kale ve Akrabalık'],MAM:['Kuzey Sınırı','Fırat ve Deniz'],AKK:['Karakoyunlu Seferi','Dostlar ve Evlilikler'],
+ KKY:['Batı Seferleri','Kafkasya ve Ticaret'],TRB:['Evlilik ve Ticaret','Surlar ve Dostlar'],GEO:['Birlik ve Genişleme','Kafkas Kalkanı'],HAB:['Macar Mirası','Viyana ve Taç'],
+ POL:['Karadeniz\'e İniş','Taçlar ve Dostlar'],GH:['Kırım Davası','Hazar ve Dostlar'],ARA:['Adriyatik','İtalya'],PAP:['Haçlı Seferi','Papalık Toprakları'],
+ CYP:['Ada ve Dostlar','Şeker ve Kıyı'],RHO:['Ada Kalesi','Tarikatın Dostları'],HAF:['Doğu Kıyıları','Korsanlar ve Hazine'],SAF:['Kızılbaş Tahtı','Kafkasya ve Irak']};
+/** Fallback missions for a faction without a tree (never used for the 28 factions, kept for safety). */
 function genericMissions(f){const n=facProvs(f).length;
- const nb=nbrs(f).filter(g=>g!=='SAF').sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
- const r=[{t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{t:'Dolu Hazine',d:'Hazinende 400 altın biriktir.',gold:400,g:0,dev:['cap',1]}];
- if(tgt)r.push({t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
- r.push({t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
+ const nb=nbrs(f).filter(g=>g!=='SAF'&&!isAlly(f,g)).sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
+ const r=[{id:'A1',br:'A',t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{id:'B1',br:'B',t:'Dolu Hazine',d:'Hazinende para biriktir.',gold:'auto',g:0,dev:['cap',1]}];
+ if(tgt)r.push({id:'A2',br:'A',req:['A1'],t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
+ r.push({id:'A3',br:'A',req:['A1'],t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
+/** Gold target scaled to what the realm can actually save (bug B8: Trebizond's 400 at +0 a turn). */
+function misGoldTarget(f){const net=income(f)-upkeep(f);return Math.max(120,Math.round(net*12));}
+function misInstantiate(f){const ms=MIS[f]||genericMissions(f);return ms.map(m=>{const c={...m};if(c.gold==='auto')c.gold=misGoldTarget(f);if(c.hold)c.prog=0;return c;});}
 
+/* ---------------- progress ---------------- */
+const misDoneId=(id)=>S.mis.some((m,k)=>m.id===id&&S.misDone[k]!=null);
+function misOpen(m){return !m.req||m.req.every(misDoneId);}
+/** A held province counts as threatened while at war with the named threat, or with an enemy army next to it. */
+function misThreat(pl,i,vs){if(vs&&atWar(pl,vs))return true;if(!S.armies||!S.armies.length)return false;const adj=PD[i].adj;
+ for(const a of S.armies)if(a.f!==pl&&atWar(pl,a.f)&&(a.loc===i||adj.includes(a.loc)))return true;return false;}
+function misProgress(m,pl){
+ if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;return {ok:n===m.own.length,p:`${n}/${m.own.length}`};}
+ if(m.hold){const i=PK[m.hold],mine=S.prov[i].o===pl;if(m.vs&&!alive(m.vs)&&mine)return {ok:true,p:''};
+  if(m.turns==null)return {ok:mine&&S.turn>=(m.until||0),p:''};          // pre-W1 format
+  return {ok:mine&&(m.prog||0)>=m.turns,p:`${m.prog||0}/${m.turns} tur`};}
+ if(m.ally){return {ok:alive(m.ally)&&isAlly(pl,m.ally),p:alive(m.ally)?'':'devlet yok oldu'};}
+ if(m.devAt){const ks=Object.keys(m.devAt),n=ks.filter(k=>S.prov[PK[k]].o===pl&&S.prov[PK[k]].dev>=m.devAt[k]).length;return {ok:n===ks.length,p:`${n}/${ks.length}`};}
+ if(m.mkt){const n=facProvs(pl).filter(i=>S.prov[i].mkt).length;return {ok:n>=m.mkt,p:`${n}/${m.mkt}`};}
+ if(m.count){const n=facProvs(pl).length;return {ok:n>=m.count,p:`${n}/${m.count}`};}
+ if(m.gold){return {ok:S.fac[pl].gold>=m.gold,p:`${Math.floor(S.fac[pl].gold)}/${m.gold}`};}
+ if(m.won){return {ok:S.stats.won>=m.won,p:`${S.stats.won}/${m.won}`};}
+ return {ok:false,p:''};}
 function checkMissions(){
  if(!S.player)return;const pl=S.player;
- S.mis.forEach((m,k)=>{if(S.misDone[k])return;let ok=false;
-  if(m.own)ok=m.own.every(x=>S.prov[PK[x]].o===pl);
-  else if(m.count)ok=facProvs(pl).length>=m.count;
-  else if(m.gold)ok=S.fac[pl].gold>=m.gold;
-  else if(m.hold)ok=S.turn>=m.until&&S.prov[PK[m.hold]].o===pl;
-  if(ok){S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
-   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
-   news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');}});
+ S.mis.forEach((m,k)=>{if(S.misDone[k]!=null||!misOpen(m))return;
+  if(m.hold&&m.turns!=null){const i=PK[m.hold];if(S.prov[i].o===pl&&misThreat(pl,i,m.vs))m.prog=(m.prog||0)+1;}
+  if(!misProgress(m,pl).ok)return;
+  S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
+  if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
+  news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');});
 }
 function showMissions(){
- const pl=S.player;const rows=S.mis.map((m,k)=>{const done=S.misDone[k]!=null;let prog='';
-  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;prog=`${n}/${m.own.length}`;}else if(m.count)prog=`${facProvs(pl).length}/${m.count}`;else if(m.gold)prog=`${Math.floor(S.fac[pl].gold)}/${m.gold}`;else if(m.hold)prog=S.turn>=m.until?'':`${m.until-S.turn} tur`;
-  return `<div class="mis ${done?'done':''}"><span class="ck">${done?'✓':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&prog?` · ${prog}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;}).join('');
- openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2><div class="rows">${rows}</div>
+ const pl=S.player,br=MIS_BR[pl]||['Birinci yol','İkinci yol'];
+ const row=(m,k)=>{const done=S.misDone[k]!=null,open=misOpen(m),pr=done?{p:''}:misProgress(m,pl);
+  const lock=!done&&!open,need=lock?m.req.map(id=>(S.mis.find(x=>x.id===id)||{}).t).filter(Boolean).join(', '):'';
+  return `<div class="mis ${done?'done':''} ${lock?'locked':''}"><span class="ck">${done?'✓':lock?'🔒':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&!lock&&pr.p?` · ${esc(pr.p)}`:''}${lock?` · Önce: ${esc(need)}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;};
+ const grp=b=>S.mis.map((m,k)=>[m,k]).filter(([m])=>(m.br||'A')===b);
+ const sec=(b,name)=>{const L=grp(b);return L.length?`<div class="sec mis-br"><h3>${esc(name)}</h3><div class="rows">${L.map(([m,k])=>row(m,k)).join('')}</div></div>`:'';};
+ openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2>${sec('A',br[0])}${sec('B',br[1])}
+  <p class="hint">Kilitli hedefler, öncesindeki hedef tamamlanınca açılır. "Elinde tut" hedeflerinde süre yalnızca düşman gerçekten tehdit ederken (savaşta ya da ordusu yakındayken) işler.</p>
   <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
 }
-hook('newGame',(S,player)=>{if(player){const ms=MIS[player]||genericMissions(player);S.mis=ms.map(m=>({...m}));}},10);
+hook('newGame',(S,player)=>{if(player)S.mis=misInstantiate(player);},10);
 hook('afterRound',()=>checkMissions(),10);
 ACTS.missions=()=>showMissions();
+KE.MIS=MIS;
 /* =====================================================================
-   CHARACTERS (W0 stub; Track C replaces the internals, keeps the signatures)
-   S.chars={[id]:{id,n,f,role:'ruler'|'heir'|'gen'|'claimant',born,died:null,traits:[],skill,dyn,ep}}
-   S.fac[f].ruler / .heir = char id or null; S.fac[f].gens = [char ids]
+   CHARACTERS (Track C): rulers, heirs, kin, generals; aging, death,
+   succession, regency, crisis; commanders on armies; dynasty UI.
+   S.chars={[id]:{id,n,f,role:'ruler'|'heir'|'kin'|'gen'|'claimant',born,died:null,traits:[],skill,dyn,ep,
+                  rn?,hd?,par?,sk?,pref?,nk?,hk?,fem?,fate?,t?,acc?,dc?,cap?}}
+   S.fac[f].ruler / .heir = char id or null; S.fac[f].gens = [living general ids]
+   S.c = Track C namespace (see chNewC).
    ===================================================================== */
+const BAL_C={
+ h0:.012,hb:.08,          // yearly death chance at age 40, and its growth per year of age (Gompertz)
+ histMul:10,histWin:2,    // "soft history": hazard x10 within +-2 years of the real death year
+ lateMul:8,lateMin:.3,    // after that window: hazard x8, at least 30% a year
+ hastaMul:2,maxAge:90,
+ birth:.18,maxKids:3,kidAge:[17,50],   // yearly chance of a son for a ruler without a heir line
+ regencyTurns:8,regencyCut:.1,         // minor on the throne: -10% of provincial taxes for 8 turns
+ genMul:.08,genMax:4,                  // commander: +8% per skill point; at most 4 living generals
+ genDie:.15,genCap:.10,rulerDie:.05,captiveTurns:8,
+ pruneAfter:40,
+ crisisGold:[40,4],                    // crisis bribe: max(40, 4 x net income)
+ gold:{adil:2,tuccar:3,alim:1,savurgan:2,zalim:1},
+ mul:{cengaver:1.05,sebatkar:1.05,dindar:1.05,zalim:1.10,fatih:1.10,dag:1.15,topcu:1.10}
+};
+let chRep=[];               // this turn's dynasty news for the season report (transient)
+const chYear=t=>START_YEAR+Math.floor((t==null?S.turn:t)/4);
+const chLive=c=>!!c&&c.died==null;
+function chNewC(){return {v:1,sp:{},el:{},alt:{},reg:{},regency:{},past:{},pend:[],hold:{},lastSucc:{}};}
+
+/* ---------------- core API ---------------- */
+/** Create a character. spec: {n,f,role,born,traits?,skill?,dyn?,...extra}. */
+function chCreate(spec){const c={id:S.seq++,n:spec.n,f:spec.f,role:spec.role||'kin',born:spec.born,died:null,traits:(spec.traits||[]).slice(),skill:spec.skill||0,dyn:spec.dyn??null,ep:spec.ep??null};
+ for(const k of ['rn','hd','par','sk','pref','nk','hk','fem','fate','t'])if(spec[k]!=null)c[k]=spec[k];
+ S.chars[c.id]=c;return c;}
+function chAge(id){const c=typeof id==='object'?id:S.chars[id];return c?chYear()-c.born:0;}
+function chRuler(f){const F=S&&S.fac[f];if(!F||!S.chars)return null;const c=S.chars[F.ruler];return chLive(c)?c:null;}
+function chHeir(f){const F=S&&S.fac[f];if(!F||!S.chars)return null;const c=S.chars[F.heir];return chLive(c)?c:null;}
+function chGenerals(f){const F=S&&S.fac[f];if(!F||!S.chars)return [];return (F.gens||[]).map(id=>S.chars[id]).filter(chLive);}
 /** Display name of f's ruler. Every UI place that shows a ruler must use this (never FAC[f].r). */
-function rulerName(f){return FAC[f].r;}
-function chRuler(f){return null;}
-function chHeir(f){return null;}
-function chGenerals(f){return [];}
+function rulerName(f){const c=chRuler(f);return c?(c.rn||c.n):FAC[f].r;}
+/** Title of a character ("Sultan", "Şehzade", "Komutan", ...). */
+function chTitle(c){const sd=CH_SEED[c.f]||{};
+ if(c.role==='ruler')return c.t||(c.fem?'Kraliçe':sd.title||'Hükümdar');
+ if(c.role==='gen')return 'Komutan';
+ if(c.role==='claimant')return 'Taht davacısı';
+ if(c.fem)return 'Prenses';return c.role==='heir'?(sd.ht||'Veliaht'):(sd.ht||'');}
+/** Name with the role title where it reads naturally ("Şehzade Bayezid", "II. Mehmed", "Mahmud Paşa"). */
+function chLabel(c){if(!c)return '';if(c.role==='ruler')return c.rn||c.n;if(c.role==='gen')return c.n;const t=chTitle(c);return (t&&c.role!=='claimant'?t+' ':'')+c.n;}
+/** Portrait spec for Track A (W2): deterministic from the character. */
+function chPortraitSpec(c){const sd=CH_SEED[c.f]||{};const cul=sd.cul||'tr';
+ const hat={tr:'kavuk',tk:'sarık',mm:'sarık',ar:'sarık',tt:'börk',gr:'taç',sr:'taç',ro:'kalpak',hu:'kalpak',de:'taç',pl:'kalpak',it:'bere',es:'taç',fr:'bere',ka:'taç',sq:'kalpak',pp:'mitre'}[cul];
+ return {seed:c.id,f:c.f,cul,hat:c.role==='ruler'?hat:(cul==='pp'?'bere':hat),age:chAge(c),fem:!!c.fem,role:c.role,col:FAC[c.f].c,traits:c.traits.slice()};}
+
+/* ---------------- names ---------------- */
+function chPick(a){return a[Math.floor(R()*a.length)];}
+function chRomanVal(s){const v={I:1,V:5,X:10,L:50,C:100};let n=0;for(let k=0;k<s.length;k++){const a=v[s[k]],b=v[s[k+1]]||0;n+=a<b?-a:a;}return n;}
+function chRegCount(f,name){const r=S.c.reg[f]&&S.c.reg[f][name];if(r!=null)return r;const b=CH_REGNAL[f];return b&&b[name]||0;}
+/** Regnal/display name for a new ruler of f (and record the numbering). */
+function chRegnal(f,c){const sd=CH_SEED[f]||{};
+ if(c.rn){const m=/^([IVXLC]+)\. /.exec(c.rn);if(m)(S.c.reg[f]||(S.c.reg[f]={}))[c.n]=chRomanVal(m[1]);return c.rn;}
+ let s=(sd.pre||'')+c.n+(sd.suf||'');
+ if(sd.cul==='pp'||sd.num){const k=chRegCount(f,c.n)+1;(S.c.reg[f]||(S.c.reg[f]={}))[c.n]=k;return roman(k)+'. '+s;}
+ if(!sd.suf&&!sd.pre&&(sd.cul==='sr'||sd.cul==='sq')&&(c.dyn||sd.dyn))s+=' '+(c.dyn||sd.dyn);
+ return s;}
+function chGenName(f){const sd=CH_SEED[f]||{cul:'tr'},pool=CH_NAMES[sd.cul]||CH_NAMES.tr;
+ if(sd.sur)return chPick(pool)+' '+chPick(sd.sur);if(sd.cul==='pp')return chPick(CH_NAMES.it)+' '+chPick(['Orsini','Colonna','Farnese','Cibo','Carafa','Piccolomini','Barbo']);return chPick(pool);}
+/** Generate a character for f. role 'ruler' makes an adult of the given age range. */
+function chGenerate(f,role,age,extra){const sd=CH_SEED[f]||{};const y=chYear();
+ const c=chCreate({n:chGenName(f),f,role,born:y-age,dyn:sd.dyn||null,...(extra||{})});
+ if(sd.cul==='pp'&&role==='ruler'){c.rn=null;c.n=chPick(CH_NAMES.pp);}
+ return c;}
+function chGenGeneral(f){const sd=CH_SEED[f]||{cul:'tr'};const cul=sd.cul;const pool=CH_NAMES[cul==='pp'?'it':cul]||CH_NAMES.tr;
+ const sk=R()<.5?1:R()<.7?2:3;const tr=[];const q=R();
+ if(q<.1)tr.push('dag');else if(q<.2)tr.push('topcu');else if(q<.3&&['tr','tk','tt','mm'].includes(cul))tr.push('akinci');
+ const n=chPick(pool)+(CH_GTITLE[cul]||'');
+ const c=chCreate({n,f,role:'gen',born:chYear()-(25+Math.floor(R()*20)),skill:sk,traits:tr});S.fac[f].gens.push(c.id);return c;}
+
+/* ---------------- seeding ---------------- */
+function chFromSeed(f,e,role){const sd=CH_SEED[f]||{};
+ const hk=[...(sd.kin||[]),...(sd.alt||[])].some(x=>x.par&&x.par===e.k);
+ const c=chCreate({n:e.n,f,role,born:e.b,rn:e.rn,hd:e.d,sk:e.k,pref:e.pref,nk:e.nk,hk:hk?1:null,fem:e.fem,fate:e.fate,t:e.t,traits:e.tr,skill:e.sk||0,dyn:e.dyn||sd.dyn||null});
+ if(e.k)S.c.sp[f+':'+e.k]=1;return c;}
+function chBySeed(f,k){for(const id in S.chars){const c=S.chars[id];if(c.f===f&&c.sk===k)return c;}return null;}
+/** Seed f's ruler, family and generals as of the current year (new game, v1 migration, Safavid spawn). */
+function chSeedFaction(f){const sd=CH_SEED[f],F=S.fac[f],y=chYear();if(!F)return;
+ S.c.el[f]=S.c.el[f]||0;S.c.alt[f]=S.c.alt[f]||0;
+ if(!sd){const r=chGenerate(f,'ruler',35);r.rn=chRegnal(f,r);r.acc=S.turn;F.ruler=r.id;chPickHeir(f);return;}
+ let r=null;
+ const cityGone=sd.r.fate==='city'&&S.prov[PK.istanbul].o!==f;
+ if(!cityGone&&(sd.r.d>=y-1||!sd.el)){r=chFromSeed(f,sd.r,'ruler');r.acc=S.turn;}
+ else if(sd.el){S.c.sp[f+':'+sd.r.k]=1;}
+ if(r){chRegnal(f,r);F.ruler=r.id;}
+ for(const e of sd.kin||[]){if(e.b>y||e.d<y)continue;if(e.par&&!chBySeed(f,e.par)&&e.par!==sd.r.k)continue;chFromSeed(f,e,'kin');}
+ for(const e of sd.gen||[]){if((e.from||0)>y||e.d<y||y-e.b<16)continue;const g=chFromSeed(f,e,'gen');F.gens.push(g.id);}
+ if(!r){chSucceed(f,null,{quiet:true});}
+ else chPickHeir(f);}
+function chSeedAll(){FK.forEach(f=>{if(S.fac[f].alive&&!chRuler(f))chSeedFaction(f);});}
+
+/* ---------------- heirs and succession ---------------- */
+/** Best heir of f relative to ruler r (may be dead or null): r's children first (preferred, then eldest), else other kin. */
+function chBestKin(f,r){const sd=CH_SEED[f]||{},femOk=sd.cul==='fr';const kin=[];
+ for(const id in S.chars){const c=S.chars[id];if(c.f===f&&chLive(c)&&(c.role==='kin'||c.role==='heir')&&(!r||c.id!==r.id)&&c.cap==null)kin.push(c);}
+ const kids=r?kin.filter(c=>c.par===r.id&&(!c.fem||femOk||r.fem)):[],pool=kids.length?kids:kin.filter(c=>!c.fem||femOk);
+ pool.sort((a,b)=>((b.pref||0)-(a.pref||0))||(a.born-b.born)||(a.id-b.id));return pool[0]||null;}
+/** Recompute f's designated heir. */
+function chPickHeir(f){const F=S.fac[f],r=chRuler(f),old=chHeir(f);const best=r?chBestKin(f,r):null;
+ if(old&&old!==best)old.role='kin';
+ if(best)best.role='heir';F.heir=best?best.id:null;return best;}
+function chElect(f){const sd=CH_SEED[f],y=chYear();const L=sd.el||[];
+ for(let k=S.c.el[f]||0;k<L.length;k++){const e=L[k];if(e.d<=y||y-e.b<35||y-e.b>85)continue;S.c.el[f]=k+1;
+  const c=chFromSeed(f,e,'ruler');return c;}
+ const old=sd.cul==='pp'?60:50;return chGenerate(f,'ruler',old+Math.floor(R()*12));}
+function chAltSucc(f){const sd=CH_SEED[f],y=chYear();const L=sd.alt||[];
+ for(let k=S.c.alt[f]||0;k<L.length;k++){const e=L[k];if(e.par)continue;if(e.d<=y||y-e.b<14)continue;S.c.alt[f]=k+1;return chFromSeed(f,e,'ruler');}
+ return null;}
+/** The throne passes: heir, else election / invited house, else a crisis with a generated ruler. */
+function chSucceed(f,old,o={}){const F=S.fac[f],sd=CH_SEED[f]||{};if(!F||!F.alive)return null;
+ let neu=chHeir(f),how='heir';
+ if(!neu||neu===old)neu=sd.el?null:chBestKin(f,old);
+ if(!neu&&sd.el){neu=chElect(f);how='elect';}
+ if(!neu&&sd.alt){neu=chAltSucc(f);if(neu)how='invite';}
+ if(!neu){neu=chGenerate(f,'ruler',28+Math.floor(R()*15));how='crisis';}
+ if(old){const P=S.c.past[f]||(S.c.past[f]=[]);P.push({n:old.rn||old.n,t0:old.acc??0,t1:S.turn,ep:old.ep||null});if(P.length>6)P.shift();}
+ neu.role='ruler';neu.acc=S.turn;neu.rn=chRegnal(f,neu);F.ruler=neu.id;F.heir=null;
+ if(!neu.hk){const sdk=[...(sd.kin||[]),...(sd.alt||[])];if(neu.sk&&sdk.some(x=>x.par===neu.sk))neu.hk=1;}
+ chPickHeir(f);
+ const age=chAge(neu),minor=age<16;
+ if(minor)S.c.regency[f]=S.turn+BAL_C.regencyTurns;else delete S.c.regency[f];
+ S.c.lastSucc[f]=S.turn;
+ if(o.quiet)return neu;
+ const nm=neu.rn||neu.n,ttl=chTitle(neu);
+ let msg=how==='elect'?`${FAC[f].s}: ${nm} yeni ${ttl.toLowerCase()} seçildi.`:how==='invite'?`${FAC[f].s} tahtına ${nm} davet edildi.`:how==='crisis'?`${FAC[f].s} tahtı boş kaldı; beyler ${nm} adını taşıyan uzak bir akrabayı tahta çıkardı.`:`${FAC[f].s} tahtına ${nm} çıktı.`;
+ if(minor)msg+=` Hükümdar henüz ${age} yaşında; devleti bir naip yönetecek.`;
+ chNews(f,msg,'cap');
+ runHooks('succession',f,old,neu);
+ if(f===S.player){try{SND.play('succession');}catch(e){}
+  if(how==='crisis')chAsk('crisis',{f,id:neu.id});
+  else queueModal(()=>eventModal({t:how==='elect'?'Yeni Seçim':'Taht Değişti',e:dateStr(S.turn),d:(old?`${old.rn||old.n} artık yok. `:'')+msg+(chHeir(f)?` Veliaht: ${chLabel(chHeir(f))}.`:' Tahtın bir varisi yok; hanedanın geleceği belirsiz.'),ch:[{l:`Yaşasın ${nm}!`}]}));}
+ else if(how==='crisis')chCrisisAI(f);
+ return neu;}
+/** Crisis consequences for an AI realm: 1-3 provinces turn restless. */
+function chCrisisAI(f){const ps=facProvs(f).filter(i=>i!==S.fac[f].cap);const n=Math.min(ps.length,1+Math.floor(R()*3));
+ for(let k=0;k<n;k++){const i=ps.splice(Math.floor(R()*ps.length),1)[0];S.prov[i].un=Math.max(S.prov[i].un,6);}}
+function chCrisisGold(f){return Math.max(BAL_C.crisisGold[0],Math.round((income(f)-upkeep(f))*BAL_C.crisisGold[1]));}
+/** Kill a character; fires charDied, then succession if it was a ruler. */
+function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive(c))return null;const f=c.f,F=S.fac[f];
+ c.died=S.turn;c.dc=cause||'natural';
+ for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2)a.mpMax--;}
+ if(F){F.gens=(F.gens||[]).filter(x=>x!==c.id);}
+ const wasRuler=F&&F.ruler===c.id,wasHeir=F&&F.heir===c.id;
+ if(!wasRuler){const who=c.role==='gen'?`${FAC[f].s} komutanı ${c.n}`:`${FAC[f].s} ${chLabel(c)}`;
+  const why=cause==='battle'?'muharebede can verdi':cause==='executed'?'idam edildi':'hayatını kaybetti';
+  if(f===S.player)chNews(f,`${who} ${why}.`,wasHeir?'war':'info');}
+ runHooks('charDied',c);
+ if(wasRuler&&F.alive){const age=chAge(c),nm=c.rn||c.n;
+  const why=cause==='battle'?'muharebe meydanında düştü':cause==='fall'?'şehrinin surlarında savaşarak can verdi':cause==='plague'?'vebadan öldü':age>=70?`${age} yaşında, ihtiyarlıktan öldü`:`${age} yaşında öldü`;
+  if(f===S.player){try{SND.play('bell');}catch(e){}}
+  chNews(f,`${FAC[f].s} hükümdarı ${nm} ${why}.`,'cap');
+  chSucceed(f,c);}
+ else if(wasHeir&&F.alive)chPickHeir(f);
+ return c;}
+/** Dynasty news: the player's realm and its neighbours / war enemies get season news, others the chronicle. */
+function chNews(f,m,k){chRep.push({f,m});if(!S.player)return;const pl=S.player;
+ if(f===pl||atWar(pl,f)||isAlly(pl,f)||nbrs(pl).includes(f))news(m,k);else addLog(m,'info');}
+
+/* ---------------- yearly life: births, historical arrivals, aging ---------------- */
+function chHazard(c,y){const a=y-c.born;let h=BAL_C.h0*Math.exp(BAL_C.hb*(a-40));
+ if(c.hd&&c.fate!=='city'){if(y>=c.hd-BAL_C.histWin&&y<=c.hd+BAL_C.histWin)h*=BAL_C.histMul;else if(y>c.hd+BAL_C.histWin)h=Math.max(h*BAL_C.lateMul,BAL_C.lateMin);}
+ if(c.traits.includes('hasta'))h*=BAL_C.hastaMul;
+ return 1-Math.pow(1-Math.min(h,.95),.25);}   // chance per season
+function chSpawnYear(y){
+ FK.forEach(f=>{const F=S.fac[f],sd=CH_SEED[f];if(!F.alive||!sd)return;
+  for(const e of [...(sd.kin||[]),...(sd.alt||[]).filter(x=>x.par)]){const sk=f+':'+e.k;if(S.c.sp[sk]||e.b>y)continue;S.c.sp[sk]=1;
+   const p=e.par&&chBySeed(f,e.par);if(!chLive(p)||e.d<=y)continue;
+   const c=chFromSeed(f,e,'kin');if(f===S.player)chNews(f,`Sarayda bir çocuk dünyaya geldi: ${c.n}.`,'good');}
+  for(const e of sd.gen||[]){const sk=f+':'+e.k;if(S.c.sp[sk]||(e.from||0)>y||y-e.b<16)continue;S.c.sp[sk]=1;if(e.d<=y)continue;
+   const g=chFromSeed(f,e,'gen');F.gens.push(g.id);if(f===S.player)chNews(f,`${g.n} komutanlarının arasına katıldı.`,'good');}
+  const r=chRuler(f);if(!r||r.nk||r.hk||r.fem)return;const a=y-r.born;if(a<BAL_C.kidAge[0]||a>BAL_C.kidAge[1])return;
+  let kids=0;for(const id in S.chars){const c=S.chars[id];if(c.par===r.id&&chLive(c))kids++;}
+  if(kids<BAL_C.maxKids&&R()<BAL_C.birth*(kids?.5:1)){const c=chCreate({n:chPick(CH_NAMES[sd.cul==='pp'?'it':sd.cul]||CH_NAMES.tr),f,role:'kin',born:y,par:r.id,dyn:r.dyn});
+   if(f===S.player)chNews(f,`${r.rn||r.n} bir oğul sahibi oldu: ${c.n}.`,'good');chPickHeir(f);}
+  else if(!chHeir(f))chPickHeir(f);});}
+function chTick(){if(!S.c)return;const y=chYear(),dead=[];
+ for(const id in S.chars){const c=S.chars[id];if(!chLive(c))continue;const F=S.fac[c.f];if(!F||!F.alive){c.died=S.turn;c.dc='exile';continue;}
+  if(c.cap!=null&&S.turn>=c.cap){delete c.cap;if(c.f===S.player)chNews(c.f,`${c.n} fidye karşılığı esaretten döndü.`,'good');}
+  if(y-c.born>=BAL_C.maxAge||R()<chHazard(c,y))dead.push(c);}
+ for(const c of dead)chKill(c,y-c.born>=BAL_C.maxAge?'old':'natural');
+ FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;if(!chRuler(f)){if(!Object.keys(S.chars).some(id=>S.chars[id].f===f))chSeedFaction(f);else chSucceed(f,null);}else if(!chHeir(f))chPickHeir(f);});
+ if((S.turn+1)%4===0)chSpawnYear(y+1);
+ if(S.turn%4===0)chPrune();}
+function chPrune(){const keep=new Set();FK.forEach(f=>{const F=S.fac[f];keep.add(F.ruler);keep.add(F.heir);});for(const a of S.armies)if(a.gen!=null)keep.add(a.gen);
+ for(const id in S.chars){const c=S.chars[id];if(c.died!=null&&S.turn-c.died>BAL_C.pruneAfter&&!keep.has(c.id)&&!c.keep)delete S.chars[id];}}
+
+/* ---------------- generals on armies ---------------- */
+/** A free commander of f: the ruler or heir if they command, then historical generals, then generated ones. */
+function chFreeGen(f,gen=true){const F=S.fac[f];if(!F||!F.alive)return null;const used=new Set();for(const a of S.armies)if(a.gen!=null)used.add(a.gen);
+ const c=[];const r=chRuler(f),h=chHeir(f);
+ if(r&&r.skill>0&&chAge(r)>=16)c.push(r);if(h&&h.skill>0&&chAge(h)>=16)c.push(h);
+ for(const g of chGenerals(f))c.push(g);
+ const free=c.filter(x=>!used.has(x.id)&&x.cap==null&&chAge(x)>=16).sort((a,b)=>((b.sk?1:0)-(a.sk?1:0))||(b.skill-a.skill));
+ if(free.length)return free[0];
+ if(gen&&chGenerals(f).length<BAL_C.genMax)return chGenGeneral(f);return null;}
+function chAssignGen(a){if(!S||!S.c||a.gen!=null||!S.armies.includes(a))return;const g=chFreeGen(a.f);if(!g)return;a.gen=g.id;
+ if(g.traits.includes('akinci'))a.mpMax=(a.mpMax||2)+1;}
+hook('armyCreated',a=>chAssignGen(a),50);
+/** The commanding character on one side of a battle context (explicit army refs first, else the largest army there). */
+function chCtxGen(ctx,side){if(!S.c)return null;
+ let a=side==='att'?(ctx.attArmy??ctx.armyA??ctx.army):(ctx.defArmy??ctx.armyD);
+ if(Array.isArray(a))a=a[0];if(typeof a==='number')a=armyById(a);
+ if(!a){const f=side==='att'?ctx.att:ctx.def,i=side==='att'?ctx.from:ctx.to;if(f==null||i==null)return null;
+  let best=null;for(const x of S.armies)if(x.loc===i&&x.f===f&&x.gen!=null&&(!best||x.n>best.n))best=x;a=best;}
+ const c=a&&a.gen!=null?S.chars[a.gen]:null;return chLive(c)&&c.cap==null?c:null;}
+BATTLE_MODS.push(ctx=>{if(!S.c||(ctx.from==null&&ctx.to==null&&!ctx.army&&!ctx.attArmy))return null;const out=[];
+ for(const side of ['att','def']){const g=chCtxGen(ctx,side);if(!g)continue;const sk=Math.max(1,g.skill||1);
+  out.push({l:`Komutan: ${g.rn||g.n}`,m:1+BAL_C.genMul*sk,side,k:'gen',gid:g.id});
+  if(ctx.to!=null){if(g.traits.includes('dag')&&PD[ctx.to].mtn)out.push({l:`${g.n}: Dağ Kurdu`,m:BAL_C.mul.dag,side,k:'gtrait'});
+   if(side==='att'&&g.traits.includes('topcu')&&S.prov[ctx.to].fort>0&&ctx.kind!=='field')out.push({l:`${g.n}: Topçu`,m:BAL_C.mul.topcu,side,k:'gtrait'});}}
+ return out;});
+/* ruler traits in battle */
+BATTLE_MODS.push(ctx=>{if(!S.c)return null;const out=[];
+ const ra=ctx.att&&chRuler(ctx.att),rd=ctx.def&&chRuler(ctx.def);
+ if(ra){if(ra.traits.includes('cengaver'))out.push({l:'Hükümdar: Cengâver',m:BAL_C.mul.cengaver,side:'att',k:'ruler'});
+  if(ra.traits.includes('fatih')&&ctx.to!=null&&S.prov[ctx.to].fort>=2)out.push({l:'Hükümdar: Fatih',m:BAL_C.mul.fatih,side:'att',k:'ruler'});}
+ if(rd){if(rd.traits.includes('sebatkar'))out.push({l:'Hükümdar: Sebatkâr',m:BAL_C.mul.sebatkar,side:'def',k:'ruler'});
+  if(rd.traits.includes('zalim'))out.push({l:'Hükümdar: Zalim',m:BAL_C.mul.zalim,side:'def',k:'ruler'});
+  if(rd.traits.includes('dindar')&&ctx.att&&FAC[ctx.att].rel!==FAC[ctx.def].rel)out.push({l:'Hükümdar: Dindar',m:BAL_C.mul.dindar,side:'def',k:'ruler'});}
+ return out.length?out:null;});
+/* the losing commander may fall or be captured: rep.genFate={id,n,f,fate:'died'|'captured',t} */
+hook('battleResolved',rep=>{if(!S.c||!rep||!rep.mods)return;const lose=rep.win?'def':'att';
+ const m=rep.mods.find(x=>x.k==='gen'&&x.side===lose);if(!m)return;const c=S.chars[m.gid];if(!chLive(c))return;
+ const ruler=S.fac[c.f]&&S.fac[c.f].ruler===c.id,q=R();let fate=null;
+ if(q<(ruler?BAL_C.rulerDie:BAL_C.genDie))fate='died';else if(!ruler&&q<BAL_C.genDie+BAL_C.genCap)fate='captured';
+ if(!fate)return;const nm=c.rn||c.n,where=PD[rep.to]?PD[rep.to].name:'';
+ rep.genFate={id:c.id,n:nm,f:c.f,fate,t:fate==='died'?`${nm} ${where} muharebesinde can verdi.`:`${nm} ${where} muharebesinde esir düştü.`};
+ if(fate==='died')chKill(c,'battle');
+ else{c.cap=S.turn+BAL_C.captiveTurns;for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2)a.mpMax--;}
+  chNews(c.f,`${FAC[c.f].s} komutanı ${nm} esir düştü.`,c.f===S.player?'war':'info');}},40);
+
+/* ---------------- ruler traits and regency in the economy ---------------- */
+ECON_ROWS.push(f=>{if(!S.c)return null;const r=chRuler(f),out=[];
+ if(r)for(const t of r.traits){const v=BAL_C.gold[t];if(!v)continue;out.push({id:'ch-'+t,l:`Hükümdar: ${CH_TRAITS[t].l}`,v,k:t==='savurgan'||t==='zalim'?'exp':'inc'});}
+ const rg=S.c.regency[f];if(rg!=null&&S.turn<rg){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);out.push({id:'ch-regency',l:`Naip yönetimi (${rg-S.turn} tur)`,v:s*BAL_C.regencyCut,k:'exp'});}
+ return out;});
+
+/* ---------------- world events touching dynasties ---------------- */
+hook('capture',(i,nf,old)=>{if(!S.c||PD[i].key!=='istanbul')return;
+ const r=chRuler(nf);if(r&&!r.ep&&old==='BYZ'){r.ep=nf==='OSM'?'Fatih':'Kurtarıcı';if(nf==='OSM'&&!r.traits.includes('fatih'))r.traits.push('fatih');}
+ if(old!=='BYZ')return;const F=S.fac.BYZ,k=S.chars[F.ruler];if(!k||(k.died!=null&&!(k.died===S.turn&&k.dc==='exile')))return;
+ if(F.alive)chKill(k,'fall');else{k.died=S.turn;k.dc='fall';chNews('BYZ',`${k.rn||k.n} şehrinin surlarında savaşarak can verdi. Doğu Roma İmparatorluğu sona erdi.`,'cap');}});
+hook('eliminate',f=>{if(!S.c)return;for(const id in S.chars){const c=S.chars[id];if(c.f===f&&chLive(c)){c.died=S.turn;c.dc='exile';}}const F=S.fac[f];F.heir=null;F.gens=[];});
+
+/* ---------------- pending decisions (survive a reload) ---------------- */
+const CH_PEND={};  // kind -> data => {t,d,ch:[{l,f?,dis?}]} | null
+/** Ask the player a question that must survive a reload; builders live in CH_PEND. */
+function chAsk(kind,data){const p={kind,data};S.c.pend.push(p);queueModal(()=>chShowPend(p));}
+function chShowPend(p){if(!S.c.pend.includes(p))return;let spec=null;try{spec=CH_PEND[p.kind]&&CH_PEND[p.kind](p.data);}catch(e){console.error('pend '+p.kind,e);}
+ if(!spec){S.c.pend=S.c.pend.filter(x=>x!==p);return;}
+ eventModal({...spec,e:spec.e||dateStr(S.turn),ch:spec.ch.map(c=>({...c,f:()=>{S.c.pend=S.c.pend.filter(x=>x!==p);if(c.f)c.f();}}))});}
+hook('enterGame',()=>{if(S&&S.c&&S.c.pend.length)S.c.pend.forEach(p=>queueModal(()=>chShowPend(p)));});
+CH_PEND.crisis=({f,id})=>{const c=S.chars[id];if(!chLive(c)||f!==S.player)return null;const F=S.fac[f],g=chCrisisGold(f),nm=c.rn||c.n;
+ return {t:'Taht Boşluğu',d:`Hanedanın erkek varisi kalmadı. Divan, uzak bir akraba olan ${nm} adını öne sürdü; ama beyler bölünmüş durumda. Tahtı nasıl sağlamlaştıracaksın?`,
+  ch:[{l:'Beyleri kendi hâllerine bırak (2 eyalet 6 tur huzursuz)',f:()=>chCrisisAI(f)},
+   {l:`Beylere altın dağıt (−${g} altın)`,dis:F.gold<g,f:()=>{F.gold=Math.max(0,F.gold-g);}},
+   {l:'Ordunun adayını destekle (hükümdar Cengâver olur, başkent garnizonu −20%)',f:()=>{if(!c.traits.includes('cengaver'))c.traits.push('cengaver');const p=S.prov[F.cap];p.t=Math.round(p.t*.8/100)*100;}}]};};
+
+/* ---------------- lifecycle hooks ---------------- */
+hook('newGame',(s)=>{s.c=chNewC();chSeedAll();},5);
+hook('newGame',()=>{for(const a of S.armies)chAssignGen(a);},90);
+hook('turnStart',()=>{chRep=[];});
+hook('roundEnd',()=>chTick(),40);
+/* v1 saves: seed the dynasties aged to the save's date; convert the old hold missions. Idempotent. */
+hook('migrate',(s)=>{const prev=S;S=s;try{
+  if(!s.c||typeof s.c!=='object')s.c=chNewC();const d=chNewC();for(const k in d)if(!(k in s.c))s.c[k]=d[k];
+  if(!Object.keys(s.chars).length){chSeedAll();if(s.flags&&s.flags.fetih){const r=chRuler('OSM');if(r&&!r.ep){r.ep='Fatih';r.traits.push('fatih');}}
+   for(const a of s.armies||[])chAssignGen(a);}
+  (s.mis||[]).forEach(m=>{if(m.hold&&m.vs==null){m.vs='OSM';m.turns=8;m.prog=0;}});
+ }finally{S=prev;}},20);
+
+/* ---------------- UI ---------------- */
+function chStars(n){n=Math.max(0,Math.min(5,n|0));return `<span class="ch-stars" aria-label="Kabiliyet ${n}/5">${'★'.repeat(n)}<i>${'★'.repeat(5-n)}</i></span>`;}
+function chTraitChips(c){return c.traits.filter(t=>CH_TRAITS[t]).map(t=>`<span class="chip ch-tr" data-tip="ch-trait" data-tr="${t}" title="${esc(CH_TRAITS[t].d)}">${esc(CH_TRAITS[t].l)}</span>`).join('');}
+TIPS['ch-trait']=el=>{const t=CH_TRAITS[el.dataset.tr];return t?`<b>${esc(t.l)}</b><br>${esc(t.d)}`:'';};
+function chGenStatus(g){if(g.cap!=null)return `esir (${g.cap-S.turn} tur)`;const a=S.armies.find(x=>x.gen===g.id);return a?`ordu başında · ${PD[a.loc].name}`:'boşta';}
+STATE_SECTIONS.push({id:'dynasty',order:30,html(f){if(!S.c)return '';const r=chRuler(f);if(!r)return '';const h=chHeir(f),F=S.fac[f];
+ const rg=S.c.regency[f],reg=rg!=null&&S.turn<rg;
+ const kin=Object.values(S.chars).filter(c=>c.f===f&&chLive(c)&&c.role==='kin').sort((a,b)=>a.born-b.born).slice(0,6);
+ const gens=[...new Set([...(r.skill>0?[r]:[]),...(h&&h.skill>0?[h]:[]),...chGenerals(f)])];
+ const past=(S.c.past[f]||[]).slice().reverse();
+ return `<div class="sec ch-dyn"><h3>Hanedan${r.dyn?` · ${esc(r.dyn)}`:''}</h3>
+  <div class="ch-card"><div class="ch-crown">♛</div><div><b>${esc(r.rn||r.n)}</b>${r.ep?` <em>“${esc(r.ep)}”</em>`:''}<small>${esc(chTitle(r))} · ${chAge(r)} yaşında · ${Math.floor((S.turn-(r.acc||0))/4)} yıldır tahtta</small>
+   <div class="ch-trs">${chTraitChips(r)||'<span class="hint">Belirgin bir huyu yok.</span>'}</div></div></div>
+  ${reg?`<div class="hint ch-warn">Hükümdar çocuk yaşta; ${rg-S.turn} tur daha naip yönetiyor (vergilerin %10'u kayıp).</div>`:''}
+  <div class="ch-row"><span>Veliaht</span><b>${h?`${esc(chLabel(h))} (${chAge(h)})`:'<span class="neg">Yok: hükümdar ölürse taht boşluğu çıkar</span>'}</b></div>
+  ${kin.length?`<div class="ch-row"><span>Aile</span><b>${kin.map(c=>`${esc(c.n)} (${chAge(c)})`).join(', ')}</b></div>`:''}
+  <h3 style="margin-top:10px">Komutanlar</h3>
+  <div class="ch-gens">${gens.length?gens.map(g=>`<div class="ch-gen"><b>${esc(g.rn||g.n)}</b>${chStars(g.skill)}<small>${chGenStatus(g)} · ${chAge(g)} yaşında</small><div class="ch-trs">${chTraitChips(g)}</div></div>`).join(''):'<div class="hint">Henüz tanınmış bir komutan yok. Yeni ordular kurdukça beyler öne çıkar.</div>'}</div>
+  ${past.length?`<div class="ch-row ch-past"><span>Önceki hükümdarlar</span><b>${past.map(p=>`${esc(p.n)}${p.ep?` “${esc(p.ep)}”`:''} (${START_YEAR+Math.floor(p.t0/4)}–${START_YEAR+Math.floor(p.t1/4)})`).join(' · ')}</b></div>`:''}
+ </div>`;}});
+PANEL_SECTIONS.push({id:'general',order:35,when:c=>{if(selArmy==null||!S.c)return false;const a=armyById(selArmy);return !!a&&a.loc===c.i&&a.gen!=null&&chLive(S.chars[a.gen]);},
+ html(c){const a=armyById(selArmy),g=S.chars[a.gen];const bonus=Math.round(BAL_C.genMul*Math.max(1,g.skill)*100);
+  return `<div class="sec ch-cmd"><h3>Komutan</h3><div class="ch-gen"><b>${esc(g.rn||g.n)}</b>${chStars(g.skill)}<small>Muharebede +${bonus}% · ${chAge(g)} yaşında</small><div class="ch-trs">${chTraitChips(g)}</div></div></div>`;}});
+REPORT_SECTIONS.push({id:'dynasty',order:40,html(){const L=chRep;if(!L.length)return '';
+ return `<div class="sec"><h3>Hanedanlar</h3><div class="logl">${L.slice(0,8).map(x=>`<div><time>${esc(FAC[x.f].s)}</time><span>${esc(x.m)}</span></div>`).join('')}</div></div>`;}});
+DIPLO_ROW.push({id:'dyn',order:20,meta(f){if(!S.c)return '';const r=chRuler(f);if(!r)return '';const h=chHeir(f);
+ return `<span>Hükümdar <b>${chAge(r)}</b> yaşında</span>${h?'':'<span class="neg">Varisi yok</span>'}`;}});
+
 KE.rulerName=f=>rulerName(f);
+KE.ch={create:s=>chCreate(s),kill:(id,c)=>chKill(id,c),ruler:f=>chRuler(f),heir:f=>chHeir(f),gens:f=>chGenerals(f),age:id=>chAge(id),title:c=>chTitle(c),label:c=>chLabel(c),succeed:f=>chSucceed(f,chRuler(f)),tick:()=>chTick(),bal:BAL_C,portrait:c=>chPortraitSpec(c)};
+/* =====================================================================
+   CHARACTER SEED TABLES (Track C): historical rulers, heirs, kin and
+   generals of 1451 for all 28 factions, culture name pools, titles.
+   Keys: k seed key, n personal name, rn regnal/display name when ruling,
+   b birth year, d historical death year (drives the "soft history" death
+   bias), par parent seed key, pref heir preference, nk no further children,
+   fem female, sk commander skill 1-5 (commanders only), tr traits,
+   from year a general enters service, t title override, fate:'city' dies
+   with Constantinople rather than by the date bias.
+   el: elective states (doges, popes, grand masters, Mamluk sultans, khans)
+   list their historical successors in order; alt: hereditary states list
+   who is invited to the throne when the line dies out.
+   Where a birth year is uncertain it is marked "~" in a comment; the value
+   used is the one most sources give.
+   ===================================================================== */
+const CH_SEED={
+ OSM:{dyn:'Osmanoğlu',cul:'tr',num:1,title:'Sultan',ht:'Şehzade',
+  r:{k:'mehmed2',n:'Mehmed',rn:'II. Mehmed',b:1432,d:1481,sk:3,tr:['cengaver','alim']},
+  kin:[{k:'bayezid2',n:'Bayezid',rn:'II. Bayezid',b:1447,d:1512,par:'mehmed2',tr:['dindar']},
+   {k:'mustafa',n:'Mustafa',b:1450,d:1474,par:'mehmed2'},
+   {k:'cem',n:'Cem',b:1459,d:1495,par:'mehmed2',tr:['alim']},
+   {k:'ahmed',n:'Ahmed',b:1465,d:1513,par:'bayezid2'},          // ~1465
+   {k:'korkut',n:'Korkut',b:1467,d:1513,par:'bayezid2',tr:['alim']}, // ~1467
+   {k:'selim1',n:'Selim',rn:'I. Selim',b:1470,d:1520,par:'bayezid2',pref:1,sk:4,tr:['cengaver','zalim']},
+   {k:'suleyman1',n:'Süleyman',rn:'I. Süleyman',b:1494,d:1566,par:'selim1',pref:1,sk:3,tr:['adil']}],
+  gen:[{k:'mahmudp',n:'Mahmud Paşa',b:1420,d:1474,sk:3},
+   {k:'zaganos',n:'Zağanos Paşa',b:1410,d:1469,sk:2},              // birth ~1410 (uncertain)
+   {k:'turahan',n:'Turahan Bey',b:1390,d:1456,sk:2,tr:['akinci']},  // birth ~1390
+   {k:'gedik',n:'Gedik Ahmed Paşa',b:1430,d:1482,sk:3,tr:['topcu'],from:1461},
+   {k:'mihaloglu',n:'Mihaloğlu Ali Bey',b:1440,d:1507,sk:2,tr:['akinci'],from:1462},
+   {k:'hersekzade',n:'Hersekzade Ahmed Paşa',b:1459,d:1517,sk:2,from:1481}]},
+ BYZ:{dyn:'Palaiologos',cul:'gr',num:1,title:'İmparator',ht:'Despot',
+  r:{k:'konst11',n:'Konstantinos',rn:'XI. Konstantinos',b:1405,d:1453,fate:'city',sk:2,nk:1,tr:['sebatkar']},
+  kin:[{k:'demetrios',n:'Demetrios',rn:'Demetrios Palaiologos',b:1407,d:1470},
+   {k:'thomas',n:'Thomas',rn:'Thomas Palaiologos',b:1409,d:1465},
+   {k:'andreas',n:'Andreas',rn:'Andreas Palaiologos',b:1453,d:1502,par:'thomas'}],
+  gen:[{k:'notaras',n:'Loukas Notaras',b:1402,d:1453,sk:1}]},
+ VEN:{dyn:null,cul:'it',sur:['Contarini','Mocenigo','Morosini','Dandolo','Loredan','Grimani','Barbarigo','Tron','Vendramin','Donà','Venier','Priuli','Trevisan','Corner'],title:'Doç',ht:'',
+  r:{k:'foscari',n:'Francesco Foscari',b:1373,d:1457,tr:['tuccar']},
+  el:[{n:'Pasquale Malipiero',b:1392,d:1462},{n:'Cristoforo Moro',b:1390,d:1471},{n:'Nicolò Tron',b:1399,d:1473,tr:['tuccar']},
+   {n:'Nicolò Marcello',b:1397,d:1474},{n:'Pietro Mocenigo',b:1406,d:1476,tr:['cengaver']},{n:'Andrea Vendramin',b:1393,d:1478,tr:['tuccar']},
+   {n:'Giovanni Mocenigo',b:1409,d:1485},{n:'Marco Barbarigo',b:1413,d:1486},{n:'Agostino Barbarigo',b:1419,d:1501},
+   {n:'Leonardo Loredan',b:1436,d:1521,tr:['sebatkar']},{n:'Antonio Grimani',b:1434,d:1523},{n:'Andrea Gritti',b:1455,d:1538,tr:['cengaver']}],
+  gen:[{k:'jloredan',n:'Jacopo Loredan',b:1396,d:1471,sk:2}]},    // birth ~1396
+ HUN:{dyn:'Hunyadi',cul:'hu',num:1,title:'Kral',ht:'Prens',
+  r:{k:'hunyadi',n:'Yanoş',rn:'Hunyadi Yanoş',t:'Naip',b:1406,d:1456,sk:4,tr:['cengaver','sebatkar']},  // regent for Ladislaus V
+  kin:[{k:'matyas',n:'Matyas',rn:'Matyas Korvin',b:1443,d:1490,par:'hunyadi',nk:1,sk:3,tr:['alim','cengaver']}],
+  alt:[{k:'ulaszlo2',n:'Ulászló',rn:'II. Ulászló',b:1456,d:1516,dyn:'Jagiello',tr:['savurgan']},
+   {k:'lajos2',n:'Layoş',rn:'II. Layoş',b:1506,d:1526,par:'ulaszlo2',dyn:'Jagiello',nk:1}],
+  gen:[{k:'szilagyi',n:'Szilágyi Mihály',b:1400,d:1460,sk:2},        // birth ~1400
+   {k:'kinizsi',n:'Kinizsi Pál',b:1432,d:1494,sk:3,from:1467},
+   {k:'bathory',n:'Báthory István',b:1430,d:1493,sk:2,from:1479},
+   {k:'tomori',n:'Tomori Pál',b:1475,d:1526,sk:2,from:1520}]},
+ SRB:{dyn:'Branković',cul:'sr',title:'Despot',ht:'Prens',
+  r:{k:'durad',n:'Đurađ',rn:'Đurađ Branković',b:1377,d:1456},
+  kin:[{k:'lazar',n:'Lazar',rn:'Lazar Branković',b:1421,d:1458,par:'durad',pref:1,nk:1},
+   {k:'grgur',n:'Grgur',rn:'Grgur Branković',b:1415,d:1459,par:'durad'},
+   {k:'stefanb',n:'Stefan',rn:'Stefan Branković',b:1417,d:1476,par:'durad'}],
+  gen:[]},
+ BOS:{dyn:'Kotromanić',cul:'sr',title:'Kral',ht:'Prens',
+  r:{k:'tomas',n:'Stjepan Tomaš',b:1411,d:1461},                      // birth ~1411
+  kin:[{k:'tomasevic',n:'Stjepan',rn:'Stjepan Tomašević',b:1438,d:1463,par:'tomas'}],
+  gen:[{k:'kosaca',n:'Herceg Stjepan Kosača',b:1404,d:1466,sk:2,tr:['dag']}]},
+ WAL:{dyn:'Basarab',cul:'ro',num:1,title:'Voyvoda',ht:'Bey',
+  r:{k:'vladislav2',n:'Vladislav',rn:'II. Vladislav',b:1410,d:1456},  // birth ~1410 (uncertain)
+  kin:[{k:'vlad3',n:'Vlad',rn:'III. Vlad',b:1431,d:1477,pref:1,sk:3,tr:['zalim','cengaver']},
+   {k:'radu3',n:'Radu',rn:'III. Radu',b:1437,d:1475},
+   {k:'mihnea',n:'Mihnea',rn:'I. Mihnea',b:1462,d:1510,par:'vlad3'}],
+  gen:[]},
+ MOL:{dyn:'Muşat',cul:'ro',num:1,title:'Voyvoda',ht:'Bey',
+  r:{k:'alexandrel',n:'Alexăndrel',b:1437,d:1455},                    // ~1437
+  kin:[{k:'stefan3',n:'Ştefan',rn:'III. Ştefan',b:1433,d:1504,pref:1,sk:4,tr:['cengaver','dindar']},
+   {k:'bogdan3',n:'Bogdan',rn:'III. Bogdan',b:1479,d:1517,par:'stefan3'},
+   {k:'rares',n:'Petru',rn:'IV. Petru (Rareş)',b:1487,d:1546,par:'stefan3',sk:2},
+   {k:'stefanita',n:'Ştefăniţă',rn:'IV. Ştefan',b:1506,d:1527,par:'bogdan3'}],
+  gen:[]},
+ ALB:{dyn:'Kastrioti',cul:'sq',title:'Bey',ht:'Veliaht',
+  r:{k:'skanderbeg',n:'Gjergj',rn:'İskender Bey',t:'Birlik Başkomutanı',b:1405,d:1468,sk:5,tr:['cengaver','sebatkar']},
+  kin:[{k:'gjon2',n:'Gjon',rn:'II. Gjon Kastrioti',b:1456,d:1502,par:'skanderbeg'}],
+  gen:[{k:'dukagjini',n:'Lekë Dukagjini',b:1410,d:1481,sk:2,tr:['dag']},
+   {k:'golemi',n:'Moisi Golemi',b:1400,d:1464,sk:2,tr:['dag']}]},       // ~1400
+ KRM:{dyn:'Giray',cul:'tt',num:1,suf:' Giray',title:'Han',ht:'Kalgay',
+  r:{k:'haci1',n:'Hacı',rn:'I. Hacı Giray',b:1397,d:1466},             // ~1397
+  kin:[{k:'nurdevlet',n:'Nur Devlet',rn:'Nur Devlet Giray',b:1427,d:1503,par:'haci1'},   // ~1427
+   {k:'mengli',n:'Mengli',rn:'I. Mengli Giray',b:1445,d:1515,par:'haci1',pref:1,tr:['adil']},
+   {k:'mehmedg',n:'Mehmed',rn:'I. Mehmed Giray',b:1465,d:1523,par:'mengli',sk:2},
+   {k:'saadet',n:'Saadet',rn:'I. Saadet Giray',b:1492,d:1538,par:'mengli'}],
+  gen:[]},
+ GEN:{dyn:null,cul:'it',sur:['Fregoso','Adorno','Doria','Spinola','Grimaldi','Fieschi','Giustiniani','Lomellini','Cattaneo'],title:'Doç',ht:'',
+  r:{k:'pfregoso',n:'Pietro Fregoso',b:1417,d:1459},                   // ~1417
+  el:[{n:'Prospero Adorno',b:1428,d:1486},{n:'Paolo Fregoso',b:1427,d:1498},{n:'Battista Fregoso',b:1452,d:1504},
+   {n:'Ottaviano Fregoso',b:1470,d:1524},{n:'Antoniotto Adorno',b:1479,d:1528}],
+  gen:[]},
+ KAR:{dyn:'Karamanoğlu',cul:'tr',suf:' Bey',title:'Bey',ht:'Şehzade',
+  r:{k:'ibrahim',n:'İbrahim',rn:'İbrahim Bey',b:1405,d:1464},          // ~1405
+  kin:[{k:'ishak',n:'İshak',rn:'İshak Bey',b:1425,d:1465,par:'ibrahim',pref:1},   // births of the sons ~1425-1432
+   {k:'pirahmed',n:'Pir Ahmed',rn:'Pir Ahmed Bey',b:1430,d:1474,par:'ibrahim'},
+   {k:'kasim',n:'Kasım',rn:'Kasım Bey',b:1432,d:1483,par:'ibrahim'}],
+  gen:[]},
+ CAN:{dyn:'Candaroğlu',cul:'tr',suf:' Bey',title:'Bey',ht:'Şehzade',
+  r:{k:'ismailc',n:'İsmail',rn:'İsmail Bey',b:1410,d:1479},            // ~1410
+  kin:[{k:'kizilahmed',n:'Kızıl Ahmed',rn:'Kızıl Ahmed Bey',b:1432,d:1499,par:'ismailc'}],   // ~1432
+  gen:[]},
+ DUL:{dyn:'Dulkadiroğlu',cul:'tr',suf:' Bey',title:'Bey',ht:'Şehzade',
+  r:{k:'suleymand',n:'Süleyman',rn:'Süleyman Bey',b:1395,d:1454},      // ~1395
+  kin:[{k:'melikarslan',n:'Melik Arslan',rn:'Melik Arslan Bey',b:1420,d:1465,par:'suleymand'},  // sons' births ~1420-1430
+   {k:'sahbudak',n:'Şah Budak',rn:'Şah Budak Bey',b:1425,d:1492,par:'suleymand'},
+   {k:'sehsuvar',n:'Şehsuvar',rn:'Şehsuvar Bey',b:1428,d:1472,par:'suleymand',sk:2},
+   {k:'alaudevle',n:'Alaüddevle',rn:'Alaüddevle Bozkurt Bey',b:1430,d:1515,par:'suleymand'}],
+  gen:[]},
+ MAM:{dyn:null,cul:'mm',title:'Sultan',ht:'',
+  r:{k:'cakmak',n:'Seyfeddin Çakmak',b:1373,d:1453},                   // ~1373
+  el:[{n:'Eşref İnal',b:1381,d:1461},{n:'Zâhir Hoşkadem',b:1400,d:1467},{n:'Eşref Kayıtbay',b:1416,d:1496,tr:['sebatkar','adil']},
+   {n:'Kansu Gavri',b:1441,d:1516},{n:'Eşref Tomanbay',b:1476,d:1517,tr:['cengaver']}],
+  gen:[{k:'yesbek',n:'Yeşbek min Mehdi',b:1420,d:1480,sk:2,from:1468}]},   // ~1420
+ AKK:{dyn:'Bayındır',cul:'tk',suf:' Bey',title:'Bey',ht:'Şehzade',
+  r:{k:'uzunhasan',n:'Hasan',rn:'Uzun Hasan',b:1423,d:1478,sk:4,tr:['cengaver','adil']},   // nominal ruler until 1453 was his brother Cihangir
+  kin:[{k:'halil',n:'Halil',rn:'Sultan Halil',b:1441,d:1478,par:'uzunhasan'},   // ~1441
+   {k:'ugurlu',n:'Uğurlu Mehmed',b:1455,d:1477,par:'uzunhasan',sk:2},          // ~1455
+   {k:'yakub',n:'Yakub',rn:'Yakub Bey',b:1463,d:1490,par:'uzunhasan',tr:['alim']},
+   {k:'baysungur',n:'Baysungur',rn:'Baysungur Bey',b:1480,d:1493,par:'yakub'}], // ~1480
+  gen:[]},
+ KKY:{dyn:'Baharlu',cul:'tk',suf:' Bey',title:'Sultan',ht:'Şehzade',
+  r:{k:'cihansah',n:'Cihan Şah',b:1397,d:1467,sk:2,tr:['alim','zalim']},       // poet "Hakikî"
+  kin:[{k:'pirbudak',n:'Pir Budak',rn:'Pir Budak',b:1430,d:1466,par:'cihansah'},  // ~1430
+   {k:'hasanali',n:'Hasan Ali',rn:'Hasan Ali',b:1440,d:1469,par:'cihansah'}],     // ~1440
+  gen:[]},
+ TRB:{dyn:'Megas Komnenos',cul:'gr',num:1,title:'İmparator',ht:'Despot',
+  r:{k:'ioannes4',n:'Yuannis',rn:'IV. Yuannis',b:1403,d:1460},          // ~1403
+  kin:[{k:'davidk',n:'David',rn:'David Komnenos',b:1408,d:1463,pref:1},
+   {k:'alexios',n:'Alexios',rn:'V. Alexios',b:1454,d:1463,par:'ioannes4'}],
+  gen:[]},
+ GEO:{dyn:'Bagrationi',cul:'ka',num:1,title:'Kral',ht:'Prens',
+  r:{k:'giorgi8',n:'Giorgi',rn:'VIII. Giorgi',b:1417,d:1476},
+  kin:[{k:'aleksandre',n:'Aleksandre',rn:'I. Aleksandre',b:1445,d:1511,par:'giorgi8'},
+   {k:'konstantine',n:'Konstantine',rn:'II. Konstantine',b:1447,d:1505}],
+  gen:[]},
+ HAB:{dyn:'Habsburg',cul:'de',num:1,title:'Arşidük',ht:'Arşidük',
+  r:{k:'fried3',n:'Friedrich',rn:'III. Friedrich',b:1415,d:1493,tr:['sebatkar']},
+  kin:[{k:'albrecht6',n:'Albrecht',rn:'VI. Albrecht',b:1418,d:1463},
+   {k:'max1',n:'Maximilian',rn:'I. Maximilian',b:1459,d:1519,par:'fried3',pref:1,sk:2,tr:['cengaver']},
+   {k:'philipp',n:'Philipp',rn:'I. Philipp',b:1478,d:1506,par:'max1'},
+   {k:'karl5',n:'Karl',rn:'V. Karl',b:1500,d:1558,par:'philipp'},
+   {k:'ferd1',n:'Ferdinand',rn:'I. Ferdinand',b:1503,d:1564,par:'philipp'}],
+  gen:[{k:'salm',n:'Niklas Salm',b:1459,d:1530,sk:3,from:1500}]},
+ POL:{dyn:'Jagiello',cul:'pl',num:1,title:'Kral',ht:'Prens',
+  r:{k:'kaz4',n:'Kazimierz',rn:'IV. Kazimierz',b:1427,d:1492},
+  kin:[{k:'olbracht',n:'Jan Olbracht',rn:'I. Jan Olbracht',b:1459,d:1501,par:'kaz4',pref:1,nk:1},
+   {k:'aleksander',n:'Aleksander',rn:'Aleksander Jagiełło',b:1461,d:1506,par:'kaz4',nk:1},
+   {k:'zygmunt1',n:'Zygmunt',rn:'I. Zygmunt',b:1467,d:1548,par:'kaz4'},
+   {k:'zygmunt2',n:'Zygmunt August',rn:'II. Zygmunt August',b:1520,d:1572,par:'zygmunt1'}],
+  gen:[{k:'ostrogski',n:'Konstanty Ostrogski',b:1460,d:1530,sk:3,from:1497},
+   {k:'tarnowski',n:'Jan Tarnowski',b:1488,d:1561,sk:3,from:1515}]},
+ GH:{dyn:null,cul:'tt',suf:' Han',title:'Han',ht:'',
+  r:{k:'seyyidahmed',n:'Seyyid Ahmed',b:1405,d:1455},                   // khans' dates uncertain
+  el:[{n:'Mahmud Han',b:1430,d:1465},{n:'Ahmed Han',b:1435,d:1481,sk:2},{n:'Şeyh Ahmed Han',b:1460,d:1528}],
+  gen:[]},
+ ARA:{dyn:'Trastámara',cul:'es',num:1,title:'Kral',ht:'Prens',
+  r:{k:'alfonso5',n:'Alfonso',rn:'V. Alfonso',b:1396,d:1458,tr:['alim','savurgan']},
+  kin:[{k:'ferrante',n:'Ferrante',rn:'I. Ferrante',b:1423,d:1494,par:'alfonso5',tr:['zalim']},
+   {k:'alfonso2',n:'Alfonso',rn:'II. Alfonso',b:1448,d:1495,par:'ferrante',sk:2},
+   {k:'federico',n:'Federico',rn:'Federico',b:1451,d:1504,par:'ferrante'},
+   {k:'ferrandino',n:'Ferrandino',rn:'II. Ferrante',b:1469,d:1496,par:'alfonso2'}],
+  gen:[]},
+ PAP:{dyn:null,cul:'pp',title:'Papa',ht:'',
+  r:{k:'nikolaus5',n:'Tommaso Parentucelli',rn:'V. Nikolaus',b:1397,d:1455,tr:['alim']},
+  el:[{n:'Alfons de Borja',rn:'III. Callixtus',b:1378,d:1458},{n:'Enea Silvio Piccolomini',rn:'II. Pius',b:1405,d:1464,tr:['alim']},
+   {n:'Pietro Barbo',rn:'II. Paulus',b:1417,d:1471},{n:'Francesco della Rovere',rn:'IV. Sixtus',b:1414,d:1484},
+   {n:'Giovanni Battista Cybo',rn:'VIII. Innocentius',b:1432,d:1492},{n:'Rodrigo Borgia',rn:'VI. Alexander',b:1431,d:1503,tr:['savurgan']},
+   {n:'Francesco Piccolomini',rn:'III. Pius',b:1439,d:1503},{n:'Giuliano della Rovere',rn:'II. Julius',b:1443,d:1513,tr:['cengaver']},
+   {n:'Giovanni de\' Medici',rn:'X. Leo',b:1475,d:1521,tr:['savurgan','alim']},{n:'Adriaan Boeyens',rn:'VI. Hadrianus',b:1459,d:1523},
+   {n:'Giulio de\' Medici',rn:'VII. Clemens',b:1478,d:1534}],
+  gen:[]},
+ CYP:{dyn:'Lusignan',cul:'fr',num:1,title:'Kral',ht:'Prens',
+  r:{k:'jean2',n:'Jean',rn:'II. Jean',b:1418,d:1458},
+  kin:[{k:'charlotte',n:'Charlotte',rn:'Charlotte',b:1444,d:1487,par:'jean2',fem:1,pref:1,nk:1},
+   {k:'jacques2',n:'Jacques',rn:'II. Jacques',b:1440,d:1473,par:'jean2'}],    // ~1440, illegitimate
+  alt:[{k:'cornaro',n:'Caterina',rn:'Caterina Cornaro',b:1454,d:1510,fem:1,dyn:'Cornaro',nk:1}],
+  gen:[]},
+ RHO:{dyn:null,cul:'fr',sur:['de Milly','d\'Aubusson','de Blanchefort','de Lastic','d\'Amboise','del Carretto','de Villiers','Zacosta','Orsini','de Heredia'],title:'Büyük Üstat',ht:'',
+  r:{k:'lastic',n:'Jean de Lastic',b:1371,d:1454},
+  el:[{n:'Jacques de Milly',b:1400,d:1461},{n:'Pere Ramon Zacosta',b:1400,d:1467},{n:'Giovanni Battista Orsini',b:1420,d:1476},   // ~births
+   {n:'Pierre d\'Aubusson',b:1423,d:1503,tr:['sebatkar']},{n:'Emery d\'Amboise',b:1434,d:1512},{n:'Guy de Blanchefort',b:1446,d:1513},
+   {n:'Fabrizio del Carretto',b:1455,d:1521},{n:'Philippe de Villiers',b:1464,d:1534,tr:['sebatkar']}],
+  gen:[]},
+ HAF:{dyn:'Hafsî',cul:'ar',title:'Sultan',ht:'Emir',
+  r:{k:'ebuamr',n:'Osman',rn:'Ebû Amr Osman',b:1419,d:1488},           // ~1419
+  kin:[{k:'ebuzekeriya',n:'Yahyâ',rn:'Ebû Zekeriyyâ Yahyâ',b:1462,d:1489,par:'ebuamr'},    // grandson in fact; dates uncertain
+   {k:'mutevekkil',n:'Muhammed',rn:'Muhammed el-Mütevekkil',b:1467,d:1526,par:'ebuamr'}],
+  gen:[]},
+ SAF:{dyn:'Safevî',cul:'tk',pre:'Şah ',title:'Şah',ht:'Mirza',
+  r:{k:'ismail1',n:'İsmail',rn:'Şah İsmail',b:1487,d:1524,sk:4,tr:['cengaver','dindar']},
+  kin:[{k:'tahmasp',n:'Tahmasp',rn:'Şah Tahmasp',b:1514,d:1576,par:'ismail1'}],
+  gen:[]}
+};
+/** Given-name pools by culture, for generated heirs, rulers and generals. */
+const CH_NAMES={
+ tr:['Mehmed','Ahmed','Mustafa','Murad','Süleyman','Osman','Orhan','Bayezid','Selim','Korkut','Hasan','Yusuf','Ali','İbrahim','İshak','Kasım','Hamza','Yakub','Halil','Davud','Umur','Alaeddin'],
+ tk:['Hasan','Halil','Yakub','Rüstem','Maksud','Murad','Elvend','Cihangir','Pir Ali','Hasan Ali','İskender','Kasım','Sultan Ali','Baysungur','Bahram','Sam','Kılıç Arslan','Zeynel'],
+ mm:['Zâhir Yalbay','Eşref Canbalat','Nâsır Muhammed','Zâhir Timurbuga','Eşref Barsbay','Seyfeddin Akbay','Müeyyed Ahmed','Zâhir Kansu','Eşref Tomanbay','Seyfeddin Özdemir'],
+ ar:['Ebû Bekir','Yahyâ','Zekeriyyâ','Muhammed','Hasan','Ahmed','Abdülmümin','Osman','Ebû Fâris'],
+ tt:['Mengli','Mehmed','Saadet','Sahib','Nur Devlet','Ahmed','Mahmud','Murtaza','Bahadır','Devlet','Kasım','Seyyid'],
+ gr:['Konstantinos','Ioannes','Manuel','Andronikos','Demetrios','Thomas','Theodoros','Alexios','Andreas','Georgios','Mikhael','David'],
+ sr:['Stefan','Lazar','Vuk','Grgur','Jovan','Stjepan','Tvrtko','Radivoj','Vladislav','Petar','Nikola','Đurađ'],
+ ro:['Vlad','Radu','Mircea','Dan','Basarab','Mihnea','Ştefan','Bogdan','Petru','Iliaş','Alexandru','Neagoe'],
+ hu:['János','Mátyás','László','Miklós','István','Pál','Péter','Ferenc','György','Imre','Mihály','Gáspár'],
+ de:['Friedrich','Maximilian','Albrecht','Ferdinand','Karl','Sigmund','Ernst','Leopold','Rudolf','Philipp'],
+ pl:['Kazimierz','Władysław','Jan','Aleksander','Zygmunt','Bolesław','Mikołaj','Stanisław'],
+ it:['Francesco','Pietro','Giovanni','Niccolò','Andrea','Marco','Leonardo','Antonio','Paolo','Battista','Ottaviano','Lorenzo','Tommaso','Agostino'],
+ es:['Alfonso','Ferrante','Federico','Carlo','Giovanni','Fernando','Juan','Pedro','Martín','Enrique'],
+ fr:['Jean','Jacques','Pierre','Guy','Philippe','Louis','Charles','Aimery','Hugues','Henri'],
+ ka:['Giorgi','Aleksandre','Konstantine','Bagrat','Davit','Vakhtang','Levan','Simon','Teimuraz','Kvarkvare'],
+ sq:['Gjergj','Gjon','Lekë','Pal','Nikollë','Tanush','Moisi','Kostandin','Andrea','Gjin'],
+ pp:['Pius','Paulus','Sixtus','Innocentius','Alexander','Julius','Leo','Clemens','Hadrianus','Gregorius','Martinus','Eugenius','Nicolaus','Callixtus','Urbanus']
+};
+/** Commander titles for generated generals, by culture. */
+const CH_GTITLE={tr:' Paşa',tk:' Bey',mm:' Emir',ar:' Kaid',tt:' Mirza'};
+/** How many rulers of each regnal name each numbering house had before 1451 (for generated rulers). */
+const CH_REGNAL={
+ OSM:{Osman:1,Orhan:1,Murad:2,Bayezid:1,Mehmed:2},
+ BYZ:{Konstantinos:11,Ioannes:8,Manuel:2,Andronikos:4,Mikhael:9,Theodoros:2,Alexios:5},
+ TRB:{Yuannis:4,Ioannes:4,Alexios:4,Manuel:3,Andronikos:3,Basileios:1},
+ HUN:{László:5,István:5,Béla:4,András:3,Lajos:1,Ulászló:1,Károly:1,Mátyás:0,János:0},
+ HAB:{Friedrich:3,Albrecht:6,Rudolf:4,Leopold:4,Ernst:1,Karl:4},
+ POL:{Kazimierz:4,Władysław:3,Bolesław:5,Jan:0},
+ ARA:{Alfonso:5,Ferrante:0,Carlo:3,Giovanni:2,Pedro:4,Juan:2,Fernando:1},
+ CYP:{Jean:2,Jacques:1,Pierre:2,Hugues:4,Henri:2},
+ GEO:{Giorgi:8,Aleksandre:1,Konstantine:1,Bagrat:5,Davit:7,Vakhtang:3},
+ WAL:{Vlad:2,Radu:2,Mircea:2,Dan:2,Basarab:2,Vladislav:2},
+ MOL:{Ştefan:2,Bogdan:2,Petru:3,Iliaş:1,Alexandru:1,Roman:2},
+ KRM:{Hacı:1},
+ PAP:{Nicolaus:5,Callixtus:2,Pius:1,Paulus:1,Sixtus:3,Innocentius:7,Alexander:5,Julius:1,Leo:9,Hadrianus:5,Clemens:6,Gregorius:12,Martinus:5,Eugenius:4,Urbanus:6}
+};
+/** Ruler and general traits: player-facing label and plain effect text (numbers live in BAL_C). */
+const CH_TRAITS={
+ adil:{l:'Adil',d:'Halk vergisini gönül rızasıyla öder: her tur +2 altın.'},
+ tuccar:{l:'Tüccar',d:'Ticareti bilir: her tur +3 altın.'},
+ alim:{l:'Âlim',d:'Medreseleri ve kütüphaneleri himaye eder: her tur +1 altın.'},
+ savurgan:{l:'Savurgan',d:'Saray masrafları kabarık: her tur −2 altın.'},
+ cengaver:{l:'Cengâver',d:'Orduya cesaret verir: saldırılarda +5%.'},
+ sebatkar:{l:'Sebatkâr',d:'Sarsılmaz: savunmada +5%.'},
+ dindar:{l:'Dindar',d:'Başka dinden düşmana karşı savunmada +5%.'},
+ zalim:{l:'Zalim',d:'Korku salar: savunmada +10%, ama her tur −1 altın.'},
+ hasta:{l:'Hastalıklı',d:'Sağlığı zayıf; ömrü kısa olabilir.'},
+ fatih:{l:'Fatih',d:'Kaleleri düşürmeyi bilir: surlu şehirlere saldırıda +10%.'},
+ dag:{l:'Dağ Kurdu',d:'Dağlık arazide yapılan muharebelerde +15%.'},
+ topcu:{l:'Topçu',d:'Kaleli eyaletlere saldırıda +10%.'},
+ akinci:{l:'Akıncı',d:'Hızlı süvari: ordusu her tur bir adım fazla yürür.'}
+};
 /* ---------------- war & peace ---------------- */
 function declareWar(a,b){
  if(atWar(a,b)||a===b)return;
@@ -1334,8 +2058,13 @@ PRESENTERS.push({id:'report',order:90,run(next){
  if(S.report.length||S.news.length||S.offers.length)queueModal(showReport);
  next();}});
 /* =====================================================================
-   HISTORY (Track C): scripted historic events, Safavids, random events
+   HISTORY (Track C): scripted historic events, Safavids, and the random
+   event pool engine (EVENTS, filled by 06d-event-pool.js).
+   EVENTS.push({id,w:number|(S,f)=>number,cd,once?,req?(S,f),build(ctx)->{t,d,ch:[{l,f?,dis?}]}|null})
+   build() must only describe the event (no state changes); choices change state.
    ===================================================================== */
+const BAL_EV={chance:.3,minCd:18};          // 30% a turn after turn 1; an event never repeats within 18 turns
+const EVENTS=[];
 function historic(){
  const t=S.turn;
  if(t===8&&alive('OSM')){S.fac.OSM.cannon=1;news('Macar dökümcü Urban, Osmanlı için dev toplar döktü. Osmanlı ordusu kale surlarını artık çok daha kolay aşıyor.','cap');
@@ -1351,6 +2080,7 @@ function spawnSafavid(){
  if(old===S.player){[...take].forEach(i=>{if(S.fac[old].cap===i)take.delete(i);});}
  if(!take.size)return;const F=S.fac.SAF;F.alive=true;F.gold=150;F.mp=20000;F.cannon=1;
  take.forEach(i=>{const p=S.prov[i];p.o='SAF';p.t+=3500;p.un=0;});F.cap=take.has(tb)?tb:[...take].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];
+ if(S.c&&!chRuler('SAF'))chSeedFaction('SAF');
  FK.forEach(g=>{if(g!=='SAF')S.op[key('SAF',g)]=baseOp('SAF',g);});
  if(S.fac[old].alive&&!facProvs(old).length)eliminate(old,'SAF');
  if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]=newWar('SAF',old);runHooks('warDeclared','SAF',old);}
@@ -1358,32 +2088,146 @@ function spawnSafavid(){
  news(hasTb?`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`:`Şah İsmail ${PD[F.cap].name} merkezli bir ayaklanmayla taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu; Tebriz hâlâ ${fname(old)} elinde.`,'cap');polDirty=true;
  if(old===S.player&&S.fac[old].alive)queueModal(()=>eventModal({t:'Kızılbaş Ayaklanması',e:dateStr(S.turn),d:`Şah İsmail'in müritleri ${take.size} eyalette ayaklandı ve Safevî devletini kurdu. ${hasTb?'Tebriz düştü':'Tebriz surları dayandı, ama çevresindeki eyaletler elden çıktı'}; Safevîler sana savaş açtı.`,ch:[{l:'Kılıçlar kınından çıksın'}]}));
 }
-/* ---------------- random events ---------------- */
-function randomEvent(seed){
- const f=S.player,F=S.fac[f],mine=facProvs(f);if(!mine.length){delete S.pendEv;return;}if(seed==null)seed=Math.floor(R()*2147483647);S.pendEv=seed;
- let rs=seed>>>0;const rng=()=>{rs=(rs+0x6D2B79F5)>>>0;let t=rs;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};const pick=a=>a[Math.floor(rng()*a.length)];
- const isM=FAC[f].rel==='İslam';const p=pick(mine),pn=PD[p].name;const un=mine.filter(i=>S.prov[i].un>0);
- const ev=[
-  {w:3,t:isM?'İpek Yolu Kervanı':'Levanten Tüccarlar',d:isM?'Doğudan gelen zengin bir kervan pazarlarında konakladı. Gümrük emini seni bekliyor.':'Venedikli ve Cenevizli tüccarlar limanlarında ticaret izni istiyor.',
-   ch:[{l:`Gümrük al (+${Math.round(20+devSum(f)*.3)} altın)`,f:()=>{F.gold+=Math.round(20+devSum(f)*.3);}}]},
-  {w:2,t:'Veba Salgını',d:`${pn} eyaletinde kara ölüm baş gösterdi. Hekimler karantina istiyor.`,
-   ch:[{l:'Karantina uygula (−30 altın, garnizon −10%)',dis:F.gold<30,f:()=>{F.gold-=30;S.prov[p].t=Math.round(S.prov[p].t*.9/100)*100;}},{l:'Kaderine bırak (gelişmişlik −1, garnizon −35%)',f:()=>{S.prov[p].dev=Math.max(1,S.prov[p].dev-1);S.prov[p].t=Math.round(S.prov[p].t*.65/100)*100;}}]},
-  {w:3,t:'Bereketli Hasat',d:'Ambarlar doldu, köylerden gelen gençler orduya yazılmak istiyor.',ch:[{l:`Ambarları sat (+${Math.round(15+devSum(f)*.2)} altın)`,f:()=>{F.gold+=Math.round(15+devSum(f)*.2);}},{l:'Gönüllüleri al (+6000 insan gücü)',f:()=>{F.mp+=6000;}}]},
-  {w:2,t:isM?'Gezgin Âlim':'Hümanist Bilgin',d:isM?'Semerkant\'tan gelen ünlü bir âlim başkentinde medrese açmak istiyor.':'İtalya\'dan gelen bir bilgin başkentinde kütüphane kurmak istiyor.',
-   ch:[{l:'Himaye et (−40 altın, başkent +1 gelişmişlik)',dis:F.gold<40,f:()=>{F.gold-=40;S.prov[F.cap].dev++;}},{l:'Nazikçe geri çevir'}]},
-  {w:2,t:isM?'Akıncı Beyleri':'Paralı Askerler',d:isM?'Sınır boylarından akıncı beyleri hizmet teklif ediyor.':'Bir condottiere bölüğü ücret karşılığı hizmet teklif ediyor.',
-   ch:[{l:'Kirala (−70 altın, başkente +4000 asker)',dis:F.gold<70,f:()=>{F.gold-=70;S.prov[F.cap].t+=4000;}},{l:'Gerek yok'}]},
-  {w:1,t:'Deprem',d:`${pn} sarsıldı; kale burçlarında çatlaklar var.`,ch:[{l:'Hemen onar (−35 altın)',dis:F.gold<35,f:()=>{F.gold-=35;}},{l:'Bekle (kale −1)',f:()=>{S.prov[p].fort=Math.max(0,S.prov[p].fort-1);}}]},
-  {w:S.turn%4===3?3:0,t:'Sert Kış',d:'Yollar karla kapandı, köylerde kıtlık var.',ch:[{l:'Ambarları aç (−25 altın)',dis:F.gold<25,f:()=>{F.gold-=25;}},{l:'Dayanın (insan gücü −30%)',f:()=>{F.mp=Math.round(F.mp*.7);}}]}
- ];
- if(un.length){const q=pick(un);ev.push({w:4,t:'Ayaklanma',d:`Yeni fethedilen ${PD[q].name} halkı vergilere karşı ayaklandı.`,ch:[{l:'Bastır (garnizon −25%)',f:()=>{S.prov[q].t=Math.round(S.prov[q].t*.75/100)*100;S.prov[q].un=Math.max(0,S.prov[q].un-3);}},{l:'Vergi affı ilan et (−40 altın, huzursuzluk biter)',dis:F.gold<40,f:()=>{F.gold-=40;S.prov[q].un=0;}}]});}
- const fr=FK.filter(g=>g!==f&&alive(g)&&!atWar(f,g));if(fr.length){const g=pick(fr);ev.push({w:2,t:`${FAC[g].s} Elçisi`,d:`${FAC[g].n} elçisi hediyelerle sarayına geldi.`,ch:[{l:'Hediyeleri kabul et (+30 altın)',f:()=>{F.gold+=30;}},{l:'Karşılık ver (−20 altın, ilişki +25)',dis:F.gold<20,f:()=>{F.gold-=20;addOp(f,g,25);}}]});}
- let tot=ev.reduce((a,e)=>a+e.w,0),r=rng()*tot;const e=ev.find(x=>(r-=x.w)<0)||ev[0];
- queueModal(()=>eventModal({...e,e:dateStr(S.turn),pend:1}));
-}
 
+/* ---------------- event pool engine ---------------- */
+/** Development for gold rewards, without the barracks multiplier (bug B5; devRaw comes from Track B). */
+const evDev=f=>typeof devRaw==='function'?devRaw(f):(()=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev;return s;})();
+function evRng(seed){let rs=seed>>>0;return ()=>{rs=(rs+0x6D2B79F5)>>>0;let t=rs;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
+/** Context handed to build(): deterministic from the seed and the current state. */
+function evCtx(f,seed){const rng=evRng(seed),pick=a=>a[Math.floor(rng()*a.length)];const F=S.fac[f],mine=facProvs(f);const p=pick(mine);const d=evDev(f);
+ return {f,F,rng,pick,mine,p,pn:PD[p].name,cap:F.cap,capn:PD[F.cap].name,isM:FAC[f].rel==='İslam',rel:FAC[f].rel,y:chYear(),
+  small:Math.round(10+d*.15),mid:Math.round(20+d*.3),un:mine.filter(i=>S.prov[i].un>0)};}
+function evWeight(e,f){const w=typeof e.w==='function'?e.w(S,f):e.w;return w>0?w:0;}
+function evEligible(e,f){if(e.once&&S.evs[e.id]!=null)return false;const last=S.evs[e.id];
+ if(last!=null&&S.turn-last<Math.max(e.cd||0,BAL_EV.minCd))return false;try{return !e.req||!!e.req(S,f);}catch(err){console.error('event req '+e.id,err);return false;}}
+/** Fire pool event id for the player (records the cooldown; the question survives a reload). */
+function evFire(id,seed){const e=EVENTS.find(x=>x.id===id);if(!e||!S.player)return false;if(seed==null)seed=Math.floor(R()*2147483647);
+ const spec=CH_PEND.ev({id,seed});if(!spec)return false;S.evs[id]=S.turn;chAsk('ev',{id,seed});return true;}
+CH_PEND.ev=({id,seed})=>{const e=EVENTS.find(x=>x.id===id);if(!e||!S.player||!facProvs(S.player).length)return null;
+ const spec=e.build(evCtx(S.player,seed));if(!spec||!spec.ch||!spec.ch.length)return null;return spec;};
+/** One random event from the pool for the player (weighted, cooldowns, requirements). */
+function randomEvent(seed){delete S.pendEv;const f=S.player;if(!f||!facProvs(f).length)return;
+ const L=EVENTS.filter(e=>evEligible(e,f)).map(e=>[e,evWeight(e,f)]).filter(x=>x[1]>0);if(!L.length)return;
+ let r=R()*L.reduce((a,x)=>a+x[1],0);const e=(L.find(x=>(r-=x[1])<0)||L[0])[0];
+ evFire(e.id,seed!=null?seed:undefined);}
 hook('newTurn',()=>historic(),20);
-hook('events',()=>{if(S.turn>1&&R()<.3)randomEvent();},50);
+hook('events',()=>{if(S.turn>1&&R()<BAL_EV.chance)randomEvent();},50);
+KE.evFire=(id,seed)=>evFire(id,seed);
+KE.EVENTS=EVENTS;
+/* =====================================================================
+   EVENT POOL (Track C): random events for the player's realm. Every choice
+   costs something; none is a free "take the gold". Gold scales with the
+   realm's development without barracks (evDev, bug B5).
+   ===================================================================== */
+/** Add troops the way the current rules allow: into an army when field armies exist (Track B), else the garrison. */
+function evTroops(f,i,n){n=Math.round(n/100)*100;if(n<=0)return;const F=S.fac[f];
+ if(typeof armyCap==='function'){const a=armyAt(i,f)[0];if(a){a.n+=n;return;}if(armyList(f).length<armyCap(f)){armyCreate(f,i,n);return;}F.mp+=n;return;}
+ S.prov[i].t+=n;}
+const evCut=(i,fr)=>{const p=S.prov[i];p.t=Math.max(0,Math.round(p.t*(1-fr)/100)*100);};
+const evUnrest=(i,n)=>{S.prov[i].un=Math.max(S.prov[i].un,n);};
+const evPay=(F,v)=>{F.gold=Math.max(0,F.gold-v);};
+const evOthers=(ctx,n)=>{const L=ctx.mine.filter(i=>i!==ctx.cap);const out=[];const r=L.slice();for(let k=0;k<n&&r.length;k++)out.push(r.splice(Math.floor(ctx.rng()*r.length),1)[0]);return out;};
+const evNaval=['VEN','GEN','RHO','CYP','ARA','PAP','HAF','OSM','MAM','BYZ','TRB','KRM'];
+const evTurkish=['OSM','KAR','CAN','DUL','AKK','KKY','SAF'];
+
+EVENTS.push(
+ {id:'kervan',w:3,cd:20,build:c=>{const a=c.mid,k=Math.round(a*.6),[o]=evOthers(c,1);
+  return {t:c.isM?'İpek Yolu Kervanı':'Levanten Tüccarlar',d:c.isM?`Doğudan gelen zengin bir kervan ${c.capn} pazarında konakladı. Gümrük emini ne kadar vergi alınacağını soruyor.`:`Venedikli ve Cenevizli tüccarlar ${c.capn} limanında ticaret izni istiyor.`,
+   ch:[{l:`Ağır gümrük koy (+${a} altın; tüccarlar küser, ${c.capn}${o!=null?' ve '+PD[o].name:''} 3 tur huzursuz)`,f:()=>{c.F.gold+=a;evUnrest(c.cap,3);if(o!=null)evUnrest(o,3);}},
+    {l:`Kervansaray yaptır (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}}]};}},
+ {id:'veba',w:2,cd:24,build:c=>{const q=c.small+10;
+  return {t:'Veba Salgını',d:`${c.pn} eyaletinde kara ölüm baş gösterdi. Hekimler şehrin kapılarının kapatılmasını istiyor.`,
+   ch:[{l:`Karantina uygula (−${q} altın; ${c.pn} garnizonu −10%)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);evCut(c.p,.1);}},
+    {l:`Kaderine bırak (${c.pn} gelişimi −1, garnizonu −35%)`,f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);evCut(c.p,.35);}}]};}},
+ {id:'hasat',w:3,cd:20,build:c=>{const a=c.mid,m=Math.max(1000,Math.round(evDev(c.f)*80/100)*100),k=Math.round(a*.4);
+  return {t:'Bereketli Hasat',d:'Ambarlar doldu. Fazla buğday satılabilir ya da köylerden gelen gençler beslenip orduya yazılabilir.',
+   ch:[{l:`Fazlayı tüccarlara sat (+${a} altın; köyler kışa hazırlıksız, insan gücü −15%)`,f:()=>{c.F.gold+=a;c.F.mp=Math.round(c.F.mp*.85);}},
+    {l:`Gönüllüleri yaz (+${fmtK(m)} insan gücü; teçhizatları −${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
+ {id:'alim',w:2,cd:24,build:c=>{const k=30+c.small;
+  return {t:c.isM?'Gezgin Âlim':'Hümanist Bilgin',d:c.isM?'Semerkant\'tan gelen ünlü bir âlim başkentinde medrese açmak istiyor.':'İtalya\'dan gelen bir bilgin başkentinde kütüphane kurmak istiyor.',
+   ch:[{l:`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
+    {l:'Nazikçe geri çevir (hazine korunur, bilgin başka bir saraya gider)'}]};}},
+ {id:'paralı',w:2,cd:20,build:c=>{const k=40+Math.round(evDev(c.f)*.2),n=3000;
+  return {t:c.isM?'Akıncı Beyleri':'Paralı Askerler',d:c.isM?'Sınır boylarından akıncı beyleri hizmet teklif ediyor.':'Bir condottiere bölüğü ücret karşılığı hizmet teklif ediyor.',
+   ch:[{l:`Kirala (−${k} altın; ${c.capn} yakınına +${fmtK(n)} asker)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);evTroops(c.f,c.cap,n);}},
+    {l:'Gerek yok (hazine korunur)'}]};}},
+ {id:'deprem',w:1,cd:30,build:c=>{const q=20+c.small,p=S.prov[c.p];
+  return {t:'Deprem',d:`${c.pn} sarsıldı; ${p.fort>0?'kale burçlarında çatlaklar var':'evler ve çarşı yıkıldı'}.`,
+   ch:[{l:`Hemen onar (−${q} altın)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},
+    {l:p.fort>0?`Bekle (${c.pn} kalesi −1)`:`Bekle (${c.pn} gelişimi −1)`,f:()=>{const x=S.prov[c.p];if(x.fort>0)x.fort--;else x.dev=Math.max(1,x.dev-1);}}]};}},
+ {id:'kis',w:(S)=>S.turn%4===3?3:0,cd:20,build:c=>{const q=15+c.small;
+  return {t:'Sert Kış',d:'Yollar karla kapandı, köylerde kıtlık var.',
+   ch:[{l:`Ambarları aç (−${q} altın)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},{l:'Dayanın (insan gücü −30%)',f:()=>{c.F.mp=Math.round(c.F.mp*.7);}}]};}},
+ {id:'ayaklanma',w:4,cd:18,req:(S,f)=>facProvs(f).some(i=>S.prov[i].un>0),build:c=>{if(!c.un.length)return null;const q=c.pick(c.un),k=30+c.small;
+  return {t:'Ayaklanma',d:`${PD[q].name} halkı ağır vergilere karşı ayaklandı.`,
+   ch:[{l:`Bastır (${PD[q].name} garnizonu −25%, huzursuzluk kısalır)`,f:()=>{evCut(q,.25);S.prov[q].un=Math.max(0,S.prov[q].un-3);}},
+    {l:`Vergi affı ilan et (−${k} altın; huzursuzluk biter)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);S.prov[q].un=0;}}]};}},
+ {id:'elci',w:2,cd:20,req:(S,f)=>FK.some(g=>g!==f&&alive(g)&&!atWar(f,g)),build:c=>{const L=FK.filter(g=>g!==c.f&&alive(g)&&!atWar(c.f,g));if(!L.length)return null;const g=c.pick(L),a=20+c.small,k=20;
+  return {t:`${FAC[g].s} Elçisi`,d:`${FAC[g].n} elçisi, ${rulerName(g)} adına hediyelerle sarayına geldi. Görgü kuralları karşılık vermeni gerektiriyor.`,
+   ch:[{l:`Hediyeleri al, karşılık verme (+${a} altın; ${FAC[g].s} ile ilişki −10)`,f:()=>{c.F.gold+=a;addOp(c.f,g,-10);}},
+    {l:`Cömertçe karşılık ver (−${k} altın; ${FAC[g].s} ile ilişki +25)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,25);}}]};}},
+ {id:'novobrdo',w:3,cd:30,req:(S,f)=>S.prov[PK.novobirda].o===f,build:c=>{const i=PK.novobirda,a=c.mid+20,k=25;
+  return {t:'Novobırda Gümüş Madenleri',d:'Sakson ustaların işlettiği Novobırda madenleri Balkanların en zengin gümüşünü çıkarıyor. Hazine madeni doğrudan işletmek istiyor.',
+   ch:[{l:`Madeni devlete bağla (+${a} altın; Novobırda 4 tur huzursuz)`,f:()=>{c.F.gold+=a;evUnrest(i,4);}},
+    {l:`Madencilere imtiyaz ver (−${k} altın; Novobırda gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].dev<12)S.prov[i].dev++;}}]};}},
+ {id:'tolfa',w:3,cd:30,req:(S,f)=>S.prov[PK.roma].o===f&&chYear()>=1462,build:c=>{const a=c.mid+30;
+  return {t:'Tolfa\'nın Şap Madeni',d:'Roma yakınındaki Tolfa\'da zengin bir şap yatağı bulundu. Kumaş boyacılığının vazgeçilmezi şap, şimdiye dek Türk topraklarından geliyordu.',
+   ch:[{l:`Tekel ilan et (+${a} altın; Venedik ve Ceneviz ile ilişki −15)`,f:()=>{c.F.gold+=a;['VEN','GEN'].forEach(g=>{if(g!==c.f&&alive(g))addOp(c.f,g,-15);});}},
+    {l:`Madeni bankerlere kirala (+${Math.round(a/2)} altın; ilişkiler bozulmaz)`,f:()=>{c.F.gold+=Math.round(a/2);}}]};}},
+ {id:'sapboykot',w:2,cd:30,req:(S,f)=>FAC[f].rel==='Katolik'&&f!=='PAP'&&alive('PAP')&&chYear()>=1463,build:c=>{const a=c.small+10,k=c.small;
+  return {t:'Türk Şapı Yasağı',d:'Papa, Hıristiyan tüccarların Türk şapı almasını yasakladı ve Tolfa şapını öneriyor. Ama Türk şapı çok daha ucuz.',
+   ch:[{l:`Yasağa uy (−${k} altın; Papalık ile ilişki +20)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,'PAP',20);}},
+    {l:`Ucuz Türk şapını al (+${a} altın; Papalık ile ilişki −20)`,f:()=>{c.F.gold+=a;addOp(c.f,'PAP',-20);}}]};}},
+ {id:'bedreddin',w:2,cd:30,req:(S,f)=>evTurkish.includes(f),build:c=>{const k=20+c.small,m=Math.max(1000,Math.round(evDev(c.f)*40/100)*100);
+  return {t:'Bedreddin\'in Mirası',d:`${c.pn} köylerinde Şeyh Bedreddin\'in müritleri malın ortak olduğunu vaaz ediyor. Kadılar tedirgin, köylüler dervişlere akın ediyor.`,
+   ch:[{l:`Şeyhleri sürgün et (${c.pn} 4 tur huzursuz)`,f:()=>{evUnrest(c.p,4);}},
+    {l:`Tekkelere vakıf bağla (−${k} altın; dervişler gaziler arasına katılır, +${fmtK(m)} insan gücü)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
+ {id:'birlik',w:4,cd:40,once:1,req:(S,f)=>FAC[f].rel==='Ortodoks'&&chYear()<1461,build:c=>{const m=Math.max(1000,Math.round(evDev(c.f)*60/100)*100);
+  return {t:'Kilise Birliği Çekişmesi',d:'Floransa\'da imzalanan Kilise Birliği halkı ikiye böldü. Latinler yardım için Birliğin ilanını bekliyor; keşişler ve halk ise "Latin külahındansa Türk sarığı yeğdir" diyor.',
+   ch:[{l:`Birliği ilan et (Venedik ve Papalık ile ilişki +20; ${c.capn} 4 tur huzursuz)`,f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,20);});evUnrest(c.cap,4);}},
+    {l:`Ortodoks halkın yanında dur (Venedik ve Papalık ile ilişki −15; +${fmtK(m)} gönüllü insan gücü)`,f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,-15);});c.F.mp+=m;}}]};}},
+ {id:'bahsis',w:0,cd:0,req:(S,f)=>f==='OSM',build:c=>{const k=Math.max(30,Math.round(evDev(c.f)*.4)),r=chRuler(c.f);
+  return {t:'Cülus Bahşişi',d:`Yeniçeriler, ${r?r.rn||r.n:'yeni padişah'} tahta çıkınca âdet olan cülus bahşişini istiyor. Vermezsen kışlalarda kazan kaldırabilirler.`,
+   ch:[{l:`Bahşişi dağıt (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:`Reddet (${c.capn} garnizonu −25%, 4 tur huzursuz)`,f:()=>{evCut(c.cap,.25);evUnrest(c.cap,4);}}]};}},
+ {id:'veba64',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1464&&y<=1467;},build:c=>evPlague(c,'Büyük Veba','Balkanlardan Anadolu\'ya yayılan büyük veba salgını şehirleri boşaltıyor. Saray ne yapacağını tartışıyor.')},
+ {id:'veba90',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1490&&y<=1493;},build:c=>evPlague(c,'Veba Yeniden','Veba bir kez daha limanlardan içerilere yayıldı. Divan başkentte mi kalmalı, yoksa yaylaya mı çekilmeli?')},
+ {id:'entrika',w:2,cd:30,req:(S,f)=>{const r=chRuler(f),h=chHeir(f);return !!r&&!!h&&chAge(r)>=45&&chAge(h)>=18;},build:c=>{const r=chRuler(c.f),h=chHeir(c.f);if(!r||!h)return null;const k=20+c.small;
+  return {t:'Saray Entrikası',d:`Bazı vezirler ve beyler, yaşlanan ${r.rn||r.n} yerine ${chLabel(h)} etrafında toplanıyor. Saray fısıltılarla dolu.`,
+   ch:[{l:`Veliahtı uzak bir sancağa gönder (−${k} altın masraf)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:`Hizbi dağıt, vezirleri azlet (${c.capn} 3 tur huzursuz)`,f:()=>{evUnrest(c.cap,3);}}]};}},
+ {id:'komutan',w:2,cd:24,req:(S,f)=>chGenerals(f).some(g=>g.skill<5&&g.cap==null),build:c=>{const L=chGenerals(c.f).filter(g=>g.skill<5&&g.cap==null);if(!L.length)return null;const g=c.pick(L),k=25+c.small;
+  return {t:'Komutanın Dileği',d:`${g.n} sadakatinin karşılığında kendisine geniş bir dirlik verilmesini istiyor.`,
+   ch:[{l:`Dirliği ver (−${k} altın; ${g.n} kabiliyeti +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const x=S.chars[g.id];if(x)x.skill=Math.min(5,x.skill+1);}},
+    {l:`Reddet (${g.n} küser, kabiliyeti −1)`,f:()=>{const x=S.chars[g.id];if(x)x.skill=Math.max(1,x.skill-1);}}]};}},
+ {id:'evlilik',w:2,cd:30,req:(S,f)=>{const h=chHeir(f);return !!h&&chAge(h)>=14&&chAge(h)<=35&&FK.some(g=>g!==f&&alive(g)&&!atWar(f,g)&&getOp(f,g)>=0);},build:c=>{
+  const h=chHeir(c.f);if(!h)return null;const L=FK.filter(g=>g!==c.f&&alive(g)&&!atWar(c.f,g)&&getOp(c.f,g)>=0);if(!L.length)return null;
+  const same=L.filter(g=>FAC[g].rel===c.rel);const g=(c.f==='TRB'&&L.includes('AKK'))?'AKK':(c.f==='AKK'&&L.includes('TRB'))?'TRB':c.pick(same.length?same:L);const k=25+c.small;
+  return {t:'Evlilik Teklifi',d:(c.f==='AKK'&&g==='TRB')||(c.f==='TRB'&&g==='AKK')?'Trabzon sarayı ile Akkoyunlular arasında bir düğün konuşuluyor; tıpkı Despina Hatun ile Uzun Hasan\'ın evliliği gibi.':`${FAC[g].n}, ${chLabel(h)} için bir evlilik teklif ediyor. Düğün pahalı, ama iki saray arasında bağ kurar.`,
+   ch:[{l:`Düğünü yap (−${k} altın; ${FAC[g].s} ile ilişki +30)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,30);if(getOp(c.f,g)>=60&&!atWar(c.f,g)&&!isAlly(c.f,g)){S.ally[key(c.f,g)]=true;news(`${FAC[g].s} ile evlilik ittifakı kuruldu.`,'good');}}},
+    {l:`Teklifi geri çevir (${FAC[g].s} ile ilişki −15)`,f:()=>{addOp(c.f,g,-15);}}]};}},
+ {id:'korsan',w:2,cd:24,req:(S,f)=>evNaval.includes(f),build:c=>{const k=20+c.small;
+  return {t:'Korsan Baskını',d:`Korsan gemileri ${c.pn} kıyılarını yağmalıyor; köyler boşalıyor.`,
+   ch:[{l:`Kadırga filosu gönder (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:`Kıyıyı kendi hâline bırak (${c.pn} gelişimi −1)`,f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);}}]};}},
+ {id:'sinir',w:2,cd:20,req:(S,f)=>warsOf(f).length>0,build:c=>{const front=c.mine.filter(i=>PD[i].adj.some(j=>atWar(c.f,S.prov[j].o)));if(!front.length)return null;const i=c.pick(front),a=c.small+10,k=20+c.small;
+  return {t:'Sınır Akını',d:`Düşman akıncıları ${PD[i].name} köylerine baskın yaptı. Beyler karşılık vermek için izin istiyor.`,
+   ch:[{l:`Karşı akın düzenle (+${a} altın ganimet; ${PD[i].name} garnizonu −10%)`,f:()=>{c.F.gold+=a;evCut(i,.1);}},
+    {l:S.prov[i].fort<4?`Kaleyi tahkim et (−${k} altın; ${PD[i].name} kalesi +1)`:`Surları onar (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].fort<4)S.prov[i].fort++;}}]};}},
+ {id:'hac',w:2,cd:30,req:(S,f)=>f==='MAM'||f==='OSM'||f==='HAF',build:c=>{const k=20+c.small;
+  return {t:'Hac Kervanı',d:'Hac kervanı yola çıkıyor. Bedevi saldırılarına karşı muhafız ve su kuyuları için para gerekiyor.',
+   ch:[{l:`Kervanı koru (−${k} altın; Müslüman devletlerle ilişki +10)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);FK.forEach(g=>{if(g!==c.f&&alive(g)&&FAC[g].rel==='İslam')addOp(c.f,g,10);});}},
+    {l:`Kervanı kendi hâline bırak (${c.capn} 2 tur huzursuz)`,f:()=>{evUnrest(c.cap,2);}}]};}},
+ {id:'matbaa',w:2,cd:0,once:1,req:(S,f)=>FAC[f].rel==='Katolik'&&chYear()>=1470,build:c=>{const k=30+c.small;
+  return {t:'Matbaacılar',d:'Alman ustalar hareketli harflerle kitap basan bir matbaa kurmak istiyor. Kâtipler loncası ise buna karşı.',
+   ch:[{l:`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
+    {l:'Loncayı dinle (hazine korunur, yenilik kaçar)'}]};}}
+);
+function evPlague(c,t,d){const k=25+c.small;
+ return {t,d,ch:[{l:`Saray yaylaya çekilsin (−${k} altın; insan gücü −10%)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp=Math.round(c.F.mp*.9);}},
+  {l:`Divan başkentte kalsın (${c.capn} gelişimi −1; hükümdar hastalanabilir)`,f:()=>{const p=S.prov[c.cap];p.dev=Math.max(1,p.dev-1);const r=chRuler(c.f);if(r&&R()<.35&&!r.traits.includes('hasta')){r.traits.push('hasta');news(`${r.rn||r.n} vebaya yakalandı; sağlığı bozuldu.`,'war');}}}]};}
+/* The janissaries ask their accession gift whenever an Ottoman player's sultan comes to the throne. */
+hook('succession',(f,old,neu)=>{if(f===S.player&&f==='OSM'&&old)evFire('bahsis');});
 /* =====================================================================
    RENDERING
    ===================================================================== */
