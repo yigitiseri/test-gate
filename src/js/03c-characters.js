@@ -130,11 +130,12 @@ function chSucceed(f,old,o={}){const F=S.fac[f],sd=CH_SEED[f]||{};if(!F||!F.aliv
  let msg=how==='elect'?`${FAC[f].s}: ${nm} yeni ${ttl.toLowerCase()} seçildi.`:how==='invite'?`${FAC[f].s} tahtına ${nm} davet edildi.`:how==='crisis'?`${FAC[f].s} tahtı boş kaldı; beyler ${nm} adını taşıyan uzak bir akrabayı tahta çıkardı.`:`${FAC[f].s} tahtına ${nm} çıktı.`;
  if(minor)msg+=` Hükümdar henüz ${age} yaşında; devleti bir naip yönetecek.`;
  chNews(f,msg,'cap');
- runHooks('succession',f,old,neu);
  if(f===S.player){try{SND.play('succession');}catch(e){}
   if(how==='crisis')chAsk('crisis',{f,id:neu.id});
-  else queueModal(()=>eventModal({t:how==='elect'?'Yeni Seçim':'Taht Değişti',e:dateStr(S.turn),d:(old?`${old.rn||old.n} artık yok. `:'')+msg+(chHeir(f)?` Veliaht: ${chLabel(chHeir(f))}.`:' Tahtın bir varisi yok; hanedanın geleceği belirsiz.'),ch:[{l:`Yaşasın ${nm}!`}]}));}
+  else{const hd=chHeir(f),d=(old?`${old.rn||old.n} artık yok. `:'')+msg+(hd?` Veliaht: ${chLabel(hd)}.`:' Tahtın bir varisi yok; hanedanın geleceği belirsiz.');
+   queueModal(()=>eventModal({t:how==='elect'?'Yeni Seçim':'Taht Değişti',e:dateStr(S.turn),d,ch:[{l:`Yaşasın ${nm}!`}]}));}}
  else if(how==='crisis')chCrisisAI(f);
+ runHooks('succession',f,old,neu);
  return neu;}
 /** Crisis consequences for an AI realm: 1-3 provinces turn restless. */
 function chCrisisAI(f){const ps=facProvs(f).filter(i=>i!==S.fac[f].cap);const n=Math.min(ps.length,1+Math.floor(R()*3));
