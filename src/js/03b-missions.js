@@ -19,7 +19,7 @@ const MIS={
   {id:'A4',br:'A',req:['A3'],t:'Belgrad Kapısı',d:'Macarların Tuna kalesini düşür.',own:['belgrad'],g:90},
   {id:'A5',br:'A',req:['A4'],t:'Budin\'e Doğru',d:'Macar başkentini al.',own:['budin'],g:200},
   {id:'A6',br:'A',req:['A1'],t:'Otranto Seferi',d:'İtalya kıyısında bir köprübaşı kur.',own:['otranto'],g:80},
-  {id:'A7',br:'A',req:['A6'],t:'Kızıl Elma',d:'Roma\'yı fethet.',own:['roma'],g:300},
+  {id:'A7',br:'A',req:['A6'],t:'Roma Seferi',d:'Kızıl Elma: Roma\'yı fethet.',own:['roma'],g:300},
   {id:'B1',br:'B',t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
   {id:'B2',br:'B',req:['B1'],t:'Trabzon Seferi',d:'Komnenosların son kalesini al.',own:['trabzon'],g:60},
   {id:'B3',br:'B',req:['B1'],t:'Doğu Seferi',d:'Tebriz\'e yürü ve İran kapısını aç.',own:['tebriz'],g:150},

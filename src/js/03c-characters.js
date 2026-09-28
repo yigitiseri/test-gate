@@ -159,8 +159,8 @@ function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive
  else if(wasHeir&&F.alive)chPickHeir(f);
  return c;}
 /** Dynasty news: the player's realm and its neighbours / war enemies get season news, others the chronicle. */
-function chNews(f,m,k){chRep.push({f,m});if(!S.player)return;const pl=S.player;
- if(f===pl||atWar(pl,f)||isAlly(pl,f)||nbrs(pl).includes(f))news(m,k);else addLog(m,'info');}
+function chNews(f,m,k){if(!S.player)return;const pl=S.player;
+ if(f===pl||atWar(pl,f)||isAlly(pl,f)||nbrs(pl).includes(f))news(m,k);else{addLog(m,'info');chRep.push({f,m});}}
 
 /* ---------------- yearly life: births, historical arrivals, aging ---------------- */
 function chHazard(c,y){const a=y-c.born;let h=BAL_C.h0*Math.exp(BAL_C.hb*(a-40));

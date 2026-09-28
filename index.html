@@ -1059,7 +1059,7 @@ const MIS={
   {id:'A4',br:'A',req:['A3'],t:'Belgrad Kapısı',d:'Macarların Tuna kalesini düşür.',own:['belgrad'],g:90},
   {id:'A5',br:'A',req:['A4'],t:'Budin\'e Doğru',d:'Macar başkentini al.',own:['budin'],g:200},
   {id:'A6',br:'A',req:['A1'],t:'Otranto Seferi',d:'İtalya kıyısında bir köprübaşı kur.',own:['otranto'],g:80},
-  {id:'A7',br:'A',req:['A6'],t:'Kızıl Elma',d:'Roma\'yı fethet.',own:['roma'],g:300},
+  {id:'A7',br:'A',req:['A6'],t:'Roma Seferi',d:'Kızıl Elma: Roma\'yı fethet.',own:['roma'],g:300},
   {id:'B1',br:'B',t:'Karaman Meselesi',d:'Konya ve Larende\'yi ilhak et.',own:['konya','karaman'],g:80},
   {id:'B2',br:'B',req:['B1'],t:'Trabzon Seferi',d:'Komnenosların son kalesini al.',own:['trabzon'],g:60},
   {id:'B3',br:'B',req:['B1'],t:'Doğu Seferi',d:'Tebriz\'e yürü ve İran kapısını aç.',own:['tebriz'],g:150},
@@ -1447,8 +1447,8 @@ function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive
  else if(wasHeir&&F.alive)chPickHeir(f);
  return c;}
 /** Dynasty news: the player's realm and its neighbours / war enemies get season news, others the chronicle. */
-function chNews(f,m,k){chRep.push({f,m});if(!S.player)return;const pl=S.player;
- if(f===pl||atWar(pl,f)||isAlly(pl,f)||nbrs(pl).includes(f))news(m,k);else addLog(m,'info');}
+function chNews(f,m,k){if(!S.player)return;const pl=S.player;
+ if(f===pl||atWar(pl,f)||isAlly(pl,f)||nbrs(pl).includes(f))news(m,k);else{addLog(m,'info');chRep.push({f,m});}}
 
 /* ---------------- yearly life: births, historical arrivals, aging ---------------- */
 function chHazard(c,y){const a=y-c.born;let h=BAL_C.h0*Math.exp(BAL_C.hb*(a-40));
