@@ -75,7 +75,8 @@ function aGarMax(i){if(typeof garrisonMax==='function')return garrisonMax(i);con
 /** Greedy label placement: rects [x0,y0,x1,y1] already taken this frame. */
 const aOcc=[];
 function aFree(r){for(let k=0;k<aOcc.length;k++){const o=aOcc[k];if(r[0]<o[2]&&r[2]>o[0]&&r[1]<o[3]&&r[3]>o[1])return false;}return true;}
-KE.aLabels=()=>aOcc.map(r=>r.map(v=>Math.round(v)));
+KE.aLabels=()=>aOcc.map(r=>({k:r.k,r:r.slice(0,4).map(v=>Math.round(v))}));
+const aTag=(r,k)=>{r.k=k;return r;};
 function draw(){
  need=false;if(!baseC||!S)return;
  if(polDirty){renderPol();hlKey='';}
@@ -109,14 +110,14 @@ function draw(){
   ctx.strokeStyle=cl;ctx.lineWidth=5;ctx.setLineDash([12,7]);ctx.lineDashOffset=-(now/40)%19;ctx.beginPath();ctx.moveTo(ax,ay);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=cl;ctx.strokeStyle='rgba(10,8,4,.7)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx+4*Math.cos(an),by+4*Math.sin(an));ctx.lineTo(bx-18*Math.cos(an-.5),by-18*Math.sin(an-.5));ctx.lineTo(bx-18*Math.cos(an+.5),by-18*Math.sin(an+.5));ctx.closePath();ctx.fill();ctx.stroke();}
  // layout: army tokens are fixed first, then garrison chips and city names are placed greedily around them (A4)
- aOcc.length=0;const toks=tokLayout(s,g3,now);for(const t of toks)aOcc.push(t.r);
+ aOcc.length=0;const toks=tokLayout(s,g3,now);for(const t of toks)aOcc.push(aTag(t.r.slice(),'t'));
  const vis=[],P0={};for(const d of PD){const q=pj(d.lx,d.ly);if(!q[2]||q[0]<-70||q[1]<-50||q[0]>vw+70||q[1]>vh+50)continue;P0[d.i]=q;vis.push(d);}
  vis.sort((a,b)=>P0[a.i][1]-P0[b.i][1]);
  const nearSel=new Set(sel>=0?[sel,...PD[sel].adj]:[]);const recent=new Set(S.battles.filter(b=>b.turn>=S.turn-1).map(b=>b.to));
  const szs={},phone=vw<760;
  for(const d of vis){const p=S.prov[d.i],[sx,sy]=P0[d.i],isCap=S.fac[p.o]&&S.fac[p.o].cap===d.i;
   if(g3){szs[d.i]=(1.9+p.dev*.3)*s*1.4;continue;}
-  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6]);}
+  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push(aTag([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6],'c'));}
   else if(isCap){szs[d.i]=4;ctx.font='13px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle='rgba(20,14,8,.7)';ctx.strokeText('★',sx,sy);ctx.fillStyle='#f1cf72';ctx.fillText('★',sx,sy);}}
  // garrison chips: hidden under 0.1k; shown near the selection, on hover, for big stacks, or when zoomed in and the garrison is at least half full
  const chips=[],pl=S.player,zMin=phone?1.1:.75;
@@ -130,7 +131,7 @@ function draw(){
   else{const [x,y]=P0[i];cand=[[x+sz*.95+3,y-h/2-3],[x-sz*.95-3-w,y-h/2-3],[x-w/2,y-sz*1.25-h-1],[x+sz*.6,y+sz*.5+2]];}
   let pos=null;for(const q of cand){const r=[q[0]-1,q[1]-1,q[0]+w+1,q[1]+h+1];if(aFree(r)){pos=q;break;}}
   if(!pos){if(!c.force)continue;pos=cand[0];}
-  aOcc.push([pos[0]-1,pos[1]-1,pos[0]+w+1,pos[1]+h+1]);c.x=pos[0];c.y=pos[1];c.w=w;c.txt=txt;}
+  aOcc.push(aTag([pos[0]-1,pos[1]-1,pos[0]+w+1,pos[1]+h+1],'g'));c.x=pos[0];c.y=pos[1];c.w=w;c.txt=txt;}
  // city names fade in with zoom; a name that would cover a chip, token or another name tries above the city, else waits for more zoom
  const na=clamp((s-1.1)/.3,0,1);
  if(na>0){ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.font=`700 ${s>2?13:12}px "Cinzel", Georgia, serif`;ctx.globalAlpha=na;
@@ -139,7 +140,7 @@ function draw(){
    const ys=[sy0+(g3?Math.min(sz,26)*.9+10:sz*.7+9),sy0-(g3?Math.min(sz,26)*1.4+14:sz*1.4+11)];let y=null;
    for(const yy of ys){if(aFree([sx-w/2,yy-hh/2,sx+w/2,yy+hh/2])){y=yy;break;}}
    if(y==null){if(d.i!==sel&&s<2.6)continue;y=ys[0];}
-   aOcc.push([sx-w/2,y-hh/2,sx+w/2,y+hh/2]);
+   aOcc.push(aTag([sx-w/2,y-hh/2,sx+w/2,y+hh/2],'n'));
    ctx.lineWidth=3.5;ctx.strokeStyle='rgba(248,240,218,.85)';ctx.strokeText(d.name,sx,y);ctx.fillStyle='#24190e';ctx.fillText(d.name,sx,y);}
   ctx.globalAlpha=1;}
  for(const c of chips)if(c.x!=null)drawGar(c.x,c.y,c.w,c.txt,FAC[c.p.o].c,c.mine,c.war,c.mine&&c.p.mv>=c.p.t*.5,c.force);
