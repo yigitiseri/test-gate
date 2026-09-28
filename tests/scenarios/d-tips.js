@@ -60,13 +60,7 @@ module.exports = {
     await page.keyboard.press('Escape'); await W(120);
 
     // advisor and warnings: push the treasury into the red
-    await E(() => { const K = window.__ke, S = K.S; S.prov[S.fac.OSM.cap].t += 150000; S.fac.OSM.gold = 30; K.hook('renderAll', () => {}); });
-    await E(() => document.querySelector('#top [data-act="chron"]').click()); await E(() => document.querySelector('#modal [data-act="mclose"]').click());
-    await E(() => { const K = window.__ke; K.uiToast('x'); }); // any renderAll-free path: force one render below
-    await page.click('#facBtn'); await page.click('#modal [data-act="mclose"]');
-    await E(() => document.querySelector('#top [data-act="menu"]').click()); await E(() => document.querySelector('#modal [data-act="mclose"]').click());
-    await E(() => { const b = document.querySelector('#top [data-act="snd"]'); b.click(); b.click(); });
-    await E(() => { window.__ke.hook; }); await E(() => { const K = window.__ke; K.runHooks('renderAll'); });
+    await E(() => { const K = window.__ke, S = K.S; S.prov[S.fac.OSM.cap].t += 150000; S.fac.OSM.gold = 30; K.uiRender(); });
     await W(150);
     const adv = await E(() => ({ id: window.__ke.uiAdvice(), vis: !document.getElementById('uiAdv').hidden, txt: document.querySelector('#uiAdv .adv-t').textContent }));
     check('vizier warns about the treasury', adv.id === 'bank' && adv.vis, adv);
@@ -75,10 +69,7 @@ module.exports = {
     await page.click('#uiAdv [data-act="adv-go"]'); await W(150);
     check('advice button opens the state book', await E(() => !!document.querySelector('#modal .ledger')));
     await E(() => document.querySelector('#modal [data-act="mclose"]').click());
-    await E(() => { const K = window.__ke; K.S.turn = K.S.turn; }); // top bar re-render happens on the next action
-    await page.click('#facBtn'); await E(() => document.querySelector('#modal [data-act="mclose"]').click());
-    await E(() => { window.__ke.runHooks('renderAll'); });
-
+    await E(() => window.__ke.uiRender());
     // end-turn guard: the first press only warns, the second ends the turn
     const t0 = await E(() => window.__ke.S.turn);
     check('end-turn risk detected', !!(await E(() => window.__ke.uiEndRisk())));
@@ -93,7 +84,7 @@ module.exports = {
 
     // Space ends the turn when the treasury is fine
     await E(() => { const K = window.__ke, S = K.S; S.prov[S.fac.OSM.cap].t = 5000; S.fac.OSM.gold = 500; });
-    await page.click('#facBtn'); await E(() => document.querySelector('#modal [data-act="mclose"]').click());
+    await E(() => window.__ke.uiRender());
     await page.mouse.click(5, 500); await W(100); await E(() => document.activeElement && document.activeElement.blur && document.activeElement.blur());
     const t1 = await E(() => window.__ke.S.turn);
     await page.keyboard.press('Space');

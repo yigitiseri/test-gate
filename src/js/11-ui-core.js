@@ -128,7 +128,7 @@ ACTS.end=()=>{const r=uiEndRisk();
   toast(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,'war');
   renderTop();setTimeout(()=>{if(!busy)renderTop();},uiCfg.endArmMs+50);return;}
  uiEndArm=0;endTurn();};
-KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);
+KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);KE.uiRender=()=>renderAll();
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
 addEventListener('pagehide',()=>{if(S&&S.player&&!busy)save();});

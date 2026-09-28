@@ -31,7 +31,8 @@ module.exports = {
     // --- bottom sheet: peek on selection
     const cap = await E(() => window.__ke.S.fac.OSM.cap);
     await L.clickProv(page, cap); await W(450);
-    const sheet = () => E(() => { const p = document.getElementById('panel'), r = p.getBoundingClientRect(); return { snap: p.dataset.snap, h: r.height, top: r.top, frac: r.height / innerHeight, hidden: p.hidden }; });
+    // the committed (post-transition) height: inline style when set, else the laid-out height
+    const sheet = () => E(() => { const p = document.getElementById('panel'), r = p.getBoundingClientRect(), h = p.style.height ? parseFloat(p.style.height) : r.height; return { snap: p.dataset.snap, h, top: innerHeight - h, frac: h / innerHeight, hidden: p.hidden }; });
     let s = await sheet();
     check('sheet opens at peek and covers <= 30% of the screen', !s.hidden && s.snap === 'peek' && s.frac <= 0.30, s);
     check('peek shows the province name', await E(() => { const h = document.querySelector('#panel .ph h2').getBoundingClientRect(), p = document.getElementById('panel').getBoundingClientRect(); return h.top >= p.top && h.bottom <= p.bottom; }));
