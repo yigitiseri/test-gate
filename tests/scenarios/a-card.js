@@ -32,6 +32,14 @@ module.exports = {
     await page.waitForSelector('#card:not([hidden])', { timeout: 5000 });
     await page.click('#card .a-bc-sides', { force: true });
     check('tap closes the card', await page.evaluate(() => document.getElementById('card').hidden));
+    // display settings in the menu (localStorage 'ke-anim', not S)
+    await page.click('#top [data-act="menu"]');
+    const m0 = await page.evaluate(() => document.querySelector('#modal [data-act="a-speed"]') && document.querySelector('#modal [data-act="a-speed"]').innerText);
+    await page.click('#modal [data-act="a-speed"]');
+    const m1 = await page.evaluate(() => ({ t: document.querySelector('#modal [data-act="a-speed"]').innerText, ls: localStorage.getItem('ke-anim'), inS: JSON.stringify(window.__ke.S).includes('speed') }));
+    check('menu "Görüntü" cycles the animation speed and stores it outside the save', !!m0 && m0 !== m1.t && /speed/.test(m1.ls || '') && !m1.inS, { m0, m1 });
+    await page.click('#modal [data-act="a-speed"]'); await page.click('#modal [data-act="a-speed"]');
+    await page.click('#modal [data-act="mclose"]');
     // phone: the card must not overlap the open province panel
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(300);
