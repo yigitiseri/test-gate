@@ -7,6 +7,7 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  <div><time>Hazine</time><span>Gelir eyalet gelişiminden gelir, her 1.000 asker tur başına 1 altın maaş ister. Hazine eksiye düşerse askerler firar eder.</span></div>
  <div><time>Fetih</time><span>Yeni alınan eyalet 8 tur huzursuz kalır ve yarı gelir verir. Başkent kaybı hazinenin %30'unu götürür.</span></div>
  <div><time>Diplomasi</time><span>Savaş ilan et, barış ya da haraç iste, ittifak kur. Müttefikler savunma savaşlarında yardıma gelir. Barıştan sonra 12 tur ateşkes olur.</span></div>
+ <div><time>İpuçları</time><span>Bir sayının ya da düğmenin üzerinde dur (telefonda basılı tut): vezir ne işe yaradığını anlatır. Klavyede Boşluk turu bitirir, Esc kapatır, 1–4 Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</span></div>
  <div><time>Zafer</time><span>Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla. Haritayı sürükle, tekerlek ya da iki parmakla yakınlaştır.</span></div>
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
 function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
@@ -28,14 +29,25 @@ function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?
  <div class="foot"><button class="btn" data-act="mclose">Haritaya bak</button><button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
 
 /* ---------------- start screen ---------------- */
+/* start screen: group anchors (Güçlü / Dengeli / Zorlu) at the top of the list, a scroll hint while
+   more cards are below, and the choice bar under the list (never over it). */
+const uiStartGroups=[[1,'Güçlü başlangıç','Güçlü'],[2,'Dengeli','Dengeli'],[3,'Zorlu','Zorlu']];
 function renderStart(){
- const groups=[[1,'Güçlü başlangıç'],[2,'Dengeli'],[3,'Zorlu']];
- $('#flist').innerHTML=groups.map(([g,t])=>`<div class="fgroup"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('');
+ const fl=$('#flist'),top=fl.scrollTop;
+ fl.innerHTML=`<div class="fjump" role="navigation" aria-label="Devlet grupları">${uiStartGroups.map(([g,,s])=>`<button class="fj" data-act="sgrp" data-g="${g}">${s}</button>`).join('')}</div>`
+  +uiStartGroups.map(([g,t])=>`<div class="fgroup" id="fg${g}"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('')
+  +'<div class="fmore" aria-hidden="true">Aşağıda başka devletler de var ↓</div>';
+ fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
  $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
   <div class="row2">${has?'<button class="btn" data-act="continue">Kayıtlı oyuna dön</button>':''}<button class="btn primary" data-act="begin">Sefere başla</button></div>`
   :`<p>Soldan bir devlet seç. Haritada toprakları parlayacak.</p>${has?'<div class="row2"><button class="btn primary" data-act="continue">Kayıtlı oyuna dön</button></div>':''}`;
 }
+function uiStartScroll(){const fl=$('#flist');fl.classList.toggle('more',fl.scrollTop+fl.clientHeight<fl.scrollHeight-24);}
+$('#flist').addEventListener('scroll',uiStartScroll,{passive:true});addEventListener('resize',()=>{if(!$('#start').hidden)uiStartScroll();});
+ACTS.sgrp=t=>{const g=$('#fg'+t.dataset.g),fl=$('#flist');if(!g)return;const j=fl.querySelector('.fjump');
+ fl.scrollTo({top:fl.scrollTop+g.getBoundingClientRect().top-fl.getBoundingClientRect().top-(j?j.offsetHeight:0)-4,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
+QUIET.add('sgrp');
 function showStart(){newGame(null);startPick='OSM';sel=-1;tgt=-1;$('#top').hidden=true;$('#zoom').hidden=true;$('#panel').hidden=true;$('#start').hidden=false;
  polDirty=true;hlKey='';renderStart();startCenter('OSM');}
 function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);if(!ps.length)return;

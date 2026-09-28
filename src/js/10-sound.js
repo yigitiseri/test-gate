@@ -51,9 +51,16 @@ const SND=(()=>{
   peace:t=>{[0,4,7,12].forEach((s,k)=>osc('triangle',N(s+12),t+k*.12,1.2,.07));},
   event:t=>{noise(t,.35,.07,'bandpass',3000,.8,sfx,.12);bell(587.3,t+.2,.1,1.6);},
   fanfare:t=>{const sq=[[0,.16],[0,.16],[4,.16],[7,.5],[5,.2],[7,.9]];let c=t;sq.forEach(([s,d])=>{horn(N(s),c,d,.17);horn(N(s-12),c,d,.1);c+=d+.02;});for(let k=0;k<6;k++)davul(t+k*.3,.45);noise(c-.9,1.5,.1,'highpass',5000,.5,sfx,.01);},
-  defeat:t=>{horn(N(-5),t,.8,.14);horn(N(-7),t+.8,.8,.14);horn(N(-11),t+1.6,1.8,.14);davul(t,.4);davul(t+1.6,.4);}
+  defeat:t=>{horn(N(-5),t,.8,.14);horn(N(-7),t+.8,.8,.14);horn(N(-11),t+1.6,1.8,.14);davul(t,.4);davul(t+1.6,.4);},
+  // W1 (Track D) for other tracks: ruler death toll, siege works, succession fanfare, a capital taken
+  bell:t=>{for(let k=0;k<3;k++)bell(98,t+k*1.35,.3,3.2);noise(t,.4,.03,'lowpass',300,1);},
+  siege:t=>{for(let k=0;k<3;k++){noise(t+k*.42,.09,.3,'bandpass',520,2.5);osc('sine',82,t+k*.42,.3,.28,{f2:48});}cannon(t+1.35,.55);},
+  succession:t=>{bell(196,t,.14,2.4);const sq=[[0,.22],[4,.22],[7,.22],[12,.9]];let c=t+.35;sq.forEach(([s,d])=>{horn(N(s),c,d,.15);c+=d+.03;});davul(t+.35,.35);davul(c-.9,.45);},
+  'capture-cap':t=>{cannon(t,.6);for(let k=0;k<5;k++)davul(t+.5+k*.16,.3+k*.04);horn(N(0),t+1.3,.3,.16);horn(N(7),t+1.62,1.1,.18);horn(N(-5),t+1.62,1.1,.1);bell(293.7,t+1.62,.12,2.2);}
  };
- function play(name,o){if(!ac||!st.on||!st.sfx)return;try{sounds[name](T()+.01,o);}catch(e){}}
+ const STING=new Set(['bell','succession','capture-cap','fanfare','war','defeat']);
+ function play(name,o){if(!ac||!st.on||!st.sfx||!sounds[name])return;try{sounds[name](T()+.01,o);
+   if(STING.has(name)&&st.music){const t=T();mus.gain.cancelScheduledValues(t);mus.gain.setTargetAtTime(.16,t,.08);mus.gain.setTargetAtTime(.5,t+2.8,.7);}}catch(e){}}
  // ---- music: Hicaz on D, düyek usul ----
  const SC=[0,1,4,5,7,8,10,12,13,16,17,19];
  function newPhrase(){const len=5+Math.floor(Math.random()*5);let dg=3+Math.floor(Math.random()*3);const notes=[];
