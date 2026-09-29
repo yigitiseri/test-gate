@@ -4304,46 +4304,48 @@ addEventListener('resize',uiTipHide);
 hook('renderAll',()=>{if(uiTipFor){if(!uiTipFor.isConnected)uiTipHide();else uiTipShow(uiTipFor);}});
 
 /* ---------- providers (plain words, no formulas) ---------- */
-const uiN=v=>(Math.round(v*10)/10).toLocaleString('tr');
+const uiN=v=>(Math.round(v*10)/10).toLocaleString(EN?'en':'tr');
 const uiSign=v=>(v>=0?'+':'−')+uiN(Math.abs(v));
 const uiTT=(t,body)=>`<b class="tt">${t}</b>${body}`;
 const uiTipProv=el=>{const i=el&&el.dataset.i!=null?+el.dataset.i:sel;return i>=0&&i<NP?i:-1;};
 TIPS.gold=()=>{const f=S.player,F=S.fac[f],rows=econRows(f);let inc=0,up=0;for(const r of rows)r.k==='inc'?inc+=r.v:up+=r.v;const net=inc-up;
  const line=r=>`<span>${esc(r.l)}</span><b class="${r.k==='inc'?'pos':'neg'}">${r.k==='inc'?'+':'−'}${uiN(r.v)}</b>`;
- let msg=net>=0?`Her mevsim hazineye <b>${uiN(net)}</b> altın girer.`:F.gold+net<0?'<b class="neg">Hazine bu tur boşalıyor.</b> Maaşını alamayan askerler kaçar. Ordunun bir kısmını dağıt ya da pazar kur.'
-  :`Hazine her mevsim <b>${uiN(-net)}</b> altın eriyor; bu gidişle yaklaşık <b>${Math.max(1,Math.floor(F.gold/-net))}</b> mevsim dayanır.`;
- return uiTT('Hazine · '+Math.floor(F.gold)+' altın',`<div class="tl">${rows.filter(r=>r.k==='inc').map(line).join('')}${rows.filter(r=>r.k==='exp').map(line).join('')}<span class="tot">Mevsim başına</span><b class="tot ${net>=0?'pos':'neg'}">${uiSign(net)}</b></div><p>${msg}</p>`);};
+ const left=Math.max(1,Math.floor(F.gold/-net));
+ let msg=net>=0?lng(`Her mevsim hazineye <b>${uiN(net)}</b> altın girer.`,`Every season <b>${uiN(net)}</b> gold flows into the treasury.`):F.gold+net<0?lng('<b class="neg">Hazine bu tur boşalıyor.</b> Maaşını alamayan askerler kaçar. Ordunun bir kısmını dağıt ya da pazar kur.','<b class="neg">The treasury runs dry this turn.</b> Soldiers who go unpaid will desert. Disband part of your army or build a market.')
+  :lng(`Hazine her mevsim <b>${uiN(-net)}</b> altın eriyor; bu gidişle yaklaşık <b>${left}</b> mevsim dayanır.`,`The treasury loses <b>${uiN(-net)}</b> gold every season; at this rate it will last about <b>${left}</b> ${left===1?'season':'seasons'}.`);
+ return uiTT(lng('Hazine · '+Math.floor(F.gold)+' altın','Treasury · '+Math.floor(F.gold)+' gold'),`<div class="tl">${rows.filter(r=>r.k==='inc').map(line).join('')}${rows.filter(r=>r.k==='exp').map(line).join('')}<span class="tot">${lng('Mevsim başına','Per season')}</span><b class="tot ${net>=0?'pos':'neg'}">${uiSign(net)}</b></div><p>${msg}</p>`);};
 TIPS.mp=()=>{const f=S.player,F=S.fac[f],ds=devSum(f),cap=ds*800,reg=ds*110;
- return uiTT('İnsan gücü · '+fmtK(F.mp),`<p>Askere yazılabilecek gençler. Her 1.000 asker için 1.000 kişi gerekir.</p><div class="tl"><span>Tavan</span><b>${fmtK(cap)}</b><span>Her mevsim gelen</span><b class="pos">+${fmtK(Math.min(reg,Math.max(0,cap-F.mp)))}</b></div><p>Gelişmiş eyaletler ve kışlalar daha çok genç yetiştirir.</p>`);};
+ return uiTT(lng('İnsan gücü · ','Manpower · ')+fmtK(F.mp),`<p>${lng('Askere yazılabilecek gençler. Her 1.000 asker için 1.000 kişi gerekir.','Young men ready to be enlisted. Every thousand soldiers takes a thousand of them.')}</p><div class="tl"><span>${lng('Tavan','Limit')}</span><b>${fmtK(cap)}</b><span>${lng('Her mevsim gelen','New each season')}</span><b class="pos">+${fmtK(Math.min(reg,Math.max(0,cap-F.mp)))}</b></div><p>${lng('Gelişmiş eyaletler ve kışlalar daha çok genç yetiştirir.','Developed provinces and barracks raise more young men.')}</p>`);};
 TIPS.army=()=>{const f=S.player;let gar=0,fld=0,na=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)gar+=S.prov[i].t;for(const a of (S.armies||[]))if(a.f===f){fld+=a.n;na++;}
  const up=econRows(f).filter(r=>r.k==='exp').reduce((s,r)=>s+r.v,0);
- return uiTT('Ordu · '+fmtK(gar+fld),`<div class="tl"><span>Garnizonlar (eyaletlerde)</span><b>${fmtK(gar)}</b><span>Sahra orduları${na?' ('+na+')':''}</span><b>${fmtK(fld)}</b><span>Maaşlar, mevsim başına</span><b class="neg">−${uiN(up)}</b></div><p>Garnizon bulunduğu şehri korur. Sahra ordusu yürür, saldırır ve kuşatır.</p>`);};
+ return uiTT(lng('Ordu · ','Army · ')+fmtK(gar+fld),`<div class="tl"><span>${lng('Garnizonlar (eyaletlerde)','Garrisons (in provinces)')}</span><b>${fmtK(gar)}</b><span>${lng('Sahra orduları','Field armies')}${na?' ('+na+')':''}</span><b>${fmtK(fld)}</b><span>${lng('Maaşlar, mevsim başına','Wages per season')}</span><b class="neg">−${uiN(up)}</b></div><p>${lng('Garnizon bulunduğu şehri korur. Sahra ordusu yürür, saldırır ve kuşatır.','A garrison guards the city it sits in. A field army marches, attacks and lays siege.')}</p>`);};
 TIPS.provs=()=>{const f=S.player,ps=facProvs(f),un=ps.filter(i=>S.prov[i].un>0).length,need=Math.ceil(NP*.5);
- return uiTT('Eyaletler · '+ps.length,`<div class="tl"><span>Zafer için gereken</span><b>${need}</b><span>Huzursuz eyalet</span><b class="${un?'neg':''}">${un}</b></div><p>${un?'Yeni fethedilen eyaletler bir süre huzursuzdur ve yarı vergi verir.':'Bütün eyaletlerin sakin, vergisini tam veriyor.'}</p>`);};
+ return uiTT(lng('Eyaletler · ','Provinces · ')+ps.length,`<div class="tl"><span>${lng('Zafer için gereken','Needed for victory')}</span><b>${need}</b><span>${lng('Huzursuz eyalet','Restless provinces')}</span><b class="${un?'neg':''}">${un}</b></div><p>${un?lng('Yeni fethedilen eyaletler bir süre huzursuzdur ve yarı vergi verir.','Newly conquered provinces stay restless for a while and pay half their taxes.'):lng('Bütün eyaletlerin sakin, vergisini tam veriyor.','All your provinces are calm and pay their taxes in full.')}</p>`);};
 TIPS.wars=()=>{const f=S.player,ws=warsOf(f),al=alliesOf(f);
- const body=ws.length?`<div class="tl">${ws.map(g=>{const sc=warScore(f,g),w=S.war[key(f,g)];return `<span>${esc(FAC[g].s)} <small>${S.turn-w.t} tur</small></span><b class="${sc>=0?'pos':'neg'}">${sc>=0?'+':''}${sc}</b>`;}).join('')}</div><p>Sayılar savaş skorudur: zaferler ve fetihler artırır. Önde olduğun düşman barışa ve haraca razı olur.</p>`:'<p>Şu an kimseyle savaşta değilsin.</p>';
- return uiTT(ws.length?'Savaşlar · '+ws.length:'Barış',body+(al.length?`<p>Müttefikler: <b>${al.map(g=>esc(FAC[g].s)).join(', ')}</b></p>`:''));};
+ const body=ws.length?`<div class="tl">${ws.map(g=>{const sc=warScore(f,g),w=S.war[key(f,g)];return `<span>${esc(FAC[g].s)} <small>${S.turn-w.t} ${lng('tur',S.turn-w.t===1?'turn':'turns')}</small></span><b class="${sc>=0?'pos':'neg'}">${sc>=0?'+':''}${sc}</b>`;}).join('')}</div><p>${lng('Sayılar savaş skorudur: zaferler ve fetihler artırır. Önde olduğun düşman barışa ve haraca razı olur.','These are the war scores: victories and conquests raise them. An enemy you are ahead of will agree to peace and tribute.')}</p>`:lng('<p>Şu an kimseyle savaşta değilsin.</p>','<p>You are not at war with anyone right now.</p>');
+ return uiTT(ws.length?lng('Savaşlar · ','Wars · ')+ws.length:lng('Barış','Peace'),body+(al.length?`<p>${lng('Müttefikler','Allies')}: <b>${al.map(g=>esc(FAC[g].s)).join(', ')}</b></p>`:''));};
 TIPS.season=()=>{const s=S.turn%4,y=START_YEAR+Math.floor(S.turn/4);
- return uiTT(`${SEASONS[s]} ${y}`,`<p>Her tur bir mevsimdir; dört tur bir yıl eder. Oyun ${START_YEAR+END_TURN/4} yılında biter.</p>${s===3?'<p><b class="neg">Kış:</b> saldıran ordular yorgun düşer (saldırı −15%).</p>':s===2?'<p>Kış yaklaşıyor; seferleri kıştan önce bitirmek iyidir.</p>':''}`);};
+ return uiTT(`${SEASONS[s]} ${y}`,`<p>${lng(`Her tur bir mevsimdir; dört tur bir yıl eder. Oyun ${START_YEAR+END_TURN/4} yılında biter.`,`Each turn is one season; four turns make a year. The game ends in ${START_YEAR+END_TURN/4}.`)}</p>${s===3?lng('<p><b class="neg">Kış:</b> saldıran ordular yorgun düşer (saldırı −15%).</p>','<p><b class="neg">Winter:</b> attacking armies are worn out (attack −15%).</p>'):s===2?lng('<p>Kış yaklaşıyor; seferleri kıştan önce bitirmek iyidir.</p>','<p>Winter is coming; it is wise to finish your campaigns before it arrives.</p>'):''}`);};
 /** A modifier line in plain words: "Kale 3 · savunma +45%". */
-function uiModLine(m){const pct=Math.round((m.m-1)*100);return `<span>${esc(m.l)}</span><b class="${(m.side==='att')===(pct>=0)?'pos':'neg'}">${m.side==='att'?'saldırı':'savunma'} ${pct>=0?'+':'−'}${Math.abs(pct)}%</b>`;}
+function uiModLine(m){const pct=Math.round((m.m-1)*100);return `<span>${esc(m.l)}</span><b class="${(m.side==='att')===(pct>=0)?'pos':'neg'}">${m.side==='att'?lng('saldırı','attack'):lng('savunma','defence')} ${pct>=0?'+':'−'}${Math.abs(pct)}%</b>`;}
 TIPS.odds=el=>{if(typeof battleOdds!=='function')return '';const f=S.player,d=el.dataset;
  const to=d.to!=null?+d.to:tgt,from=d.from!=null?+d.from:sel;let n=d.n!=null?+d.n:(typeof amt==='number'&&amt>0?amt:(from>=0?avail(from):0));
  if(to<0||!(n>0))return '';let o;try{o=battleOdds({att:d.att||f,to,n,from});}catch(e){return '';}
  const pc=Math.round(o.p*100);
- return uiTT(`Zafer şansı · %${pc}`,`<div class="bar"><i style="width:${pc}%"></i></div><div class="tl"><span>Senin gücün</span><b>${fmtK(o.a)}</b><span>Savunma gücü</span><b>${fmtK(o.d)}</b>${o.mods.map(uiModLine).join('')}</div><p>${uiOddsWord(o.p)}. Her muharebede biraz şans vardır; kıl payı üstün ordu da yenilebilir.</p>`);};
+ return uiTT(lng(`Zafer şansı · %${pc}`,`Chance of victory · ${pc}%`),`<div class="bar"><i style="width:${pc}%"></i></div><div class="tl"><span>${lng('Senin gücün','Your strength')}</span><b>${fmtK(o.a)}</b><span>${lng('Savunma gücü','Defence strength')}</span><b>${fmtK(o.d)}</b>${o.mods.map(uiModLine).join('')}</div><p>${uiOddsWord(o.p)}. ${lng('Her muharebede biraz şans vardır; kıl payı üstün ordu da yenilebilir.','Every battle has some luck in it; an army that is only just stronger can still be beaten.')}</p>`);};
 TIPS.fort=el=>{const i=uiTipProv(el);if(i<0)return '';const p=S.prov[i];const can=S.fac[S.player].cannon;
- return uiTT('Kale · '+p.fort,`<p>${p.fort?`Surlar savunanı güçlendirir: savunma <b>+${Math.round(15*p.fort*(can?.4:1))}%</b>${can?' (topların surları kırıyor)':''}.`:'Bu şehrin suru yok.'} Her kale seviyesi ayrıca şehri koruyan halkı artırır.</p><p>Şehir düşerse kale bir kat zarar görür.</p>`);};
+ const fb=Math.round(15*p.fort*(can?.4:1));
+ return uiTT(lng('Kale · ','Fortress · ')+p.fort,`<p>${p.fort?lng(`Surlar savunanı güçlendirir: savunma <b>+${fb}%</b>${can?' (topların surları kırıyor)':''}.`,`Walls strengthen the defender: defence <b>+${fb}%</b>${can?' (your cannon are breaking them)':''}.`):lng('Bu şehrin suru yok.','This city has no walls.')} ${lng('Her kale seviyesi ayrıca şehri koruyan halkı artırır.','Each fortress level also brings more townsfolk to the city\'s defence.')}</p><p>${lng('Şehir düşerse kale bir kat zarar görür.','If the city falls, the fortress loses a level.')}</p>`);};
 TIPS.dev=el=>{const i=uiTipProv(el);if(i<0)return '';const p=S.prov[i];
- return uiTT('Gelişim · '+p.dev,`<p>Şehrin büyüklüğü ve zenginliği. Vergiyi, insan gücünü ve şehri koruyan halkı artırır.</p><p>İmar ile en fazla 12'ye çıkar.</p>`);};
+ return uiTT(lng('Gelişim · ','Development · ')+p.dev,lng(`<p>Şehrin büyüklüğü ve zenginliği. Vergiyi, insan gücünü ve şehri koruyan halkı artırır.</p><p>İmar ile en fazla 12'ye çıkar.</p>`,`<p>The size and wealth of the city. It raises taxes, manpower and the number of townsfolk who defend it.</p><p>Developing can raise it as high as 12.</p>`));};
 TIPS.garrison=el=>{const i=uiTipProv(el);if(i<0)return '';const p=S.prov[i];
- return uiTT('Garnizon · '+fmtK(p.t),`<p>Şehirde bekleyen askerler. Saldırı olursa yerel halk ve surlarla birlikte savunur.</p>${p.o===S.player?'':`<p>Tahmini toplam savunma: <b>${fmtK(defPower(i,S.player))}</b></p>`}`);};
+ return uiTT(lng('Garnizon · ','Garrison · ')+fmtK(p.t),`<p>${lng('Şehirde bekleyen askerler. Saldırı olursa yerel halk ve surlarla birlikte savunur.','Soldiers stationed in the city. If it is attacked, they defend it together with the townsfolk and the walls.')}</p>${p.o===S.player?'':`<p>${lng('Tahmini toplam savunma','Estimated total defence')}: <b>${fmtK(defPower(i,S.player))}</b></p>`}`);};
 TIPS.pinc=el=>{const i=uiTipProv(el);if(i<0)return '';const p=S.prov[i];
- return uiTT('Gelir · '+uiN(provIncome(i)),`<p>Bu eyaletin her mevsim ödediği vergi.</p><div class="tl"><span>Gelişim</span><b>${p.dev}</b><span>Pazar</span><b>${p.mkt?'+%50':'yok'}</b><span>Huzursuzluk</span><b class="${p.un>0?'neg':''}">${p.un>0?'yarı vergi':'yok'}</b></div>`);};
+ return uiTT(lng('Gelir · ','Income · ')+uiN(provIncome(i)),`<p>${lng('Bu eyaletin her mevsim ödediği vergi.','The tax this province pays every season.')}</p><div class="tl"><span>${lng('Gelişim','Development')}</span><b>${p.dev}</b><span>${lng('Pazar','Market')}</span><b>${p.mkt?lng('+%50','+50%'):lng('yok','none')}</b><span>${lng('Huzursuzluk','Unrest')}</span><b class="${p.un>0?'neg':''}">${p.un>0?lng('yarı vergi','half tax'):lng('yok','none')}</b></div>`);};
 TIPS.unrest=el=>{const i=uiTipProv(el);if(i<0)return '';const p=S.prov[i];
- return uiTT('Huzursuzluk',`<p>Halk yeni hükümdarına henüz alışmadı: eyalet <b>${p.un}</b> tur daha yarı vergi verir.</p>`);};
+ return uiTT(lng('Huzursuzluk','Unrest'),lng(`<p>Halk yeni hükümdarına henüz alışmadı: eyalet <b>${p.un}</b> tur daha yarı vergi verir.</p>`,`<p>The people are not yet used to their new ruler: the province pays half its taxes for <b>${p.un}</b> more ${p.un===1?'turn':'turns'}.</p>`));};
 TIPS.terrain=el=>{const i=uiTipProv(el);if(i<0)return '';const d=PD[i];
- return uiTT(d.mtn?'Dağlık arazi':d.des?'Çöl':'Ova',`<p>${d.mtn?'Dağ geçitleri savunanın işine yarar: savunma <b>+30%</b>.':d.des?'Susuz çöl saldıranı yorar: savunma <b>+10%</b>.':'Açık arazi: kimseye üstünlük sağlamaz.'}</p>`);};
+ return uiTT(d.mtn?lng('Dağlık arazi','Mountains'):d.des?lng('Çöl','Desert'):lng('Ova','Plains'),`<p>${d.mtn?lng('Dağ geçitleri savunanın işine yarar: savunma <b>+30%</b>.','Mountain passes favour the defender: defence <b>+30%</b>.'):d.des?lng('Susuz çöl saldıranı yorar: savunma <b>+10%</b>.','The waterless desert wears the attacker down: defence <b>+10%</b>.'):lng('Açık arazi: kimseye üstünlük sağlamaz.','Open ground: it gives no one the advantage.')}</p>`);};
 KE.uiTip=k=>{const el=document.querySelector(`[data-tip="${k}"]`);return el&&uiTipShow(el)?uiTipEl.innerText:null;};
 /* =====================================================================
    ADVISOR (Track D): the vizier's hint chip in #hud.
@@ -4361,41 +4363,48 @@ const uiNet=f=>income(f)-upkeep(f);
 function uiFocusProv(i,armyId){if(i==null||i<0)return;closeModal();sel=i;tgt=-1;if(armyId!=null)selArmy=armyId;const d=PD[i];
  centerOn(d.lx,d.ly,Math.max(curS(),Math.min(innerWidth,innerHeight)/520),!uiPhone()&&innerWidth>900?-(Math.min(380,innerWidth*.3)):0);renderPanel();req();}
 ADVICE.push(
- {id:'bank',prio:100,when:(S,f)=>{const n=uiNet(f);return n<0&&S.fac[f].gold+n<0;},t:()=>'Hazine bu tur boşalıyor',
-  d:(S,f)=>`Paşam, hazinede ${Math.floor(S.fac[f].gold)} altın kaldı ama her mevsim ${Math.round(-uiNet(f))} altın harcıyoruz. Hazine boşalınca maaşını alamayan askerler kaçar. Ordunun bir kısmını dağıt ya da barış yap.`,
-  go:()=>showState(),goL:'Devlet defteri'},
- {id:'net',prio:80,when:(S,f)=>uiNet(f)<0,t:(S,f)=>`Hazine eriyor (${Math.round(uiNet(f))})`,
-  d:(S,f)=>`Her mevsim ${Math.round(-uiNet(f))} altın zarardayız. Barış zamanında gereğinden büyük ordu beslemek hazineyi eritir; fazla askeri dağıtmayı ya da pazar kurmayı düşün.`,
-  go:()=>showState(),goL:'Devlet defteri'},
+ {id:'bank',prio:100,when:(S,f)=>{const n=uiNet(f);return n<0&&S.fac[f].gold+n<0;},t:()=>lng('Hazine bu tur boşalıyor','The treasury runs dry this turn'),
+  d:(S,f)=>lng(`Paşam, hazinede ${Math.floor(S.fac[f].gold)} altın kaldı ama her mevsim ${Math.round(-uiNet(f))} altın harcıyoruz. Hazine boşalınca maaşını alamayan askerler kaçar. Ordunun bir kısmını dağıt ya da barış yap.`,
+   `My lord, only ${Math.floor(S.fac[f].gold)} gold is left in the treasury, yet we spend ${Math.round(-uiNet(f))} gold every season. When the treasury is empty, unpaid soldiers desert. Disband part of the army or make peace.`),
+  go:()=>showState(),goL:lng('Devlet defteri','State Ledger')},
+ {id:'net',prio:80,when:(S,f)=>uiNet(f)<0,t:(S,f)=>lng(`Hazine eriyor (${Math.round(uiNet(f))})`,`The treasury is draining (${Math.round(uiNet(f))})`),
+  d:(S,f)=>lng(`Her mevsim ${Math.round(-uiNet(f))} altın zarardayız. Barış zamanında gereğinden büyük ordu beslemek hazineyi eritir; fazla askeri dağıtmayı ya da pazar kurmayı düşün.`,
+   `We lose ${Math.round(-uiNet(f))} gold every season. Feeding a larger army than we need in peacetime drains the treasury; consider disbanding the surplus troops or building a market.`),
+  go:()=>showState(),goL:lng('Devlet defteri','State Ledger')},
  {id:'idle-army',prio:70,when:(S,f)=>{if(!warsOf(f).length||!S.armies)return null;const a=S.armies.filter(a=>a.f===f&&a.st==='idle'&&(a.mp==null||a.mp>0)).sort((x,y)=>y.n-x.n)[0];return a&&a.n>=1000?a:null;},
-  t:(S,f,a)=>`Ordu ${PD[a.loc].name}'de bekliyor`,d:(S,f,a)=>`Savaştayız ama ${PD[a.loc].name}'deki ${fmtK(a.n)} kişilik ordumuz bu mevsim kıpırdamadı. Onu düşman sınırına yürüt ya da zayıf bir şehre saldır.`,
-  go:(S,f,a)=>uiFocusProv(a.loc,a.id),goL:'Orduyu göster'},
+  t:(S,f,a)=>lng(`Ordu ${PD[a.loc].name}'de bekliyor`,`An army waits at ${PD[a.loc].name}`),d:(S,f,a)=>lng(`Savaştayız ama ${PD[a.loc].name}'deki ${fmtK(a.n)} kişilik ordumuz bu mevsim kıpırdamadı. Onu düşman sınırına yürüt ya da zayıf bir şehre saldır.`,
+   `We are at war, yet our army of ${fmtK(a.n)} at ${PD[a.loc].name} has not stirred this season. March it to the enemy border or attack a weak city.`),
+  go:(S,f,a)=>uiFocusProv(a.loc,a.id),goL:lng('Orduyu göster','Show the army')},
  {id:'peace',prio:60,when:(S,f)=>{let best=null,bs=uiAdvCfg.peaceScore-1;for(const g of warsOf(f)){const s=warScore(f,g);if(s>bs){bs=s;best=g;}}return best;},
-  t:(S,f,g)=>`${FAC[g].s} ile barış vakti`,d:(S,f,g)=>`${FAC[g].n} karşısında savaş skorumuz +${warScore(f,g)}. Şimdi barış ya da haraç istersen kabul etmeleri çok muhtemel; savaşı uzatmak asker ve altın yer.`,
-  go:()=>showDiplo(),goL:'Divan\'ı aç'},
+  t:(S,f,g)=>lng(`${FAC[g].s} ile barış vakti`,`Time for peace with ${FAC[g].s}`),d:(S,f,g)=>lng(`${FAC[g].n} karşısında savaş skorumuz +${warScore(f,g)}. Şimdi barış ya da haraç istersen kabul etmeleri çok muhtemel; savaşı uzatmak asker ve altın yer.`,
+   `Our war score against ${FAC[g].n} stands at +${warScore(f,g)}. If you ask for peace or tribute now, they will very likely accept; dragging the war out costs men and gold.`),
+  go:()=>showDiplo(),goL:lng('Divan\'ı aç','Open the Divan')},
  {id:'small',prio:50,when:(S,f)=>{const n=facProvs(f).length;if(n>=uiAdvCfg.smallRealm||alliesOf(f).length)return null;const my=strength(f);
    const big=nbrs(f).filter(g=>strength(g)>my*2.5&&(atWar(f,g)||getOp(f,g)<0));return big.length?big[0]:null;},
-  t:()=>'Önce diplomasi',d:(S,f,g)=>`Küçük bir devletiz; ${FAC[g].s} gibi güçlü komşularla tek başımıza baş edemeyiz. Divan'da bir müttefik ara: aynı dinden komşular daha yatkındır, bir hediye ilişkiyi ısıtır.`,
-  go:()=>showDiplo(),goL:'Divan\'ı aç'},
+  t:()=>lng('Önce diplomasi','Diplomacy first'),d:(S,f,g)=>lng(`Küçük bir devletiz; ${FAC[g].s} gibi güçlü komşularla tek başımıza baş edemeyiz. Divan'da bir müttefik ara: aynı dinden komşular daha yatkındır, bir hediye ilişkiyi ısıtır.`,
+   `We are a small realm; we cannot stand alone against a mighty neighbour such as ${FAC[g].s}. Seek an ally in the Divan: neighbours of our own faith are more willing, and a gift warms any friendship.`),
+  go:()=>showDiplo(),goL:lng('Divan\'ı aç','Open the Divan')},
  {id:'gold',prio:40,when:(S,f)=>{if(S.turn<2||S.fac[f].gold<uiAdvCfg.richGold||uiNet(f)<0)return null;const c=facProvs(f).filter(i=>!S.prov[i].mkt&&!(S.prov[i].un>0)).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];return c==null?null:{i:c};},
-  t:()=>'Hazinede altın birikti',d:(S,f,x)=>`Hazinede ${Math.floor(S.fac[f].gold)} altın boşta duruyor. En zengin şehrimiz ${PD[x.i].name}'de bir pazar kurarsak vergisi yarı yarıya artar.`,
-  go:(S,f,x)=>uiFocusProv(x.i),goL:'Şehre git'},
+  t:()=>lng('Hazinede altın birikti','Gold is piling up in the treasury'),d:(S,f,x)=>lng(`Hazinede ${Math.floor(S.fac[f].gold)} altın boşta duruyor. En zengin şehrimiz ${PD[x.i].name}'de bir pazar kurarsak vergisi yarı yarıya artar.`,
+   `${Math.floor(S.fac[f].gold)} gold lies idle in the treasury. If we build a market in ${PD[x.i].name}, our richest city, its taxes will rise by half.`),
+  go:(S,f,x)=>uiFocusProv(x.i),goL:lng('Şehre git','Go to the city')},
  {id:'unrest',prio:30,when:(S,f)=>{const n=facProvs(f).filter(i=>S.prov[i].un>0).length;return n>=uiAdvCfg.unrestMany?n:null;},
-  t:(S,f,n)=>`${n} eyalet huzursuz`,d:(S,f,n)=>`${n} eyalette halk bize henüz ısınmadı ve yarı vergi veriyor. Yeni fetihlerden önce biraz soluklanmak, orduyu toparlamak iyi olur.`}
+  t:(S,f,n)=>lng(`${n} eyalet huzursuz`,`${n} provinces are restless`),d:(S,f,n)=>lng(`${n} eyalette halk bize henüz ısınmadı ve yarı vergi veriyor. Yeni fetihlerden önce biraz soluklanmak, orduyu toparlamak iyi olur.`,
+   `In ${n} provinces the people have not yet warmed to us and pay only half their taxes. It would be wise to catch our breath and gather the army before new conquests.`)}
 );
 function uiAdvPick(){if(!uiAdvOn||!S||!S.player||S.over||!$('#start').hidden)return null;const f=S.player;
  for(const a of ADVICE.slice().sort((x,y)=>y.prio-x.prio)){if((uiAdvMute[a.id]||-1)>S.turn)continue;let d;try{d=a.when(S,f);}catch(e){console.error('advice '+a.id,e);continue;}
   if(d!=null&&d!==false)return {a,d};}
  return null;}
 const uiVizier='<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#8e1f14" stroke="#c99a3b" stroke-width="2"/><path d="M6.6 28.4c1.3-5 5-7.4 9.4-7.4s8.1 2.4 9.4 7.4a13.6 13.6 0 0 1-18.8 0z" fill="#2f5b3c" stroke="#c99a3b" stroke-width=".6"/><path d="M12.6 17.2c0 4.3 1.5 7 3.4 7s3.4-2.7 3.4-7z" fill="#3a2414"/><circle cx="16" cy="16.3" r="3.3" fill="#e5c096"/><ellipse cx="16" cy="11.4" rx="6.8" ry="4.4" fill="#f6eedb" stroke="#bfa57a" stroke-width=".6"/><path d="M9.7 12.2c4 1.5 8.6 1.5 12.6 0M10.3 9.6c3.6 1.2 7.8 1.2 11.4 0" stroke="#bfa57a" stroke-width=".8" fill="none"/><path d="M14.1 7.6h3.8l-.5-3.4h-2.8z" fill="#b0392a" stroke="#c99a3b" stroke-width=".6"/><circle cx="16" cy="12.1" r="1.1" fill="#c99a3b"/></svg>';
-(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="uiAdv" class="ui-adv" hidden><button class="adv-chip" data-act="adv" aria-expanded="false" aria-label="Vezirin öğüdü">${uiVizier}<span class="adv-t"></span></button>
- <div class="adv-card" hidden><div class="adv-h">${uiVizier}<b>Vezîr-i Âzam</b><button class="x" data-act="adv" aria-label="Kapat">×</button></div><p class="adv-d"></p><div class="adv-b"><button class="btn primary" data-act="adv-go"></button><button class="btn" data-act="adv-mute">Sonra</button></div></div></div>`);})();
+(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="uiAdv" class="ui-adv" hidden><button class="adv-chip" data-act="adv" aria-expanded="false" aria-label="${lng('Vezirin öğüdü',"The Vizier's counsel")}">${uiVizier}<span class="adv-t"></span></button>
+ <div class="adv-card" hidden><div class="adv-h">${uiVizier}<b>${lng('Vezîr-i Âzam','The Grand Vizier')}</b><button class="x" data-act="adv" aria-label="${lng('Kapat','Close')}">×</button></div><p class="adv-d"></p><div class="adv-b"><button class="btn primary" data-act="adv-go"></button><button class="btn" data-act="adv-mute">${lng('Sonra','Later')}</button></div></div></div>`);})();
 function uiAdvRender(){const box=$('#uiAdv');if(!box)return;const tutOn=typeof tutActive==='function'&&tutActive();
  const r=tutOn?null:uiAdvPick();if(!r){box.hidden=true;uiAdvCur=null;return;}
  const {a,d}=r,f=S.player;let t='',dd='';try{t=a.t(S,f,d);dd=a.d(S,f,d);}catch(e){console.error('advice '+a.id,e);box.hidden=true;return;}
  const changed=!uiAdvCur||uiAdvCur.id!==a.id;uiAdvCur=a;uiAdvData=d;box.hidden=false;box.dataset.id=a.id;
  box.querySelector('.adv-t').textContent=t;box.querySelector('.adv-d').textContent=dd;
- const g=box.querySelector('[data-act="adv-go"]');g.hidden=!a.go;g.textContent=a.goL||'Göster';
+ const g=box.querySelector('[data-act="adv-go"]');g.hidden=!a.go;g.textContent=a.goL||lng('Göster','Show');
  if(changed){box.classList.remove('pulse');void box.offsetWidth;box.classList.add('pulse');}}
 function uiAdvOpen(o){const box=$('#uiAdv'),c=box.querySelector('.adv-card');c.hidden=!o;box.classList.toggle('open',o);box.querySelector('.adv-chip').setAttribute('aria-expanded',o?'true':'false');}
 ACTS.adv=()=>{const c=$('#uiAdv .adv-card');if(c.hidden)uiAdvRender();if(!$('#uiAdv').hidden)uiAdvOpen(c.hidden);};
@@ -4406,13 +4415,13 @@ QUIET.add('adv-mute');
 hook('renderAll',uiAdvRender);
 hook('afterRound',()=>{uiAdvOpen(false);},50);
 hook('enterGame',()=>{uiAdvOpen(false);uiAdvRender();});
-MENU_SECTIONS.push({id:'advisor',order:32,html:()=>`<div class="sec"><h3>Vezir</h3><div class="acts"><button class="btn" data-act="adv-toggle">Öğütler <span class="c">${uiAdvOn?'Açık':'Kapalı'}</span></button></div></div>`});
+MENU_SECTIONS.push({id:'advisor',order:32,html:()=>`<div class="sec"><h3>${lng('Vezir','Vizier')}</h3><div class="acts"><button class="btn" data-act="adv-toggle">${lng('Öğütler','Counsel')} <span class="c">${uiAdvOn?lng('Açık','On'):lng('Kapalı','Off')}</span></button></div></div>`});
 
 /* province panel: the vizier's word about this province (slot 90) */
 function uiProvThreat(i){const f=S.player;let th=0,who=null;for(const j of PD[i].adj){const q=S.prov[j];if(q.o===f||!atWar(f,q.o))continue;let n=q.t;if(S.armies)for(const a of S.armies)if(a.loc===j&&a.f===q.o)n+=a.n;if(n>th){th=n;who=q.o;}}return {th,who};}
 PANEL_SECTIONS.push({id:'advisor',order:90,when:c=>c.tgt<0&&c.mine&&uiAdvOn,html(c){const {th,who}=uiProvThreat(c.i);if(!who)return '';
  const dp=defPower(c.i,who);if(th<dp*.8)return '';
- return `<div class="vz" role="note">${uiVizier}<p><b>Tehlike:</b> komşu topraklarda ${fmtK(th)} ${esc(FAC[who].s)} askeri var; bu şehrin savunması ${fmtK(dp)}. Asker topla ya da kaleyi güçlendir.</p></div>`;}});
+ return `<div class="vz" role="note">${uiVizier}<p>${lng(`<b>Tehlike:</b> komşu topraklarda ${fmtK(th)} ${esc(FAC[who].s)} askeri var; bu şehrin savunması ${fmtK(dp)}. Asker topla ya da kaleyi güçlendir.`,`<b>Danger:</b> ${fmtK(th)} ${esc(FAC[who].s)} troops stand on neighbouring land; this city's defence is ${fmtK(dp)}. Raise troops or strengthen the fortress.`)}</p></div>`;}});
 KE.uiAdvice=()=>{const r=uiAdvPick();return r?r.a.id:null;};
 /* =====================================================================
    TUTORIAL ENGINE (Track D): coach marks driven by TUT_STEPS, state in S.tut={step,done,off}.
@@ -4428,14 +4437,14 @@ const tutCap=()=>S.fac[S.player].cap;
 const tutAtProv=i=>()=>{const d=PD[i];const p=pj(d.lx,d.ly);return p[2]===false?null:[p[0],p[1]];};
 const tutOwnSel=()=>sel>=0&&S.prov[sel]&&S.prov[sel].o===S.player;
 TUT_STEPS.push(
- {id:'select',text:'Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.',at:()=>tutAtProv(tutCap())(),
+ {id:'select',text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
   done:()=>tutOwnSel()},
- {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:'Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.',
-  need:()=>tutOwnSel()?null:{text:'Asker toplamak için kendi eyaletlerinden birine dokun.',at:tutAtProv(tutCap())},
+ {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
+  need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
   done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
- {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:'Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.',
+ {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
   done:(S,x)=>x.seen.has('diplo')},
- {id:'end',sel:'#endTurn',text:'Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.',
+ {id:'end',sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
   done:(S,x)=>S.turn>x.turn0}
 );
 function tutActive(){return !!(S&&S.player&&S.tut&&!S.tut.done&&!S.tut.off&&!S.over);}
@@ -4445,12 +4454,12 @@ hook('newGame',(S,player)=>{if(player)S.tut=tutFinished()?null:{step:0,done:fals
 /** Advance past every finished step; returns the current step or null. */
 function tutStep(){if(!tutActive())return null;
  for(let g=0;g<TUT_STEPS.length+1;g++){const k=S.tut.step;if(k>=TUT_STEPS.length){S.tut.done=true;tutRemember();tutIdx=-1;
-   toast('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','good');SND.play('coin');return null;}
+   toast(lng('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','Vizier: The first lessons are done. The rest is left to your wisdom; if you need help, look in the Guide.'),'good');SND.play('coin');return null;}
   const st=TUT_STEPS[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
   let ok=false;try{ok=!!st.done(S,{seen:tutSeen,turn0:tutTurn0});}catch(e){console.error('tut '+st.id,e);ok=true;}
   if(!ok)return st;S.tut.step=k+1;}
  return null;}
-(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="tutRing" class="tut-ring" hidden></div><div id="tutBub" class="tut-bub" role="dialog" aria-live="polite" hidden><div class="tut-e"></div><p class="tut-t"></p><button class="tut-x" data-act="tut-skip">Dersi geç</button><i class="tut-arrow"></i></div>`);})();
+(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="tutRing" class="tut-ring" hidden></div><div id="tutBub" class="tut-bub" role="dialog" aria-live="polite" hidden><div class="tut-e"></div><p class="tut-t"></p><button class="tut-x" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button><i class="tut-arrow"></i></div>`);})();
 function tutVisible(el){if(!el||!el.isConnected)return null;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)return null;
  const cs=getComputedStyle(el);if(cs.visibility==='hidden'||cs.display==='none')return null;return r;}
 /** Draw the coach mark for the current step (or hide it). */
@@ -4464,7 +4473,7 @@ function tutRender(){const ring=$('#tutRing'),bub=$('#tutBub');if(!ring)return;
    if(tutKey!==st.id&&(er.bottom>pr.bottom-4||er.top<pr.top)){tutKey=st.id;if(uiSheetCur==='peek')uiSheetSet('half');el.scrollIntoView({block:'nearest'});}}
   r=tutVisible(el);}
  else if(at){pt=at();if(pt&&(pt[0]<0||pt[1]<topH()||pt[0]>innerWidth||pt[1]>innerHeight))pt=null;if(pt)r={left:pt[0]-24,top:pt[1]-24,width:48,height:48,right:pt[0]+24,bottom:pt[1]+24};}
- const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`;bub.querySelector('.tut-t').textContent=text;
+ const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`,`The Vizier's lesson · ${k+1} / ${TUT_STEPS.length}`);bub.querySelector('.tut-t').textContent=text;
  bub.hidden=false;bub.dataset.step=st.id;
  if(r){const pad=pt?0:5;ring.hidden=false;ring.classList.toggle('dot',!!pt);Object.assign(ring.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+2*pad+'px',height:r.height+2*pad+'px'});}
  else ring.hidden=true;
@@ -4482,9 +4491,9 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 hook('renderAll',()=>{if(tutActive())tutRender();else tutStop();});
 hook('enterGame',()=>{tutIdx=-1;if(tutActive())tutRender();else tutStop();});
 new MutationObserver(()=>{if(tutActive())tutRender();}).observe($('#modal'),{attributes:true,attributeFilter:['hidden']});
-ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast('Dersler kapandı. Menüden yeniden başlatabilirsin.');if(typeof uiAdvRender==='function')uiAdvRender();save();};
+ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast(lng('Dersler kapandı. Menüden yeniden başlatabilirsin.','Lessons turned off. You can restart them from the Menu.'));if(typeof uiAdvRender==='function')uiAdvRender();save();};
 ACTS['tut-restart']=()=>{S.tut={step:0,done:false,off:false};tutIdx=-1;tutSeen.clear();closeModal();try{localStorage.removeItem('ke-tut');}catch(e){}renderAll();};
-MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>Vezirin dersleri</h3><div class="acts">${tutActive()?'<button class="btn" data-act="tut-skip">Dersi geç</button>':'<button class="btn" data-act="tut-restart">Dersleri baştan başlat</button>'}</div></div>`});
+MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>${lng('Vezirin dersleri',"The Vizier's lessons")}</h3><div class="acts">${tutActive()?`<button class="btn" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button>`:`<button class="btn" data-act="tut-restart">${lng('Dersleri baştan başlat','Restart the lessons')}</button>`}</div></div>`});
 KE.tut=()=>{const st=tutActive()?TUT_STEPS[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null};};
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
@@ -4559,9 +4568,10 @@ ACTS.off=(t,f)=>{let k=+t.dataset.k;const ok=t.dataset.v==='1',fk=t.dataset.f;
  const of=S.offers[k];if(!of){pruneOffers();renderAll();showReport();return;}S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast('Bu teklif artık geçerli değil.');renderAll();showReport();return;}
  if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();};
 /* ---------------- guide ---------------- */
-const GUIDE_TABS=[['genel','Genel'],['para','Para'],['savas','Savaş'],['bina','Binalar'],['diplo','Diplomasi'],['olay','Olaylar']];
+const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Savaş','War')],['bina',lng('Binalar','Buildings')],['diplo',lng('Diplomasi','Diplomacy')],['olay',lng('Olaylar','Events')]];
 function guideBody(t){
  const half=Math.ceil(NP*.5);
+ if(EN)return guideBodyEn(t,half);
  if(t==='para')return `<p>Devletin hazinesi eyaletlerinden gelen vergiyle dolar. Her mevsimin sonunda bütün eyaletlerin vergisini öder. Bir eyalet ne kadar gelişmişse o kadar çok vergi verir; büyük bir şehir, küçük bir kasabanın birkaç katını getirir.</p>
  <h3>Parayı ne artırır?</h3>
  <ul><li><b>Pazar kurmak.</b> Bir eyalette pazar varsa o eyaletin vergisi yarı yarıya artar.</li>
@@ -4649,11 +4659,100 @@ function guideBody(t){
  <li>Klavyede <b>Boşluk</b> turu bitirir, <b>Esc</b> pencereyi kapatır, <b>1–4</b> Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</li></ul>
  <p class="tip">Oyun her hamleden sonra kendiliğinden kaydedilir. Kapatsan bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>`;
 }
+/** The English guide: same tabs and facts as the Turkish one, told in plain words. */
+function guideBodyEn(t,half){
+ if(t==='para')return `<p>Your treasury is filled by the taxes of your provinces. At the end of every season each province pays its share. The more developed a province is, the more it pays: a great city brings in several times what a small town does.</p>
+ <h3>What brings in more gold?</h3>
+ <ul><li><b>Building a market.</b> A province with a market pays half as much tax again.</li>
+ <li><b>Conquest.</b> When you take a new city, your soldiers plunder it and some gold goes straight into the treasury.</li>
+ <li><b>Tribute.</b> A realm you have beaten in war may pay you part of its treasury in exchange for peace.</li>
+ <li><b>Goals and events.</b> Completing historical goals, or events such as a rich caravan or a bountiful harvest, also bring gold.</li></ul>
+ <h3>Where does the gold go?</h3>
+ <p>Soldiers want their pay: one gold every season for each thousand men. The bigger your army, the bigger the bill. In the top bar, the small number next to the Treasury shows what is left over each season. <b>Green</b> means you are earning, <b>red</b> means you are losing money.</p>
+ <p>If the treasury runs completely dry, unpaid soldiers begin to desert, and part of the army in every province melts away.</p>
+ <h3>Restless lands</h3>
+ <p>The people of a newly conquered province do not accept you at once. For two years they stay restless and pay only half their usual taxes.</p>
+ <h3>Manpower</h3>
+ <p>Gold alone does not raise an army: you also need young men willing to enlist. This is your manpower. Every season new recruits come in from your provinces, up to a certain limit. Provinces with barracks train twice as many.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> In the early years, spend your gold on markets, starting with your richest cities. In peacetime, do not feed a larger army than you need: the wages will drain your treasury.</p>`;
+ if(t==='savas')return `<p>To enter another realm's lands you must first <b>declare war</b> on it. You can do this from the Diplomacy screen, or by tapping one of the enemy's provinces.</p>
+ <h3>Armies and garrisons</h3>
+ <p>Your soldiers come in two kinds. A <b>garrison</b> guards its city and never moves; it is cheap to pay. A <b>field army</b> marches across the map under its banner, fights battles and takes cities. When you raise troops, they form a field army in that province, or join the army already there.</p>
+ <p>The <b>banners</b> on the map are armies: the realm's arms on top, the number of troops below, and the commander's initials on a red seal. A gold frame means the army is yours; a red frame marks an enemy you are at war with. The small <b>tower plaques</b> are garrisons; they appear when you zoom in or select a province.</p>
+ <h3>How to attack</h3>
+ <ol><li>Tap the army's banner, or select its province and pick the army in the panel.</li><li>Tap the province you want to go to; the route appears on the map as a dashed gold line.</li><li>Look at the estimate in the panel and press <b>March</b> or <b>Attack</b>.</li></ol>
+ <p>An army can only travel so far each season; the gold dots under its banner show how much movement it has left. The dashed blue lines on the map are sea routes crossed by ship. You can merge armies, split them or disband them.</p>
+ <p>At the end of each turn, <b>Campaign news</b> briefly replays the season's marches and battles on the map; press <b>Skip</b> to pass over it. You can turn it off or speed it up under Menu → Display.</p>
+ <h3>Who has the upper hand?</h3>
+ <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>
+ <ul><li><b>Fortress walls</b> strengthen the defenders; the higher the fortress, the harder the city is to take.</li>
+ <li><b>Mountains</b> favour the defender, and desert helps a little too.</li>
+ <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out.</li>
+ <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
+ <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
+ <h3>After the battle</h3>
+ <p><b>If you win</b>, the province is yours. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed and the rest flee to neighbouring provinces. The walls are damaged and your soldiers plunder the city.</p>
+ <p><b>If you lose</b>, your army suffers heavy losses and the survivors fall back. The enemy loses some men too.</p>
+ <p>The <b>Battle card</b> shows why a battle was won or lost: walls, terrain, winter, commander and the dice of fortune. You can open it again by tapping the lines in the Season Report.</p>
+ <p>When a realm's <b>capital falls</b>, part of its treasury is plundered and it moves its capital to another city. A realm that loses its last city vanishes from history.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Look at the estimate in the panel before you attack. If it says <b>"Overwhelming"</b>, attack with confidence; if it says <b>"Even odds"</b> or <b>"Risky"</b>, gather troops on the border for a few more seasons. Do not storm thick-walled cities before your cannon arrive, and not in winter.</p>`;
+ if(t==='bina')return `<p>Tap one of your own provinces to open its panel: there you can raise troops and put up buildings. Each button shows its price; the gold leaves the treasury at once and the work is finished on the spot.</p>
+ <h3>Develop</h3><p>Makes the city grow. A bigger city pays more tax, trains more soldiers, and more of its people take up arms when it is attacked. The bigger the city gets, the more the next round of development costs.</p>
+ <h3>Market</h3><p>Merchants arrive and the city pays half as much tax again. Each province can have one. Early in the game it is the investment that pays for itself fastest.</p>
+ <h3>Barracks</h3><p>Doubles the number of soldiers the province can train. Build them where you will raise many troops, close to the border.</p>
+ <h3>Fortress</h3><p>Raises the walls. It strengthens the defence against attackers, and more of the townsfolk take up arms. It can be raised up to five levels, each dearer than the last. When a city changes hands, its walls take some damage.</p>
+ <h3>Raising troops</h3><p>You can raise a thousand or five thousand soldiers at a time. This takes both gold and manpower. New troops stay in their province for that season and can only set out the next one.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> First markets in your rich cities, then fortresses in the border towns that face the enemy. Developing is costly but it lasts for ever; once your treasury is full, begin with your capital.</p>`;
+ if(t==='diplo')return `<p>The <b>⚖ Diplomacy</b> button in the top bar shows every realm in the world: how strong they are, how they regard you, and where you stand with each other.</p>
+ <h3>Relations</h3>
+ <p>Every realm has its own attitude towards you. Realms of your own faith look on you more warmly, those of another faith more coldly; old friendships and old feuds from history add to this. You can win a realm's favour by sending gifts. Both grudges and friendships slowly fade back to how they were.</p>
+ <h3>War and peace</h3>
+ <ul><li><b>When you declare war</b>, that realm takes deep offence, and its allies join the war against you.</li>
+ <li>When you ask for <b>peace</b>, the enemy accepts if it is losing the war, if it is clearly weaker than you, or if the war has dragged on too long.</li>
+ <li><b>Tribute</b> can only be demanded once you have the enemy truly cornered. If it agrees, it pays you gold from its treasury in return for peace.</li>
+ <li>After peace comes a <b>three-year truce</b>; during it neither side can declare war on the other again.</li></ul>
+ <h3>Who is winning the war?</h3>
+ <p>The Diplomacy screen shows a score for every war. Each battle you win, and above all each capital you take, tips the score in your favour; attacks you beat off count as well. When you are ahead, the enemy is readier to accept peace and pay tribute.</p>
+ <h3>Alliances</h3>
+ <p>A realm that likes you, or that is fighting the same enemy, will accept an offer of alliance. When someone declares war on you, your ally rushes to your aid.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Before you go to war with a great neighbour, look at its allies. Nobody will declare war on you in the first year and a half of the game; use that time to prepare.</p>`;
+ if(t==='olay')return `<h3>Unexpected events</h3>
+ <p>In some seasons news reaches your palace and a decision is asked of you: a rich caravan arrives from the east, plague breaks out in a city, the harvest is bountiful, a famous scholar seeks your patronage, mercenaries offer their service, an earthquake shakes the walls, a harsh winter sets in, a newly conquered city rises in revolt, or a foreign envoy comes bearing gifts. Your choice affects your treasury, your army or your relations with your neighbours.</p>
+ <h3>The course of history</h3>
+ <ul><li><b>1453:</b> Urban, the Hungarian founder, casts great cannon for the Ottomans.</li>
+ <li><b>1456:</b> A comet is seen in the sky.</li>
+ <li><b>1460:</b> The age of gunpowder begins, and everyone uses cannon.</li>
+ <li><b>1492:</b> The New World is discovered and Granada falls.</li>
+ <li><b>1501:</b> Shah Ismail is crowned in Tabriz and the Safavid state is born.</li></ul>
+ <h3>Goals</h3>
+ <p>The <b>✦ Goals</b> screen holds historical tasks special to your realm: the conquest of Constantinople, the defence of Belgrade, the resistance of Krujë and more. Each one brings gold to the treasury and raises your score.</p>`;
+ return `<p>The year is 1451. From the Balkans to the Caucasus, from the Danube to the Nile, 28 dynasties are vying for power. Choose one and rule your realm until the year 1531.</p>
+ <h3>The goal</h3>
+ <p>Rule half of the provinces on the map (${half} provinces) and you win at once. If you do not get there, the game ends in 1531 and the mightiest dynasty is named. Your score depends on how many cities you hold and how developed they are, on the goals you have completed and on your treasury. If you lose your last city, the game is over.</p>
+ <h3>How a season passes</h3>
+ <ol><li>Raise troops, put up buildings, march your armies, attack, and deal with your neighbours.</li>
+ <li>When you are ready, press <b>End Turn</b>.</li>
+ <li>The other realms make their moves; wars are fought and cities change hands.</li>
+ <li>Taxes are collected, new soldiers are trained and armies rest.</li>
+ <li>Now and then news reaches your palace and a decision is asked of you.</li></ol>
+ <p>Each turn is one season; a year lasts four turns.</p>
+ <h3>Using the map</h3>
+ <ul><li>Tap one of your provinces to select it. Neighbours that glow <b>green</b> are your own land; those that glow <b>red</b> belong to an enemy you are at war with.</li>
+ <li>Drag the map with your finger or the mouse; zoom with two fingers or the mouse wheel.</li>
+ <li>The buttons at the bottom left switch between the 3D and 2D views.</li>
+ <li>On a phone, province details sit in a drawer that slides up from the bottom. Tap its handle or pull it up to enlarge it, pull it down to close it.</li></ul>
+ <h3>The Vizier's help</h3>
+ <ul><li>Rest the pointer on a number, or tap it on a phone, and the vizier tells you where it comes from. Look at the Treasury to see your income and expenses item by item.</li>
+ <li>The vizier's counsel appears at the bottom left (bottom right on a phone): he warns you when the treasury is draining, when your army sits idle or when the time for peace has come. Tap it and he will tell you what to do.</li>
+ <li>In your first game the vizier guides you step by step. You can restart or turn off the lessons from the Menu.</li>
+ <li>On the keyboard, <b>Space</b> ends the turn, <b>Esc</b> closes a window, and <b>1–4</b> open Diplomacy, Goals, the Chronicle and the State Ledger.</li></ul>
+ <p class="tip">The game saves itself after every move. Even if you close it, <b>Continue saved game</b> on the opening screen takes you back to where you left off.</p>`;
+}
 function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
- openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>Oyun Rehberi</h2>
+ openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>${lng('Oyun Rehberi','Game Guide')}</h2>
  <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
  <div class="gbody">${guideBody(t)}</div>
- <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
+ <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);
 function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>

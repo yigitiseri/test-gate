@@ -12,14 +12,14 @@ const tutCap=()=>S.fac[S.player].cap;
 const tutAtProv=i=>()=>{const d=PD[i];const p=pj(d.lx,d.ly);return p[2]===false?null:[p[0],p[1]];};
 const tutOwnSel=()=>sel>=0&&S.prov[sel]&&S.prov[sel].o===S.player;
 TUT_STEPS.push(
- {id:'select',text:'Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.',at:()=>tutAtProv(tutCap())(),
+ {id:'select',text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
   done:()=>tutOwnSel()},
- {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:'Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.',
-  need:()=>tutOwnSel()?null:{text:'Asker toplamak için kendi eyaletlerinden birine dokun.',at:tutAtProv(tutCap())},
+ {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
+  need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
   done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
- {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:'Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.',
+ {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
   done:(S,x)=>x.seen.has('diplo')},
- {id:'end',sel:'#endTurn',text:'Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.',
+ {id:'end',sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
   done:(S,x)=>S.turn>x.turn0}
 );
 function tutActive(){return !!(S&&S.player&&S.tut&&!S.tut.done&&!S.tut.off&&!S.over);}
@@ -29,12 +29,12 @@ hook('newGame',(S,player)=>{if(player)S.tut=tutFinished()?null:{step:0,done:fals
 /** Advance past every finished step; returns the current step or null. */
 function tutStep(){if(!tutActive())return null;
  for(let g=0;g<TUT_STEPS.length+1;g++){const k=S.tut.step;if(k>=TUT_STEPS.length){S.tut.done=true;tutRemember();tutIdx=-1;
-   toast('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','good');SND.play('coin');return null;}
+   toast(lng('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','Vizier: The first lessons are done. The rest is left to your wisdom; if you need help, look in the Guide.'),'good');SND.play('coin');return null;}
   const st=TUT_STEPS[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
   let ok=false;try{ok=!!st.done(S,{seen:tutSeen,turn0:tutTurn0});}catch(e){console.error('tut '+st.id,e);ok=true;}
   if(!ok)return st;S.tut.step=k+1;}
  return null;}
-(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="tutRing" class="tut-ring" hidden></div><div id="tutBub" class="tut-bub" role="dialog" aria-live="polite" hidden><div class="tut-e"></div><p class="tut-t"></p><button class="tut-x" data-act="tut-skip">Dersi geç</button><i class="tut-arrow"></i></div>`);})();
+(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="tutRing" class="tut-ring" hidden></div><div id="tutBub" class="tut-bub" role="dialog" aria-live="polite" hidden><div class="tut-e"></div><p class="tut-t"></p><button class="tut-x" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button><i class="tut-arrow"></i></div>`);})();
 function tutVisible(el){if(!el||!el.isConnected)return null;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)return null;
  const cs=getComputedStyle(el);if(cs.visibility==='hidden'||cs.display==='none')return null;return r;}
 /** Draw the coach mark for the current step (or hide it). */
@@ -48,7 +48,7 @@ function tutRender(){const ring=$('#tutRing'),bub=$('#tutBub');if(!ring)return;
    if(tutKey!==st.id&&(er.bottom>pr.bottom-4||er.top<pr.top)){tutKey=st.id;if(uiSheetCur==='peek')uiSheetSet('half');el.scrollIntoView({block:'nearest'});}}
   r=tutVisible(el);}
  else if(at){pt=at();if(pt&&(pt[0]<0||pt[1]<topH()||pt[0]>innerWidth||pt[1]>innerHeight))pt=null;if(pt)r={left:pt[0]-24,top:pt[1]-24,width:48,height:48,right:pt[0]+24,bottom:pt[1]+24};}
- const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`;bub.querySelector('.tut-t').textContent=text;
+ const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`,`The Vizier's lesson · ${k+1} / ${TUT_STEPS.length}`);bub.querySelector('.tut-t').textContent=text;
  bub.hidden=false;bub.dataset.step=st.id;
  if(r){const pad=pt?0:5;ring.hidden=false;ring.classList.toggle('dot',!!pt);Object.assign(ring.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+2*pad+'px',height:r.height+2*pad+'px'});}
  else ring.hidden=true;
@@ -66,7 +66,7 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 hook('renderAll',()=>{if(tutActive())tutRender();else tutStop();});
 hook('enterGame',()=>{tutIdx=-1;if(tutActive())tutRender();else tutStop();});
 new MutationObserver(()=>{if(tutActive())tutRender();}).observe($('#modal'),{attributes:true,attributeFilter:['hidden']});
-ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast('Dersler kapandı. Menüden yeniden başlatabilirsin.');if(typeof uiAdvRender==='function')uiAdvRender();save();};
+ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast(lng('Dersler kapandı. Menüden yeniden başlatabilirsin.','Lessons turned off. You can restart them from the Menu.'));if(typeof uiAdvRender==='function')uiAdvRender();save();};
 ACTS['tut-restart']=()=>{S.tut={step:0,done:false,off:false};tutIdx=-1;tutSeen.clear();closeModal();try{localStorage.removeItem('ke-tut');}catch(e){}renderAll();};
-MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>Vezirin dersleri</h3><div class="acts">${tutActive()?'<button class="btn" data-act="tut-skip">Dersi geç</button>':'<button class="btn" data-act="tut-restart">Dersleri baştan başlat</button>'}</div></div>`});
+MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>${lng('Vezirin dersleri',"The Vizier's lessons")}</h3><div class="acts">${tutActive()?`<button class="btn" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button>`:`<button class="btn" data-act="tut-restart">${lng('Dersleri baştan başlat','Restart the lessons')}</button>`}</div></div>`});
 KE.tut=()=>{const st=tutActive()?TUT_STEPS[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null};};
