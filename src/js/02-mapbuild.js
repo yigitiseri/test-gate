@@ -92,7 +92,7 @@ function buildMap(){
   d.area=provStart[d.i+1]-provStart[d.i];
   if(best>=0){d.lx=best%W;d.ly=(best/W)|0;d.inr=D[best]/3;}else{d.lx=d.x;d.ly=d.y;d.inr=4;}
   let md2=1e9;MOUNTAINS.forEach(l=>{for(let k=0;k<l.length-1;k++){const [ax,ay]=P(l[k][0],l[k][1]),[bx,by]=P(l[k+1][0],l[k+1][1]);md2=Math.min(md2,segDist(d.lx,d.ly,ax,ay,bx,by));}});
-  d.mtn=md2<24;});
+  d.mtn=md2<24||d.key==='kroya';});
  // sea distance to coast
  const SD=new Uint16Array(N);for(let i=0;i<N;i++)SD[i]=land[i]?0:65535;chamfer(SD);
  const LD=new Uint16Array(N);for(let i=0;i<N;i++)LD[i]=land[i]?65535:0;chamfer(LD);

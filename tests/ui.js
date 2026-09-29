@@ -41,12 +41,6 @@ const L = require('./lib');
     const pt = await panelText();
     check('select own province opens the panel', pt && pt.includes(info[src].name), pt && pt.slice(0, 120));
 
-    // recruit
-    const s0 = await E(i => ({ g: window.__ke.S.fac.OSM.gold, t: window.__ke.S.prov[i].t }), src);
-    await click('#panel [data-act="rec1"]');
-    const s1 = await E(i => ({ g: window.__ke.S.fac.OSM.gold, t: window.__ke.S.prov[i].t }), src);
-    check('recruit adds 1000 troops and costs gold', s1.t === s0.t + 1000 && s1.g < s0.g, { s0, s1 });
-
     // build (market, else barracks, else fort)
     const b0 = await E(i => { const p = window.__ke.S.prov[i]; return p.mkt + p.brk + p.fort + p.dev; }, src);
     const bsel = await E(() => ['bmkt', 'bbrk', 'bfort', 'bdev'].map(a => document.querySelector(`#panel [data-act="${a}"]:not([disabled])`)).filter(Boolean).map(b => b.dataset.act)[0]);
@@ -54,22 +48,7 @@ const L = require('./lib');
     const b1 = await E(i => { const p = window.__ke.S.prov[i]; return p.mkt + p.brk + p.fort + p.dev; }, src);
     check('build a building (' + bsel + ')', !!bsel && b1 === b0 + 1, { bsel, b0, b1 });
 
-    // move troops between two own provinces
-    const pair = await E(() => { const K = window.__ke, S = K.S; for (let i = 0; i < S.prov.length; i++) { const p = S.prov[i]; if (p.o !== 'OSM' || p.t - p.mv < 1000) continue; for (const j of K.PD[i].adj) if (S.prov[j].o === 'OSM' && !K.PD[i].lanes.includes(j)) return [i, j]; } return null; });
-    let movedOk = false;
-    if (pair) {
-      const [a, b] = pair;
-      if (await L.provPoint(page, a) && await L.provPoint(page, b)) {
-        await L.clickProv(page, a); await L.clickProv(page, b);
-        const tb0 = await E(i => window.__ke.S.prov[i].t, b);
-        if (await E(() => !!document.querySelector('#panel [data-act="go"]'))) await click('#panel [data-act="go"]');
-        const tb1 = await E(i => window.__ke.S.prov[i].t, b);
-        movedOk = tb1 > tb0;
-      }
-    }
-    check('move troops to a neighbouring own province', movedOk, { pair });
-    await E(() => document.querySelector('#panel [data-act="close"]') && document.querySelector('#panel [data-act="close"]').click());
-
+    // recruit / move / attack are covered by tests/scenarios/b-ui-flow.js (field armies)
     // declare war on Byzantium from the province panel (two clicks: confirm)
     await L.clickProv(page, ist);
     check('select Istanbul shows its panel', ((await panelText()) || '').includes(info[ist].name));
@@ -77,16 +56,6 @@ const L = require('./lib');
     await click('#panel [data-act="dwar"]');
     check('declare war on BYZ', await E(() => !!window.__ke.S.war['BYZ|OSM']));
     await L.closeModals(page);
-
-    // attack Istanbul
-    const nb0 = await E(() => window.__ke.S.battles.length);
-    await L.clickProv(page, src); await L.clickProv(page, ist);
-    const hasGo = await E(() => !!document.querySelector('#panel [data-act="go"]'));
-    check('attack panel opens', hasGo);
-    if (hasGo) await click('#panel [data-act="go"]');
-    await page.waitForTimeout(300);
-    await L.closeModals(page);
-    check('attack fought a battle', (await E(() => window.__ke.S.battles.length)) > nb0);
 
     // top bar modals
     for (const [sel, name] of [['#top [data-act="diplo"]', 'diplomacy'], ['#top [data-act="missions"]', 'missions'], ['#top [data-act="chron"]', 'chronicle'], ['#facBtn', 'state book'], ['#top [data-act="menu"]', 'menu']]) {

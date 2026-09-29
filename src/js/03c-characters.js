@@ -144,7 +144,7 @@ function chCrisisGold(f){return Math.max(BAL_C.crisisGold[0],Math.round((income(
 /** Kill a character; fires charDied, then succession if it was a ruler. */
 function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive(c))return null;const f=c.f,F=S.fac[f];
  c.died=S.turn;c.dc=cause||'natural';
- for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2)a.mpMax--;}
+ for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2){a.mpMax--;a.mp=Math.min(a.mp,a.mpMax);}}
  if(F){F.gens=(F.gens||[]).filter(x=>x!==c.id);}
  const wasRuler=F&&F.ruler===c.id,wasHeir=F&&F.heir===c.id;
  if(!wasRuler){const who=c.role==='gen'?`${FAC[f].s} komutanı ${c.n}`:`${FAC[f].s} ${chLabel(c)}`;
@@ -200,7 +200,7 @@ function chFreeGen(f,gen=true){const F=S.fac[f];if(!F||!F.alive)return null;cons
  if(free.length)return free[0];
  if(gen&&chGenerals(f).length<BAL_C.genMax)return chGenGeneral(f);return null;}
 function chAssignGen(a){if(!S||!S.c||a.gen!=null||!S.armies.includes(a))return;const g=chFreeGen(a.f);if(!g)return;a.gen=g.id;
- if(g.traits.includes('akinci'))a.mpMax=(a.mpMax||2)+1;}
+ if(g.traits.includes('akinci')){const full=a.mp>=(a.mpMax||2);a.mpMax=(a.mpMax||2)+1;if(full)a.mp=a.mpMax;}}
 hook('armyCreated',a=>chAssignGen(a),50);
 /** The commanding character on one side of a battle context (explicit army refs first, else the largest army there). */
 function chCtxGen(ctx,side){if(!S.c)return null;
@@ -232,7 +232,7 @@ hook('battleResolved',rep=>{if(!S.c||!rep||!rep.mods)return;const lose=rep.win?'
  if(!fate)return;const nm=c.rn||c.n,where=PD[rep.to]?PD[rep.to].name:'';
  rep.genFate={id:c.id,n:nm,f:c.f,fate,t:fate==='died'?`${nm} ${where} muharebesinde can verdi.`:`${nm} ${where} muharebesinde esir düştü.`};
  if(fate==='died')chKill(c,'battle');
- else{c.cap=S.turn+BAL_C.captiveTurns;for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2)a.mpMax--;}
+ else{c.cap=S.turn+BAL_C.captiveTurns;for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2){a.mpMax--;a.mp=Math.min(a.mp,a.mpMax);}}
   chNews(c.f,`${FAC[c.f].s} komutanı ${nm} esir düştü.`,c.f===S.player?'war':'info');}},40);
 
 /* ---------------- ruler traits and regency in the economy ---------------- */
