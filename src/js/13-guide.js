@@ -16,10 +16,14 @@ function guideBody(t){
  <h3>İnsan gücü</h3>
  <p>Asker toplamak için sadece altın yetmez, askere yazılacak gençler de gerekir. Buna insan gücü denir. Her mevsim eyaletlerinden yeni gençler gelir, ama bir üst sınırı vardır. Kışla kurduğun eyaletler iki kat asker yetiştirir.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> İlk yıllarda altınını pazarlara yatır; en zengin şehirlerinden başla. Barış zamanında gereğinden büyük ordu besleme, maaşlar hazineni eritir.</p>`;
- if(t==='savas')return `<p>Bir devletin toprağına girmek için önce ona <b>savaş ilan etmelisin</b>. Savaş ilanı Diplomasi ekranından ya da düşman eyaletine dokunarak yapılır. Ordular sadece komşu eyaletlere yürüyebilir; haritadaki kesik çizgiler gemiyle geçilen deniz yollarıdır.</p>
+ if(t==='savas')return `<p>Bir devletin toprağına girmek için önce ona <b>savaş ilan etmelisin</b>. Savaş ilanı Diplomasi ekranından ya da düşman eyaletine dokunarak yapılır.</p>
+ <h3>Ordular ve garnizonlar</h3>
+ <p>Askerlerin iki çeşittir. <b>Garnizon</b> şehrini korur ama yerinden kıpırdamaz; maaşı ucuzdur. <b>Sahra ordusu</b> ise haritada sancağıyla yürüyen, savaşan ve şehir alan kuvvettir. Asker topladığında o eyalette bir sahra ordusu kurulur ya da oradaki orduna katılır.</p>
+ <p>Haritadaki <b>sancaklar</b> ordulardır: üstünde devletin arması, altında asker sayısı, kırmızı mühürde komutanın baş harfleri. Altın çerçeve senin, kırmızı çerçeve savaştığın düşmanın ordusudur. Küçük <b>kule levhaları</b> ise garnizonlardır; yakınlaştırınca ya da eyaleti seçince görünür.</p>
  <h3>Nasıl saldırılır?</h3>
- <ol><li>Kendi eyaletine dokun.</li><li>Kırmızıyla parlayan bir düşman eyaletine dokun.</li><li>Kaydırıcıyla kaç asker göndereceğini seç.</li><li>Paneldeki tahmine bak ve <b>Saldır</b>'a bas.</li></ol>
- <p>Bir asker her mevsim sadece bir kez yürüyebilir. O mevsim toplanan askerler de ancak bir sonraki mevsim yola çıkar.</p>
+ <ol><li>Ordunun sancağına dokun ya da eyaletini seçip panelden orduyu seç.</li><li>Gideceği eyalete dokun; yol haritada altın kesik çizgiyle görünür.</li><li>Paneldeki tahmine bak ve <b>Yürü</b> ya da <b>Saldır</b>'a bas.</li></ol>
+ <p>Bir ordu her mevsim sınırlı yol alır; sancağın altındaki altın noktalar kalan hareketini gösterir. Haritadaki kesik mavi çizgiler gemiyle geçilen deniz yollarıdır. Orduları birleştirebilir, bölebilir ya da dağıtabilirsin.</p>
+ <p>Tur sonunda <b>Sefer haberleri</b> bu mevsimin yürüyüşlerini ve muharebelerini haritada kısaca oynatır; <b>Geç</b> ile atlayabilirsin. Menü → Görüntü'den kapatabilir ya da hızlandırabilirsin.</p>
  <h3>Kimin gücü ağır basar?</h3>
  <p>Muharebede senin ordunla şehrin savunması karşılaşır. Şehri sadece oradaki askerler korumaz; kasabanın halkı da silaha sarılır. Büyük şehirlerde ve kaleli yerlerde bu halk savunması kalabalıktır.</p>
  <ul><li><b>Kale surları</b> savunmacıları güçlendirir; kale seviyesi yükseldikçe şehri almak zorlaşır.</li>
@@ -29,7 +33,8 @@ function guideBody(t){
  <li>Her muharebede biraz da <b>şans</b> vardır; kıl payı üstün bir ordu kaybedebilir.</li></ul>
  <h3>Muharebeden sonra</h3>
  <p><b>Kazanırsan</b> eyalet senin olur. Askerlerinin bir kısmı düşer ama ne kadar üstünsen o kadar az kayıp verirsin. Düşman garnizonunun çoğu ölür, kalanlar komşu eyaletlerine kaçar. Surlar hasar görür ve askerlerin şehri yağmalar.</p>
- <p><b>Kaybedersen</b> ordunun ağır kayıplar verir, sağ kalanlar geldikleri yere geri döner. Düşman da biraz asker kaybeder.</p>
+ <p><b>Kaybedersen</b> ordunun ağır kayıplar verir, sağ kalanlar geri çekilir. Düşman da biraz asker kaybeder.</p>
+ <p><b>Muharebe kartı</b> savaşın neden kazanıldığını ya da kaybedildiğini gösterir: kale, arazi, kış, komutan ve talih zarları. Mevsim raporundaki satırlara dokunarak yeniden açabilirsin.</p>
  <p>Bir devletin <b>başkenti düşerse</b> hazinesinin bir kısmı yağmalanır ve başkentini başka bir şehre taşır. Son şehrini de kaybeden devlet tarihten silinir.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Saldırmadan önce paneldeki tahmine bak. <b>"Ezici üstünlük"</b> yazıyorsa rahat saldır, <b>"Başa baş"</b> ya da <b>"Riskli"</b> yazıyorsa sınırda birkaç mevsim daha asker biriktir. Kalın surlu şehirlere topun gelmeden ve kışın saldırma.</p>`;
  if(t==='bina')return `<p>Kendi eyaletine dokununca açılan panelde asker toplayabilir ve yapı kurabilirsin. Her düğmenin üstünde fiyatı yazar; para hemen hazineden çıkar ve yapı o anda biter.</p>

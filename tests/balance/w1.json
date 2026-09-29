@@ -1,0 +1,12 @@
+{
+  "note": "Wave 1 merged (B armies + C characters + A tokens/replay + D UI/AI). World-passive sims, HAF passive x320.",
+  "runs": [
+    {"seed": 1, "aliveEnd": 26, "warsMean": 5.59, "pingPongMax": 4, "maxArmy": 45200, "istFallTurn": 19, "turnMsAvg": 7.4},
+    {"seed": 2, "aliveEnd": 28, "warsMean": 5.65, "pingPongMax": 7, "maxArmy": 31800, "istFallTurn": 19, "turnMsAvg": 7.4},
+    {"seed": 3, "aliveEnd": 24, "warsMean": 5.12, "pingPongMax": 5, "maxArmy": 45900, "istFallTurn": 158, "turnMsAvg": 7.4}
+  ],
+  "open": [
+    "G5 fails: 24-28 factions alive at t=320 (want 8..16). Field-army assaults vs forts rarely succeed; W2-B sieges + W2-D operational AI must restore conquest pace.",
+    "G6 fails on seed 2: ping-pong 7 in Anatolian beyliks (karesi). W2-D: occupation/retake hysteresis."
+  ]
+}
