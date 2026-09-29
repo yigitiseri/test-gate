@@ -4,15 +4,15 @@ function declareWar(a,b){
  delete S.ally[key(a,b)];
  S.war[key(a,b)]=newWar(a,b);addOp(a,b,-60);
  alliesOf(b).forEach(c=>addOp(a,c,-25));
- const msg=`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`;
+ const msg=lng(`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`,`${fname(a)} declared war on ${fname(b)}.`);
  if(a===S.player||b===S.player){news(msg,'war');if(b===S.player)toast(msg,'war');}else addLog(msg,'war');
  const joined=[];
  alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a)||inTruce(c,a))return;S.war[key(c,a)]=newWar(a,c);joined.push(c);
-  const m2=`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`;if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
+  const m2=lng(`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`,`${fname(c)} joined the war against ${fname(a)} to stand by its ally ${fname(b)}.`);if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
  runHooks('warDeclared',a,b);joined.forEach(c=>runHooks('warDeclared',c,a));
 }
 function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);pruneOffers();
- const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');
+ const m=lng(`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`,`Peace was signed between ${fname(a)} and ${fname(b)}.`);if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');
  runHooks('peace',a,b,{silent:!!silent});}
 function offerOk(o){const w=alive(o.f)&&S.war[key(o.f,S.player)];return !!w&&(o.wt==null||o.wt===w.t);}
 function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
@@ -34,15 +34,15 @@ function battleMods(ctx){const out=[];for(const fn of BATTLE_MODS){const r=fn(ct
 function modMul(v,mods,side){for(const m of mods)if(m.side===side)v*=m.m;return v;}
 /** Casualty multiplier inflicted by `side` (product of its mods' `loss`, capped at mtnRes). */
 function modLoss(mods,side){let v=1;for(const m of mods)if(m.side===side&&m.loss)v*=m.loss;return Math.min(v,BAL_B.mtnRes);}
-BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:'Kış seferi',m:.85,side:'att',k:'winter'}]:null);
+BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:lng('Kış seferi','Winter campaign'),m:.85,side:'att',k:'winter'}]:null);
 BATTLE_MODS.push(ctx=>{if(ctx.to==null)return null;const p=S.prov[ctx.to],d=PD[ctx.to],r=[];
- if(p.fort>0&&ctx.kind!=='field')r.push({l:`Kale ${p.fort}`,m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?BAL_B.cannonFort:1),side:'def',k:'fort'});
- if(armMtn(ctx.to))r.push({l:'Dağlık arazi',m:1.3,side:'def',k:'mtn'});
- if(d.des)r.push({l:'Çöl',m:1.1,side:'def',k:'des'});
+ if(p.fort>0&&ctx.kind!=='field')r.push({l:lng(`Kale ${p.fort}`,`Walls ${p.fort}`),m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?BAL_B.cannonFort:1),side:'def',k:'fort'});
+ if(armMtn(ctx.to))r.push({l:lng('Dağlık arazi','Mountain terrain'),m:1.3,side:'def',k:'mtn'});
+ if(d.des)r.push({l:lng('Çöl','Desert'),m:1.1,side:'def',k:'des'});
  return r;});
 /* B10 "Dağ direnişi": a defender fighting in its own mountain province bleeds the attacker (+50% losses). */
 BATTLE_MODS.push(ctx=>{if(ctx.to==null||!armMtn(ctx.to)||!ctx.def||S.prov[ctx.to].o!==ctx.def)return null;
- return [{l:'Dağ direnişi',m:BAL_B.mtnResDef,side:'def',k:'mtnres',loss:BAL_B.mtnRes}];});
+ return [{l:lng('Dağ direnişi','Mountain resistance'),m:BAL_B.mtnResDef,side:'def',k:'mtnres',loss:BAL_B.mtnRes}];});
 /** Garrison plus local militia defending province i, before modifiers. */
 function defBase(i){const p=S.prov[i];return p.t+p.dev*150+p.fort*700;}
 function atkMul(f,ctx){return modMul(1,battleMods(ctx||{kind:'assault',att:f}),'att');}
@@ -122,14 +122,14 @@ function capture(i,f){
  const d=PD[i];
  if(S.fac[old].cap===i){const rest=facProvs(old);if(rest.length){rest.sort((a,b)=>S.prov[b].dev-S.prov[a].dev);S.fac[old].cap=rest[0];}
   S.fac[old].gold=Math.round(S.fac[old].gold*.7);
-  const m=`${fname(old)} başkenti ${d.name}, ${fname(f)} eline geçti!`;(old===S.player||f===S.player)?news(m,'cap'):addLog(m,'cap');}
- if(old===S.player&&f!==S.player)addLog(`${d.name} eyaletini ${fname(f)} kuvvetlerine kaptırdık.`,'war');
+  const m=lng(`${fname(old)} başkenti ${d.name}, ${fname(f)} eline geçti!`,`${d.name}, capital of ${fname(old)}, has fallen to ${fname(f)}!`);(old===S.player||f===S.player)?news(m,'cap'):addLog(m,'cap');}
+ if(old===S.player&&f!==S.player)addLog(lng(`${d.name} eyaletini ${fname(f)} kuvvetlerine kaptırdık.`,`We lost ${d.name} to the forces of ${fname(f)}.`),'war');
  if(!facProvs(old).length)eliminate(old,f);
  if(d.key==='istanbul'){
   if(f==='OSM'&&!S.flags.fetih){S.flags.fetih=1;S.fac.OSM.cap=i;p.dev+=1;p.un=2;
-   news('Konstantiniyye fethedildi! Osmanlı başkenti İstanbul\'a taşındı.','cap');
-   queueModal(()=>eventModal({t:'Konstantiniyye Fethedildi',e:`${dateStr(S.turn)}`,d:'Theodosius surları aşıldı. Bin yıllık Doğu Roma başkenti artık Osmanlı\'nın. Genç sultana "Fatih" unvanı veriliyor ve devlet merkezi İstanbul\'a taşınıyor.',ch:[{l:'Devam et'}]}));}
-  else if(old!==f){news(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,'cap');}
+   news(lng('Konstantiniyye fethedildi! Osmanlı başkenti İstanbul\'a taşındı.','Constantinople has fallen! The Ottoman capital moves to Istanbul.'),'cap');
+   queueModal(()=>eventModal({t:lng('Konstantiniyye Fethedildi','The Fall of Constantinople'),e:`${dateStr(S.turn)}`,d:lng('Theodosius surları aşıldı. Bin yıllık Doğu Roma başkenti artık Osmanlı\'nın. Genç sultana "Fatih" unvanı veriliyor ve devlet merkezi İstanbul\'a taşınıyor.','The Theodosian Walls have been breached. The thousand-year capital of the Eastern Romans now belongs to the Ottomans. The young sultan is hailed as "the Conqueror", and the seat of the state moves to Istanbul.'),ch:[{l:lng('Devam et','Continue')}]}));}
+  else if(old!==f){news(lng(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,`Constantinople has changed hands: the city is now held by ${fname(f)}.`),'cap');}
  }
  polDirty=true;
  runHooks('capture',i,f,old);
@@ -139,7 +139,7 @@ function eliminate(f,by){const F=S.fac[f];F.alive=false;
  Object.keys(S.ally).forEach(k=>{if(k.split('|').includes(f))delete S.ally[k];});
  S.offers=S.offers.filter(o=>o.f!==f);
  if(S.armies)armyList(f).forEach(a=>armyRemove(a.id,'eliminated'));
- news(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,'cap');
+ news(lng(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,`The ${FAC[f].n} has passed from the stage of history. ${fname(by)} took its last lands.`),'cap');
  if(f===S.player){S.over='lose';}
  runHooks('eliminate',f,by);
 }
