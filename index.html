@@ -341,6 +341,24 @@ input[type=range]{accent-color:var(--brass)}
 .tip{padding:9px 12px;border:1px dashed #a88452;background:rgba(201,154,59,.12)}
 .hero .gbtn{margin-top:12px;align-self:flex-start;padding:7px 12px;font-size:14px}
 @media (max-width:760px){.gtable{font-size:13.5px}.gtable th,.gtable td{padding:5px 6px}.gt{padding:7px 9px;font-size:11.5px}}
+/* Track B: field armies, garrisons and move orders in the province panel */
+.sec h3 .cap{float:right;letter-spacing:.04em;color:inherit;opacity:.8;text-transform:none}
+.arms{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.arm{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--ink3);border:1px solid var(--line);color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
+.arm.on{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset;background:var(--ink2)}
+.arm.foe{cursor:default;opacity:.9}
+.arm .an{flex:1;font-weight:700;font-size:14px;line-height:1.2}
+.arm .an small,.arm .as small{display:block;font-weight:500;font-size:11.5px;opacity:.75}
+.arm .as{text-align:right;white-space:nowrap}
+.arm .as b{font:800 16px/1 var(--display)}
+.armodds{flex-wrap:wrap;gap:6px 10px;align-items:center}
+.armodds span{font-size:12px;opacity:.8}
+.armodds .obar{flex:1 1 100%;order:3;height:8px;border-radius:4px;background:rgba(0,0,0,.25);overflow:hidden}
+.armodds .obar i{display:block;height:100%}
+.armodds b{font-size:16px}
+.orders .mods{margin:8px 0 4px;padding-left:18px;font-size:12.5px;line-height:1.45;opacity:.9}
+.orders .meta,.garsec .meta{margin-bottom:6px}
+.armsec .acts .btn,.orders .acts .btn,.garsec .acts .btn{min-height:44px}
 </style>
 </head>
 <body>
@@ -952,6 +970,28 @@ function spaced(c,t,x,y,sp){const chars=[...t];const ws=chars.map(ch=>c.measureT
 const SEASONS=['İlkbahar','Yaz','Sonbahar','Kış'];
 const START_YEAR=1451,END_TURN=(1531-1451)*4;
 const RC=12,UPK=1,SAVE='kizil-elma-1451-v1';
+/* Track B balance constants (armies, garrisons, economy). Tune here only. */
+const BAL_B={
+ garBase:500,garDev:200,garFort:400,   // garrisonMax = 500 + dev*200 + fort*400 (rounded to 100)
+ garMinDev:100,                        // garrison floor after "Garnizonu azalt" = dev*100 (min 100)
+ garSlack:500,                         // garrison above max by more than this spills into an army
+ garUpk:.5,                            // garrison upkeep per 1k troops (field armies pay UPK=1)
+ capDiv:12,capMax:4,capHard:1,         // armyCap = clamp(1+floor(provs/12),1,4) + 1 for "Zorlu" realms
+ mpMax:2,                              // movement points per season on own/allied land
+ disbandMp:.5,                         // share of disbanded troops returned as manpower
+ fieldNoise:.1,                        // field battle roll: rnd(.9,1.1) per side
+ fortRatio:1.5,fortStep:.5,             // interim assault: fort 2 needs 1.5x the defence, +0.5x per fort level above
+ mtnKeys:['kroya'],                    // mountain fortresses the terrain map does not mark (combat only)
+ capGarDev:200,capGarShare:.25,        // garrison left in a captured province: min(dev*200, 25% of the army)
+ loot:2,                               // gold per dev on the FIRST capture of a province in a war
+ moraleWin:.05,moraleLose:.2,moraleMin:.6,moraleMax:1.1,moraleRegen:.1,
+ mtnRes:1.5,mtnResDef:1.2,             // "Dağ direnişi": mountain defender at home: defence x1.2, attacker losses x1.5
+ cannonFort:.6,                        // with cannon only 60% of a fort's defence bonus remains
+ smallAid:[0,8,6,5,4,3,2,1,.5],        // "Küçük devlet desteği" by province count (index), 0 from 9 provinces
+ aiMaxStack:30000,                     // AI: no merging / recruiting an army above this size
+ aiGarFill:.6,                         // AI: front garrisons are kept at >= 60% of their max
+ aiOdds:.6,aiReach:3,                  // AI attacks at >= 60% odds, looks 3 steps ahead
+};
 let S=null;
 const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 const atWar=(a,b)=>!!S.war[key(a,b)];
@@ -972,18 +1012,28 @@ const HIST=[['BYZ','OSM',-45],['KAR','OSM',-35],['HUN','OSM',-50],['ALB','OSM',-
 function baseOp(a,b){let v=FAC[a].rel===FAC[b].rel?20:-20;const h=HIST.find(x=>(x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a));if(h)v+=h[2];return clamp(v,-100,100);}
 
 function facProvs(f){const r=[];for(let i=0;i<NP;i++)if(S.prov[i].o===f)r.push(i);return r;}
-function strength(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a.n;return s;}
+function strength(f){return garTotal(f)+armTotal(f);}
+/** Troops in f's province garrisons / in f's field armies. */
+function garTotal(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;return s;}
+function armTotal(f){let s=0;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a.n;return s;}
+/** Development weighted by barracks: manpower only (never gold, bug B5). */
 function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;}
+/** Plain development sum (no barracks bonus): use this for any gold amount. */
+function devRaw(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev;return s;}
 function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}
 /** All economy rows of faction f (ECON_ROWS registry): [{l,v,k:'inc'|'exp',id?,tip?}]. */
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
 function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;return s;}
 ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:'Eyalet vergileri',v:s,k:'inc'}];});
-ECON_ROWS.push(f=>{const st=strength(f);return [{id:'army',l:`Ordu maaşları (${fmtK(st)})`,v:st/1000*UPK,k:'exp'}];});
+ECON_ROWS.push(f=>{const n=facProvs(f).length,v=n<BAL_B.smallAid.length?BAL_B.smallAid[n]:0;
+ return v>0?[{id:'small',l:'Küçük devlet desteği',v,k:'inc',tip:'Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.'}]:null;});
+ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:`Ordu maaşları (${fmtK(a)})`,v:a/1000*UPK,k:'exp',tip:'Sahra orduları: her 1.000 asker için tur başına 1 altın.'}];});
+ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:`Garnizon maaşları (${fmtK(g)})`,v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:'Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.'}];});
 function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
 function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
 function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
+/** Legacy (pre-army) helper: garrison troops of province i not yet moved this turn. Garrisons never attack. */
 const avail=i=>Math.max(0,S.prov[i].t-S.prov[i].mv);
 
 /** A fresh war record (schema v2). */
@@ -1009,9 +1059,12 @@ function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.
 hook('roundEnd',()=>{
  FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;const inc=income(f),up=upkeep(f);F.gold+=inc-up;
   const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
-  if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}F.gold=0;
-   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordu −10%).','war');}});
+  if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}
+   for(const a of armyList(f))a.n=Math.round(a.n*.9/100)*100;F.gold=0;
+   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordular ve garnizonlar −10%).','war');}});
  for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
+ for(const a of S.armies){a.mp=a.mpMax;if(a.morale<1)a.morale=Math.min(1,+(a.morale+BAL_B.moraleRegen).toFixed(2));else if(a.morale>1)a.morale=Math.max(1,+(a.morale-BAL_B.moraleRegen/2).toFixed(2));}
+ armTidy();
 },10);
 
 function addLog(m,k='info'){S.log.push({t:S.turn,m,k});if(S.log.length>400)S.log.shift();}
@@ -1120,62 +1173,103 @@ function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;
 function aiAcceptPeace(ai,pl){const w=S.war[key(ai,pl)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,pl);
  if(ws<=-1)return true;if(strength(ai)<strength(pl)*.75)return true;if(dur>=10&&ws<=2)return true;return false;}
 function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return tributeAmt(ai)>=10&&(ws<=-4||strength(ai)<strength(pl)*.4);}
-function tributeAmt(ai){const g=Math.max(0,Math.floor(S.fac[ai].gold));return Math.min(g,Math.max(20,Math.round(Math.min(g*.7,30+devSum(ai)*2))));}
+function tributeAmt(ai){const g=Math.max(0,Math.floor(S.fac[ai].gold));return Math.min(g,Math.max(20,Math.round(Math.min(g*.7,30+devRaw(ai)*2))));}
 function aiAcceptAlliance(ai,pl){if(atWar(ai,pl)||inTruce(ai,pl)&&getOp(ai,pl)<20)return false;const o=getOp(ai,pl);
  const common=warsOf(ai).some(e=>atWar(pl,e));return o>=40||(o>=10&&common);}
 
 /* ---------------- battles ---------------- */
 /* Combat modifiers come from the BATTLE_MODS registry: ctx={kind:'assault'|'field'|'sally',att,def,from,to,n}
-   -> [{l:label,m:multiplier,side:'att'|'def',k:key}]. ctx.to / ctx.n may be missing (e.g. atkMul(f)). */
+   -> [{l:label,m:multiplier,side:'att'|'def',k:key,loss?}]. ctx.to / ctx.n may be missing (e.g. atkMul(f)).
+   Optional `loss` multiplies the casualties the OTHER side suffers (e.g. "Dağ direnişi"). */
 function battleMods(ctx){const out=[];for(const fn of BATTLE_MODS){const r=fn(ctx);if(r)for(const m of r)out.push(m);}return out;}
 function modMul(v,mods,side){for(const m of mods)if(m.side===side)v*=m.m;return v;}
+/** Casualty multiplier inflicted by `side` (product of its mods' `loss`, capped at mtnRes). */
+function modLoss(mods,side){let v=1;for(const m of mods)if(m.side===side&&m.loss)v*=m.loss;return Math.min(v,BAL_B.mtnRes);}
 BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:'Kış seferi',m:.85,side:'att',k:'winter'}]:null);
 BATTLE_MODS.push(ctx=>{if(ctx.to==null)return null;const p=S.prov[ctx.to],d=PD[ctx.to],r=[];
- if(p.fort>0)r.push({l:`Kale ${p.fort}`,m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?.4:1),side:'def',k:'fort'});
- if(d.mtn)r.push({l:'Dağlık arazi',m:1.3,side:'def',k:'mtn'});
+ if(p.fort>0&&ctx.kind!=='field')r.push({l:`Kale ${p.fort}`,m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?BAL_B.cannonFort:1),side:'def',k:'fort'});
+ if(armMtn(ctx.to))r.push({l:'Dağlık arazi',m:1.3,side:'def',k:'mtn'});
  if(d.des)r.push({l:'Çöl',m:1.1,side:'def',k:'des'});
  return r;});
+/* B10 "Dağ direnişi": a defender fighting in its own mountain province bleeds the attacker (+50% losses). */
+BATTLE_MODS.push(ctx=>{if(ctx.to==null||!armMtn(ctx.to)||!ctx.def||S.prov[ctx.to].o!==ctx.def)return null;
+ return [{l:'Dağ direnişi',m:BAL_B.mtnResDef,side:'def',k:'mtnres',loss:BAL_B.mtnRes}];});
 /** Garrison plus local militia defending province i, before modifiers. */
 function defBase(i){const p=S.prov[i];return p.t+p.dev*150+p.fort*700;}
 function atkMul(f,ctx){return modMul(1,battleMods(ctx||{kind:'assault',att:f}),'att');}
 function atkPower(n,f,ctx){return modMul(n,battleMods(ctx||{kind:'assault',att:f,n}),'att');}
 function defPower(i,att){return modMul(defBase(i),battleMods({kind:'assault',att,def:S.prov[i].o,to:i}),'def');}
-/** Deterministic estimate for an attack: ctx={att,to,n,from?,kind?} -> {p (win chance 0..1), a, d, r, mods}.
- p is a logistic in log(a/d) matching the two independent rnd(.85,1.2) rolls of battle(). */
-function battleOdds(ctx){const c={kind:'assault',def:S.prov[ctx.to].o,...ctx},mods=battleMods(c);
- const a=modMul(c.n,mods,'att'),d=modMul(defBase(c.to),mods,'def'),r=a/Math.max(d,1);
- return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.085)),a,d,r,mods};}
-function battle(from,to,n){
- const A=S.prov[from],D=S.prov[to],att=A.o,def=D.o;if(att===def||!atWar(att,def)||!PD[from].adj.includes(to))return null;n=Math.min(n,avail(from));if(n<=0)return null;
- A.t-=n;
- const ctx={kind:'assault',att,def,from,to,n},mods=battleMods(ctx),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
- const aP=modMul(n,mods,'att')*ra,dP=modMul(defBase(to),mods,'def')*rd,r=aP/dP,defT=D.t;
- const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0,kind:'assault',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3}};
- const w=S.war[key(att,def)];
- if(r>1){
-  const aLoss=Math.round(n*clamp(.3/r,.04,.3)/100)*100;const dLoss=Math.round(defT*.65/100)*100;const flee=defT-dLoss;
-  if(flee>0){const ret=PD[to].adj.filter(j=>S.prov[j].o===def);if(ret.length){const j=ret[Math.floor(R()*ret.length)];S.prov[j].t+=flee;S.prov[j].mv+=flee;rep.retreat=j;}}
-  const wasCap=S.fac[def].cap===to;
-  D.t=0;D.mv=0;capture(to,att);D.t=n-aLoss;D.mv=D.t;
-  rep.win=true;rep.aLoss=aLoss;rep.dLoss=defT;if(w){w.sc[att]=(w.sc[att]||0)+2+(wasCap?3:0);}
- }else{
-  const aLoss=Math.round(n*clamp(.55-.25*r,.25,.55)/100)*100,dLoss=Math.min(defT,Math.round(defT*clamp(.3*r,.03,.3)/100)*100);
-  D.t-=dLoss;const back=n-aLoss;A.t+=back;A.mv+=back;
-  if(D.fort>0&&r>.8&&R()<.3){D.fort--;rep.fortDmg=true;}
-  rep.aLoss=aLoss;rep.dLoss=dLoss;if(w)w.sc[def]=(w.sc[def]||0)+1;
- }
+/** Mountain terrain for combat (map mountains plus BAL_B.mtnKeys). */
+function armMtn(i){return !!PD[i].mtn||BAL_B.mtnKeys.includes(PD[i].key);}
+/** Win threshold of an assault on province i (interim until sieges): fort 2 needs 1.5x, each level above +0.5x. */
+function armAssaultNeed(i){const f=S.prov[i].fort;return f>=2?BAL_B.fortRatio+BAL_B.fortStep*(f-2):1;}
+/** Deterministic estimate for an attack: ctx={att,to,n?,army?,from?,kind?} -> {p (win chance 0..1), a, d, r, mods, kind, need}.
+ kind defaults to 'field' when armies at war with `att` stand in `to`, else 'assault'. n defaults to the army's size.
+ p is a logistic in log(r/need) matching the random rolls of fieldBattle (rnd .9-1.1) / assault (rnd .85-1.2). */
+function battleOdds(ctx){const arm=ctx.army!=null?(typeof ctx.army==='object'?ctx.army:armyById(ctx.army)):null;
+ const f=ctx.att!=null?ctx.att:arm&&arm.f,to=ctx.to,n=ctx.n!=null?ctx.n:arm?arm.n:0,mor=arm?arm.morale:1;
+ const foes=armyAt(to).filter(x=>x.f!==f&&atWar(f,x.f));const kind=ctx.kind||(foes.length?'field':'assault');
+ if(kind==='field'&&foes.length){const big=foes.slice().sort((a,b)=>b.n-a.n)[0],c={kind,def:big.f,...ctx,att:f,n},mods=battleMods(c);
+  const a=modMul(n*mor,mods,'att'),d=modMul(foes.reduce((s,x)=>s+x.n*x.morale,0),mods,'def'),r=a/Math.max(d,1);
+  return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.045)),a,d,r,mods,kind,need:1};}
+ const c={kind:'assault',def:S.prov[to].o,...ctx,att:f,n},mods=battleMods(c),need=armAssaultNeed(to);
+ const a=modMul(n*mor,mods,'att'),d=modMul(defBase(to),mods,'def'),r=a/Math.max(d,1);
+ return {p:1/(1+Math.exp(-Math.log(Math.max(r/need,1e-6))/.085)),a,d,r,mods,kind:'assault',need};}
+/** Book-keeping shared by every battle: history, player report and stats, map redraw, hooks. */
+function armBattleEnd(rep){
  S.battles.push(rep);if(S.battles.length>60)S.battles.shift();
- TURN_TRACE.push({k:'battle',f:att,from,to,path:[from,to],army:null,n,win:rep.win,rep});
- const mine=att===S.player||def===S.player;
+ const mine=rep.att===S.player||rep.def===S.player||(rep.defFs||[]).includes(S.player);
  if(mine){S.report=S.report||[];S.report.push(rep);
-  if(att===S.player){rep.win?S.stats.won++:S.stats.lost++;}else{rep.win?S.stats.lost++:S.stats.won++;}}
+  if(rep.att===S.player){rep.win?S.stats.won++:S.stats.lost++;}else{rep.win?S.stats.lost++:S.stats.won++;}}
  polDirty=true;
  runHooks('battleResolved',rep);if(mine)runHooks('playerBattle',rep);
+ return rep;}
+/** Storm province `to` from `from` with army `a` (no enemy army inside): garrison + militia + fort.
+ On success the province is captured, the army moves in and leaves a small garrison. */
+function armAssault(a,from,to){
+ const D=S.prov[to],att=a.f,def=D.o;if(att===def||!atWar(att,def))return null;
+ const n=a.n,ctx={kind:'assault',att,def,from,to,n},mods=battleMods(ctx),need=armAssaultNeed(to),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
+ const aP=modMul(n*a.morale,mods,'att')*ra,dP=modMul(defBase(to),mods,'def')*rd,r=aP/dP/need,defT=D.t,lm=modLoss(mods,'def');
+ const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0,kind:'assault',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},army:a.id,need};
+ const w=S.war[key(att,def)];
+ if(r>1){
+  const aLoss=Math.min(n,Math.round(n*clamp(.3/r,.04,.3)*lm/100)*100),dLoss=Math.round(defT*.65/100)*100;let flee=defT-dLoss;
+  if(flee>0){const ret=PD[to].adj.filter(j=>S.prov[j].o===def&&garrisonMax(j)>S.prov[j].t);
+   if(ret.length){const j=ret[Math.floor(R()*ret.length)],q=S.prov[j],add=Math.min(flee,garrisonMax(j)-q.t);q.t+=add;rep.retreat=j;}}
+  const wasCap=S.fac[def].cap===to;
+  D.t=0;D.mv=0;a.n=n-aLoss;a.loc=to;a.mp=0;
+  capture(to,att);
+  const g=Math.max(0,Math.min(Math.round(BAL_B.capGarDev*D.dev/100)*100,Math.floor(a.n*BAL_B.capGarShare/100)*100));
+  D.t=g;a.n-=g;rep.gar=g;
+  a.morale=Math.min(BAL_B.moraleMax,+(a.morale+BAL_B.moraleWin/2).toFixed(2));
+  rep.win=true;rep.aLoss=aLoss;rep.dLoss=defT;if(w){w.sc[att]=(w.sc[att]||0)+2+(wasCap?3:0);}
+  if(a.n<100){if(a.n>0)D.t+=a.n;a.n=0;armyRemove(a.id,'garrisoned');}
+ }else{
+  const aLoss=Math.min(n,Math.round(n*clamp(.55-.25*r,.25,.55)*lm/100)*100),dLoss=Math.min(defT,Math.round(defT*clamp(.3*r,.03,.3)/100)*100);
+  D.t-=dLoss;a.n=n-aLoss;a.mp=0;
+  a.morale=Math.max(BAL_B.moraleMin,+(a.morale-BAL_B.moraleLose/2).toFixed(2));
+  if(D.fort>0&&r>.8&&R()<.3){D.fort--;rep.fortDmg=true;}
+  rep.aLoss=aLoss;rep.dLoss=dLoss;if(w)w.sc[def]=(w.sc[def]||0)+1;
+  if(a.n<100){armyRemove(a.id,'destroyed');rep.destroyed=[a.id];}
+ }
+ return armBattleEnd(rep);
+}
+/** Legacy entry point: the largest army of from's owner standing in `from` attacks the adjacent province `to`
+ (field battle if enemy armies stand there, else an assault). Garrisons never attack: without an army -> null.
+ `n` is kept for compatibility; the whole army fights. Ignores movement points (tests / scripted use). */
+function battle(from,to,n){
+ const att=S.prov[from].o,a=armyAt(from,att).sort((x,y)=>y.n-x.n)[0];
+ if(!a||!PD[from].adj.includes(to))return null;
+ const foes=armyAt(to).filter(x=>x.f!==att&&atWar(att,x.f));
+ if(!foes.length&&(S.prov[to].o===att||!atWar(att,S.prov[to].o)))return null;
+ const n0=a.n,rep=foes.length?fieldBattle(a,foes,to):armAssault(a,from,to);
+ if(rep)TURN_TRACE.push({k:'battle',f:att,from,to,path:[from,to],army:a.id,n:n0,win:rep.win,rep});
  return rep;
 }
 function capture(i,f){
  const p=S.prov[i],old=p.o;p.o=f;p.un=8;p.mv=0;if(p.fort>1)p.fort--;
- S.fac[f].gold+=p.dev*4;if(f===S.player)S.stats.taken++;
+ {const w=S.war[key(f,old)];if(w){if(!w.looted)w.looted=[];if(!w.looted.includes(i)){w.looted.push(i);S.fac[f].gold+=p.dev*BAL_B.loot;}}} // B6: loot once per war
+ if(f===S.player)S.stats.taken++;
  const d=PD[i];
  if(S.fac[old].cap===i){const rest=facProvs(old);if(rest.length){rest.sort((a,b)=>S.prov[b].dev-S.prov[a].dev);S.fac[old].cap=rest[0];}
   S.fac[old].gold=Math.round(S.fac[old].gold*.7);
@@ -1202,63 +1296,290 @@ function eliminate(f,by){const F=S.fac[f];F.alive=false;
 }
 
 /* =====================================================================
-   ARMIES: data-level API (W0, no rules). Track B replaces the internals freely
-   but keeps these signatures. Schema (S.armies[]):
-   {id,f,loc,n,gen:null|charId,mp:0,mpMax:2,path:[],morale:1,st:'idle'|'moving'|'siege'}
+   ARMIES: data-level API (Track B). Rules live in 04c-army-rules.js.
+   Schema (S.armies[]): {id,f,loc,n,gen:null|charId,mp:0,mpMax:2,path:[],morale:1,st:'idle'|'moving'|'siege'}
+   Province garrisons are S.prov[i].t: static, capped by garrisonMax(i), they never attack.
    ===================================================================== */
 function armyCreate(f,loc,n,o={}){
- const a={id:S.seq++,f,loc,n,gen:null,mp:0,mpMax:2,path:[],morale:1,st:'idle',...o};
+ const used=new Set(S.armies.filter(x=>x.f===f).map(x=>x.no));let no=1;while(used.has(no))no++;
+ const a={id:S.seq++,f,loc,n,gen:null,mp:0,mpMax:BAL_B.mpMax,path:[],morale:1,st:'idle',no,...o};
  S.armies.push(a);runHooks('armyCreated',a);return a;}
 function armyRemove(id,reason){const k=S.armies.findIndex(a=>a.id===id);if(k<0)return null;
  const a=S.armies.splice(k,1)[0];if(selArmy===id)selArmy=null;runHooks('armyRemoved',a,reason);return a;}
-function armyById(id){return S.armies.find(a=>a.id===id)||null;}
+function armyById(id){if(id==null||!S||!S.armies)return null;return S.armies.find(a=>a.id===id)||null;}
 function armyList(f){return f==null?S.armies.slice():S.armies.filter(a=>a.f===f);}
 function armyAt(i,f){return S.armies.filter(a=>a.loc===i&&(f==null||a.f===f));}
 /** Raw teleport, no rules. */
 function armySetLoc(id,i){const a=armyById(id);if(a)a.loc=i;return a;}
+
+/** Most field armies faction f may keep: 1 + 1 per 12 provinces (at most 4), +1 for "Zorlu" realms. */
+function armyCap(f){return clamp(1+Math.floor(facProvs(f).length/BAL_B.capDiv),1,BAL_B.capMax)+(FAC[f]&&FAC[f].dif===3?BAL_B.capHard:0);}
+/** Largest garrison province i can hold (rounded to 100). */
+function garrisonMax(i){const p=S.prov[i];return Math.round((BAL_B.garBase+p.dev*BAL_B.garDev+p.fort*BAL_B.garFort)/100)*100;}
+/** Smallest garrison "Garnizonu azalt" leaves behind. */
+function garMin(i){return Math.min(garrisonMax(i),Math.max(100,Math.round(S.prov[i].dev*BAL_B.garMinDev/100)*100));}
+/** Player-facing army name: "Birinci Ordu", ... (a.no is the faction-wide ordinal given at creation). */
+function armName(a){const k=(a.no||1)-1;return `${ARM_ORD[k]||a.no+'.'} Ordu`;}
+/** Name of the army's general (Track C character), or ''. */
+function armGenName(a){const c=a&&a.gen!=null&&S.chars&&S.chars[a.gen];return c&&c.n?c.n:'';}
+const ARM_ORD=['Birinci','İkinci','Üçüncü','Dördüncü','Beşinci','Altıncı'];
 KE.armyCreate=(f,loc,n,o)=>armyCreate(f,loc,n,o);
 KE.armyList=f=>armyList(f);
-/* ---------------- AI ---------------- */
+/* =====================================================================
+   ARMY RULES (Track B): movement, field battles, recruitment, merge/split/disband,
+   garrisons, clean-up (armTidy) and the v1 -> armies save conversion.
+   The AI (05-ai.js / 05a-ai-armies.js) and the player UI (09b / 11b) use exactly these rules.
+   ===================================================================== */
+/** Province i is friendly ground for f (own or allied). Armies may only stand on friendly ground. */
+function armFriendly(f,i){const o=S.prov[i].o;return o===f||isAlly(f,o);}
+/** Armies at province i whose faction is at war with f. */
+function armFoesAt(i,f){return S.armies.filter(a=>a.loc===i&&a.f!==f&&atWar(f,a.f));}
+/** Provinces holding an army at war with f (one pass over S.armies). */
+function armFoeLocs(f){const s=new Set();for(const a of S.armies)if(a.f!==f&&atWar(f,a.f))s.add(a.loc);return s;}
+/** BFS from army a: friendly provinces without enemy armies are passable; an enemy province (at war)
+ or a province holding an enemy army is a terminal step (entering it ends the move: battle or assault).
+ Lanes are allowed. -> {dist:Int16Array (-1 unreachable), par:Int16Array, term:Uint8Array} */
+function armReach(a){const f=a.f,foes=armFoeLocs(f),dist=new Int16Array(NP).fill(-1),par=new Int16Array(NP).fill(-1),term=new Uint8Array(NP);
+ dist[a.loc]=0;const q=[a.loc];
+ for(let h=0;h<q.length;h++){const u=q[h];if(term[u])continue;
+  for(const v of PD[u].adj){if(dist[v]>=0)continue;const o=S.prov[v].o,foe=foes.has(v),fr=o===f||isAlly(f,o);
+   if(fr&&!foe){dist[v]=dist[u]+1;par[v]=u;q.push(v);}
+   else if(foe||(o!==f&&atWar(f,o))){dist[v]=dist[u]+1;par[v]=u;term[v]=1;q.push(v);}}}
+ return {dist,par,term};}
+function armPathFrom(R0,to){if(R0.dist[to]<=0)return null;const p=[];for(let v=to;R0.par[v]>=0;v=R0.par[v])p.push(v);return p.reverse();}
+/** Shortest legal path of army `id` to province `to` (excluding the start), or null. Any length (multi-turn). */
+function armyPath(id,to){const a=armyById(id);if(!a||to==null||to<0||to>=NP)return null;return armPathFrom(armReach(a),to);}
+/** Can army `id` reach `to` THIS turn? -> {ok, reason (Turkish, for the player), cost (steps), path, kind:'move'|'battle'|'assault'} */
+function armyCanMove(id,to){const a=armyById(id);
+ if(!a)return {ok:false,reason:'Ordu bulunamadı.',cost:0,path:null,kind:null};
+ if(to===a.loc)return {ok:false,reason:'Ordu zaten orada.',cost:0,path:null,kind:null};
+ const path=armyPath(id,to),o=S.prov[to].o;
+ if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`:'Oraya giden bir yol yok.';
+  return {ok:false,reason:why,cost:0,path:null,kind:null};}
+ const foes=armFoesAt(to,a.f).length>0,kind=foes?'battle':o!==a.f&&atWar(a.f,o)?'assault':'move',cost=path.length;
+ if(a.st==='siege')return {ok:false,reason:'Ordu kuşatmada.',cost,path,kind};
+ if(a.mp<=0)return {ok:false,reason:'Bu ordu bu mevsim yürüyüşünü tamamladı.',cost,path,kind};
+ if(cost>a.mp)return {ok:false,reason:`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,cost,path,kind};
+ return {ok:true,reason:'',cost,path,kind};}
+/** Move army `id` to `to` under the rules (player and AI alike). Entering an enemy province or a province with
+ an enemy army ends the move with a field battle ('battle') or an assault ('assault').
+ Pushes TURN_TRACE with the full path. -> {kind:'move'|'battle'|'assault'|'none', rep?, reason?} */
+function armyMove(id,to){const c=armyCanMove(id,to);if(!c.ok)return {kind:'none',reason:c.reason};
+ const a=armyById(id),f=a.f,from0=a.loc,full=[from0,...c.path];
+ if(c.kind==='move'){a.loc=to;a.mp-=c.cost;a.st='idle';polDirty=true;
+  TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:a.n});return {kind:'move'};}
+ const stage=full[full.length-2],n0=a.n;a.loc=stage;a.mp=0;
+ const rep=c.kind==='battle'?fieldBattle(a,armFoesAt(to,f),to):armAssault(a,stage,to);
+ TURN_TRACE.push({k:'battle',f,from:from0,to,path:full,army:id,n:n0,win:!!(rep&&rep.win),rep});
+ return {kind:c.kind,rep};}
+
+/** Field battle: army `att` (standing next to i) against the enemy armies `defs` in province i.
+ Terrain and season modifiers apply, forts do not. The loser loses more; defeated defenders retreat to a
+ neighbouring friendly province or are destroyed if surrounded. A winning attacker moves in only if i is
+ friendly ground (otherwise it holds its position; storming the town is a separate attack). -> rep */
+function fieldBattle(att,defs,i){
+ if(att!=null&&typeof att!=='object')att=armyById(att);if(!att)return null;
+ defs=(defs||[]).map(d=>d!=null&&typeof d==='object'?d:armyById(d)).filter(d=>d&&d.loc===i&&d.f!==att.f);if(!defs.length)return null;
+ const big=defs.slice().sort((x,y)=>y.n-x.n)[0],from=att.loc,n=att.n,dn=defs.reduce((s,d)=>s+d.n,0);
+ const ctx={kind:'field',att:att.f,def:big.f,from,to:i,n},mods=battleMods(ctx),nz=BAL_B.fieldNoise,ra=rnd(1-nz,1+nz),rd=rnd(1-nz,1+nz);
+ const aP=modMul(n*att.morale,mods,'att')*ra,dP=modMul(defs.reduce((s,d)=>s+d.n*d.morale,0),mods,'def')*rd,r=aP/dP,win=r>1,q=win?r:1/r;
+ const wF=clamp(.12/q,.03,.15),lF=clamp(.2*q,.2,.5),aF=(win?wF:lF)*modLoss(mods,'def'),dF=(win?lF:wF)*modLoss(mods,'att');
+ const defFs=[...new Set(defs.map(d=>d.f))];
+ const rep={from,to:i,att:att.f,def:big.f,defFs,n,defT:dn,turn:S.turn,win,aLoss:0,dLoss:0,kind:'field',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},
+  army:att.id,defArmies:defs.map(d=>d.id),destroyed:[]};
+ const aLoss=Math.min(n,Math.round(n*aF/100)*100);att.n-=aLoss;rep.aLoss=aLoss;
+ let dLoss=0;for(const d of defs){const l=Math.min(d.n,Math.round(d.n*dF/100)*100);d.n-=l;dLoss+=l;}rep.dLoss=dLoss;
+ const up=x=>{x.morale=Math.min(BAL_B.moraleMax,+(x.morale+BAL_B.moraleWin).toFixed(2));},down=x=>{x.morale=Math.max(BAL_B.moraleMin,+(x.morale-BAL_B.moraleLose).toFixed(2));};
+ if(win){up(att);
+  for(const d of defs){down(d);if(d.n<100){rep.destroyed.push(d.id);armyRemove(d.id,'destroyed');continue;}
+   const foes=armFoeLocs(d.f);foes.add(i);
+   const ret=PD[i].adj.filter(j=>armFriendly(d.f,j)&&!foes.has(j)).sort((x,y)=>(S.prov[y].o===d.f)-(S.prov[x].o===d.f)||S.prov[y].t-S.prov[x].t);
+   if(ret.length){d.loc=ret[0];d.mp=0;rep.retreat=ret[0];}else{rep.destroyed.push(d.id);rep.surrounded=true;armyRemove(d.id,'destroyed');}}
+  if(att.n>=100&&armFriendly(att.f,i)&&!armFoesAt(i,att.f).length)att.loc=i;
+ }else{down(att);for(const d of defs)up(d);}
+ if(att.n<100){rep.destroyed.push(att.id);armyRemove(att.id,'destroyed');}
+ for(const d of defs)if(d.n<100&&armyById(d.id)){rep.destroyed.push(d.id);armyRemove(d.id,'destroyed');}
+ const w=S.war[key(att.f,big.f)],wf=win?att.f:big.f;
+ if(w)w.sc[wf]=(w.sc[wf]||0)+1+(rep.destroyed.length?1:0);
+ return armBattleEnd(rep);}
+
+/** Merge army b into army a (same faction, same province). -> a, or null */
+function armyMerge(a,b){if(typeof a!=='object')a=armyById(a);if(typeof b!=='object')b=armyById(b);
+ if(!a||!b||a===b||a.f!==b.f||a.loc!==b.loc)return null;
+ a.morale=+((a.n*a.morale+b.n*b.morale)/Math.max(1,a.n+b.n)).toFixed(2);a.n+=b.n;a.mp=Math.min(a.mp,b.mp);
+ if(a.gen==null&&b.gen!=null){a.gen=b.gen;b.gen=null;}
+ armyRemove(b.id,'merged');return a;}
+/** Split n troops (default: half) off army `id` into a new army in the same province (needs room under armyCap). -> new army or null */
+function armySplit(id,n){const a=armyById(id);if(!a||armyList(a.f).length>=armyCap(a.f))return null;
+ n=Math.round((n==null?a.n/2:n)/100)*100;if(n<100||a.n-n<100)return null;
+ a.n-=n;return armyCreate(a.f,a.loc,n,{mp:a.mp,mpMax:a.mpMax,morale:a.morale});}
+/** Manpower a faction may hold. */
+function armMpCap(f){return devSum(f)*800;}
+/** Disband army `id`: half of its troops return home as manpower, no gold. -> manpower returned */
+function armyDisband(id){const a=armyById(id);if(!a)return 0;const F=S.fac[a.f],back=Math.round(a.n*BAL_B.disbandMp);
+ F.mp=Math.max(F.mp,Math.min(armMpCap(a.f),F.mp+back));armyRemove(id,'disbanded');return back;}
+/** Reduce the garrison of province i to its minimum (half of the released troops return as manpower). -> troops released */
+function garDisband(i){const p=S.prov[i],m=garMin(i);if(p.t<=m)return 0;const n=p.t-m,F=S.fac[p.o];p.t=m;
+ F.mp=Math.max(F.mp,Math.min(armMpCap(p.o),F.mp+Math.round(n*BAL_B.disbandMp)));return n;}
+/** Troops that can still be added to the garrison of province i. */
+function garRoom(i){return Math.max(0,Math.floor((garrisonMax(i)-S.prov[i].t)/100)*100);}
+/** Where a recruit of faction f in province i goes: {to:'army',army}|{to:'new'}|{to:'gar'}|{to:null,reason}. o={army?,gar?} */
+function armRecruitDest(f,i,o={}){
+ if(S.prov[i].o!==f)return {to:null,reason:'Sadece kendi eyaletinde asker toplayabilirsin.'};
+ if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Garnizon dolu.'};
+ const sa=o.army!=null&&armyById(o.army),here=sa&&sa.f===f&&sa.loc===i?sa:armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
+ if(here)return {to:'army',army:here};
+ if(armyList(f).length<armyCap(f))return {to:'new'};
+ return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Ordu sınırına ulaştın ve garnizon dolu.'};}
+/** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?}.
+ -> {to:'army'|'new'|'gar', army?, n} or {to:null, reason} */
+function armRecruit(f,i,n,o={}){const F=S.fac[f],d=armRecruitDest(f,i,o);if(!d.to)return d;
+ if(d.to==='gar')n=Math.min(n,garRoom(i));n=Math.floor(n/100)*100;
+ const cost=RC*n/1000;if(n<100)return {to:null,reason:'Garnizon dolu.'};
+ if(F.gold<cost)return {to:null,reason:'Hazinede yeterli altın yok.'};if(F.mp<n)return {to:null,reason:'Yeterli insan gücü yok.'};
+ F.gold-=cost;F.mp-=n;
+ if(d.to==='gar'){S.prov[i].t+=n;return {to:'gar',n};}
+ if(d.to==='army'){d.army.n+=n;return {to:'army',army:d.army,n};}
+ const a=armyCreate(f,i,n,{mp:0});return {to:'new',army:a,n};}
+
+/** Distance (steps over any land/lane) from province s to every province. */
+function armDistFrom(s){const d=new Int16Array(NP).fill(-1);d[s]=0;const q=[s];
+ for(let h=0;h<q.length;h++){const u=q[h];for(const v of PD[u].adj)if(d[v]<0){d[v]=d[u]+1;q.push(v);}}return d;}
+/** Keep the army rules true after anything (captures, peace, events, lost provinces):
+ armies stand on friendly ground (else they go home), sizes are multiples of 100, no faction keeps more armies
+ than armyCap, and a garrison far above its maximum spills into a field army. -> true if anything changed. */
+function armTidy(){if(!S||!S.armies)return false;let ch=false;
+ for(const a of S.armies.slice()){
+  if(!S.fac[a.f]||!S.fac[a.f].alive){armyRemove(a.id,'eliminated');ch=true;continue;}
+  const r=Math.round(a.n/100)*100;if(r!==a.n){a.n=r;ch=true;}
+  if(a.n<100){armyRemove(a.id,'destroyed');ch=true;continue;}
+  if(a.st!=='siege'&&!armFriendly(a.f,a.loc)){const d=armDistFrom(a.loc),foes=armFoeLocs(a.f);let best=-1;
+   for(let i=0;i<NP;i++)if(S.prov[i].o===a.f&&!foes.has(i)&&d[i]>=0&&(best<0||d[i]<d[best]))best=i;
+   if(best>=0){a.loc=best;a.mp=0;}else armyRemove(a.id,'evicted');ch=true;}}
+ for(const f of FK){if(!S.fac[f].alive)continue;let L=armyList(f);const cap=armyCap(f);
+  while(L.length>cap){L.sort((x,y)=>x.n-y.n);const s=L[0],mate=L.slice(1).find(x=>x.loc===s.loc);
+   if(mate)armyMerge(mate,s);else{const p=S.prov[s.loc];let n=s.n;if(p.o===f){const g=Math.min(n,garRoom(s.loc));p.t+=g;n-=g;}
+    const F=S.fac[f];F.mp=Math.max(F.mp,Math.min(armMpCap(f),F.mp+Math.round(n*BAL_B.disbandMp)));
+    if(f===S.player)news(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,'war');armyRemove(s.id,'disbanded');}
+   L=armyList(f);ch=true;}}
+ for(let i=0;i<NP;i++){const p=S.prov[i],m=garrisonMax(i);if(p.t<=m+BAL_B.garSlack)continue;
+  const f=p.o,ex=p.t-m;p.t=m;ch=true;const here=armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
+  if(here){here.n+=ex;continue;}
+  if(armyList(f).length<armyCap(f)){armyCreate(f,i,ex,{mp:0});continue;}
+  const d=armDistFrom(i),L=armyList(f).sort((x,y)=>d[x.loc]-d[y.loc]);if(L.length){L[0].n+=ex;continue;}
+  const F=S.fac[f];F.mp=Math.max(F.mp,Math.min(armMpCap(f),F.mp+ex));}
+ if(ch)polDirty=true;
+ return ch;}
+
+/** Pre-army states (new game, v1 saves): every garrison above garrisonMax gives its excess to field armies.
+ The largest excess stacks (up to armyCap) become armies; every other excess joins the nearest of them.
+ Troops are conserved. Armies start ready to march. */
+function armConvertLegacy(){
+ for(const f of FK){if(!S.fac[f]||!S.fac[f].alive)continue;const ex=[];
+  for(let i=0;i<NP;i++){const p=S.prov[i];p.mv=0;if(p.o!==f)continue;const m=garrisonMax(i);if(p.t>m){ex.push([i,p.t-m]);p.t=m;}}
+  if(!ex.length)continue;ex.sort((a,b)=>b[1]-a[1]);
+  const room=Math.max(0,armyCap(f)-armyList(f).length);let seeds=ex.filter(e=>e[1]>=1000).slice(0,room);
+  if(!seeds.length){if(room>0)seeds=[ex[0]];else{const L=armyList(f);if(L.length){L[0].n+=ex.reduce((s,e)=>s+e[1],0);}continue;}}
+  const made=seeds.map(([i,n])=>armyCreate(f,i,n,{mp:BAL_B.mpMax})),dists=made.map(a=>armDistFrom(a.loc));
+  for(const e of ex){if(seeds.includes(e))continue;let k=0;for(let j=1;j<made.length;j++){const dj=dists[j][e[0]],dk=dists[k][e[0]];if(dj>=0&&(dk<0||dj<dk))k=j;}made[k].n+=e[1];}}}
+
+/* --- lifecycle hooks --- */
+hook('newGame',(s,player)=>{const k=PK.kroya;if(k!=null&&S.prov[k].fort<4)S.prov[k].fort=4; // B10: Skanderbeg's Kroya
+ armConvertLegacy();S.b={arm:1};},5);
+/* v1 saves (and W0 saves without S.b): excess garrisons become field armies once. Idempotent via S.b.arm. */
+hook('migrate',(s,from)=>{if(s.b&&s.b.arm)return;const keep=S;S=s;
+ try{if(!Array.isArray(s.armies))s.armies=[];if(s.seq==null)s.seq=1;armConvertLegacy();armTidy();s.b=Object.assign({},s.b,{arm:1});}finally{S=keep;}},10);
+hook('peace',()=>armTidy());
+hook('capture',()=>armTidy());
+hook('afterRound',()=>armTidy(),95);
+hook('events',()=>armTidy(),95);
+hook('renderAll',()=>{if(S&&S.player&&!busy&&armTidy())save();});
+
+/* Placeholder army markers; Track A's token layer (07c) replaces DRAW_LAYERS.armies. */
+if(!DRAW_LAYERS.armies)DRAW_LAYERS.armies=(c,now,s,g3)=>{if(!S||!S.armies||!S.armies.length)return false;const by={};
+ for(const a of S.armies)(by[a.loc]||(by[a.loc]=[])).push(a);
+ c.save();c.textAlign='center';c.textBaseline='middle';c.font='700 11px "EB Garamond", Georgia, serif';
+ for(const i in by){const d=PD[i],q=pj(d.lx,d.ly,3);if(!q[2])continue;by[i].forEach((a,k)=>{const x=q[0]-14+k*16,y=q[1]-14,r=10;
+  c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=FAC[a.f].c;c.fill();c.lineWidth=a.id===selArmy?3:1.5;c.strokeStyle=a.id===selArmy?'#f3d27a':'#1c160e';c.stroke();
+  c.fillStyle='#fff';c.fillText(fmtK(a.n),x,y+.5);});}
+ c.restore();return false;};
+
+KE.armyMove=(id,to)=>armyMove(id,to);KE.armyCanMove=(id,to)=>armyCanMove(id,to);KE.armyPath=(id,to)=>armyPath(id,to);
+KE.armyCap=f=>armyCap(f);KE.garrisonMax=i=>garrisonMax(i);KE.armTidy=()=>armTidy();KE.armRecruit=(f,i,n,o)=>armRecruit(f,i,n,o);
+KE.armyMerge=(a,b)=>armyMerge(a,b);KE.armySplit=(id,n)=>armySplit(id,n);KE.armyDisband=id=>armyDisband(id);KE.fieldBattle=(a,d,i)=>fieldBattle(a,d,i);
+KE.devRaw=f=>devRaw(f);KE.econRows=f=>econRows(f);KE.net=f=>income(f)-upkeep(f);
+/* ---------------- AI ----------------
+   The AI plays by the player's rules: garrisons defend, field armies (04c) march and attack.
+   Strategy comes from Track D: aiTargets(f) (what to attack) and aiDefendNeeds(f) (what to hold). */
 function aiTurn(f){
  const F=S.fac[f];if(!F.alive)return;const mine=facProvs(f);if(!mine.length)return;
- aiDiplo(f);
+ aiDiplo(f);if(!F.alive)return;
  const enemies=new Set(warsOf(f));const front=new Set(),border=new Set();
  for(const i of mine)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f){border.add(i);if(enemies.has(o))front.add(i);}}
- aiEconomy(f,mine,front,border,enemies.size>0);
- // attacks
- if(enemies.size){
-  const order=[...front].sort((a,b)=>avail(b)-avail(a));const prio=new Map();for(const t of aiTargets(f))prio.set(t.i,t.prio);
-  for(const i of order){const av=avail(i);if(av<800)continue;let best=-1,bs=0,bd=0;
-   for(const j of PD[i].adj){const q=S.prov[j];if(!enemies.has(q.o))continue;const dp=defPower(j,f),ap=atkPower(av,f);
-    if(ap>dp*1.25){const sc=prio.get(j)||0;if(sc>bs){bs=sc;best=j;bd=dp;}}}
-   if(best>=0){const need=Math.ceil(bd*1.7/atkMul(f)/100)*100;const send=Math.min(av,Math.max(need,Math.round(av*.6/100)*100));battle(i,best,send);}
-  }
-  // concentrate: front provinces that face a strong target pull from front neighbours
-  for(const i of front){const av=avail(i);if(av<500)continue;
-   let weak=Infinity;for(const j of PD[i].adj)if(enemies.has(S.prov[j].o))weak=Math.min(weak,defPower(j,f));
-   for(const k of PD[i].adj){if(S.prov[k].o!==f||!front.has(k)||k===i)continue;const ak=avail(k);if(ak<500)continue;
-    let wk=Infinity;for(const j of PD[k].adj)if(enemies.has(S.prov[j].o))wk=Math.min(wk,defPower(j,f));
-    if(weak<wk*.8&&S.prov[i].t>=S.prov[k].t*.5){const mv=Math.round(ak*.6/100)*100;S.prov[k].t-=mv;S.prov[i].t+=mv;S.prov[i].mv+=mv;}}}
- }
- // march toward the front (or border in peace)
- const goal=front.size?front:border;if(!goal.size)return;
- const dist=new Map(),q=[];goal.forEach(i=>{dist.set(i,0);q.push(i);});
- for(let h=0;h<q.length;h++){const i=q[h];for(const j of PD[i].adj){if(S.prov[j].o!==f||dist.has(j))continue;dist.set(j,dist.get(i)+1);q.push(j);}}
- const share=front.size?.85:.5;
- for(const i of mine){if(goal.has(i)||!dist.has(i))continue;const av=avail(i);if(av<400)continue;
-  let nx=-1,nd=dist.get(i);for(const j of PD[i].adj){if(S.prov[j].o===f&&dist.has(j)&&dist.get(j)<nd){nd=dist.get(j);nx=j;}}
-  if(nx>=0){const mv=Math.round(av*share/100)*100;S.prov[i].t-=mv;S.prov[nx].t+=mv;S.prov[nx].mv+=mv;}}
+ const tg=enemies.size?(aiTargets(f)||[]):[];
+ aiEconomy(f,mine,front,border,enemies.size>0,tg);
+ armAiOps(f,enemies,tg);
 }
-function aiEconomy(f,mine,front,border,war){
+/** Where f raises new armies: the front province next to its most attractive target, else the capital. */
+function armAiStaging(f,front,tg){if(front.size&&tg.length){const pr=new Map(tg.map(t=>[t.i,t.prio]));let best=-1,bs=-1;
+  for(const i of front){let s=0;for(const j of PD[i].adj)s+=pr.get(j)||0;if(s>bs){bs=s;best=i;}}if(best>=0)return best;}
+ return S.prov[S.fac[f].cap].o===f?S.fac[f].cap:facProvs(f)[0];}
+function aiEconomy(f,mine,front,border,war,tg){
  const F=S.fac[f];const inc=income(f);let upk=upkeep(f);const cap=inc*(war?1.05:.72);
- const spots=front.size?[...front]:border.size?[...border]:[F.cap];let g=0;
- while(F.gold>=RC+15&&F.mp>=1000&&upk+UPK<=cap&&g++<40){
-  let i=spots[Math.floor(R()*spots.length)];
-  if(war&&R()<.6){let bt=-1,bv=-1;for(const s of spots){let th=0;for(const j of PD[s].adj){const o=S.prov[j].o;if(o!==f&&atWar(f,o))th+=S.prov[j].t;}const v=th-S.prov[s].t;if(v>bv){bv=v;bt=s;}}if(bt>=0)i=bt;}
-  S.prov[i].t+=1000;S.prov[i].mv+=1000;F.gold-=RC;F.mp-=1000;upk+=UPK;}
+ // in the red with an empty treasury: shed troops the way the player would (disband / thin the garrisons)
+ if(inc<upk&&F.gold<(upk-inc)*4){const L=armyList(f).sort((a,b)=>a.n-b.n);
+  if(L.length&&(!war||L.length>1))armyDisband(L[0].id);else for(const i of mine)if(!border.has(i))garDisband(i);upk=upkeep(f);}
+ const garNeed=war?[...front].filter(i=>S.prov[i].t<garrisonMax(i)*BAL_B.aiGarFill).sort((a,b)=>S.prov[b].dev-S.prov[a].dev):[];
+ const stage=armAiStaging(f,front,tg||[]);let g=0;
+ while(F.gold>=RC+15&&F.mp>=1000&&g++<40){
+  // 1) keep front garrisons manned (cheap), 2) reinforce / raise field armies, 3) top up border garrisons
+  if(garNeed.length&&R()<.4){const i=garNeed[0],n=Math.min(1000,garRoom(i)),c=n/1000*UPK*BAL_B.garUpk;if(upk+c>cap)break;
+   const r=armRecruit(f,i,n,{gar:true});if(!r.to||garRoom(i)<100||S.prov[i].t>=garrisonMax(i)*BAL_B.aiGarFill)garNeed.shift();if(r.to)upk+=c;continue;}
+  if(upk+UPK>cap)break;
+  const L=armyList(f).filter(a=>S.prov[a.loc].o===f&&a.n+1000<=BAL_B.aiMaxStack).sort((a,b)=>b.n-a.n);
+  let r=null;
+  if(armyList(f).length<armyCap(f)&&(!L.length||L[0].n>=8000||R()<.25))r=armRecruit(f,stage,1000,{army:-1});
+  if(!r||!r.to){if(L.length)r=armRecruit(f,L[0].loc,1000,{army:L[0].id});}
+  if(r&&r.to&&r.to!=='gar'){upk+=UPK;continue;}
+  if(r&&r.to==='gar'){upk+=UPK*BAL_B.garUpk;continue;}
+  const b=[...border].find(i=>garRoom(i)>=1000);if(!b)break;
+  if(armRecruit(f,b,1000,{gar:true}).to)upk+=UPK*BAL_B.garUpk;else break;}
  if(F.gold>150&&R()<.35){const c=mine.filter(i=>!S.prov[i].mkt).sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];if(c!=null){S.prov[c].mkt=1;F.gold-=60;}}
  else if(F.gold>200&&R()<.3){const c=F.cap;if(S.prov[c].dev<12&&F.gold>=25*S.prov[c].dev){F.gold-=25*S.prov[c].dev;S.prov[c].dev++;}}
  if(war&&F.gold>100&&front.size&&R()<.25){const fr=[...front].sort((a,b)=>S.prov[b].dev-S.prov[a].dev)[0];const p=S.prov[fr];if(p.fort<4&&F.gold>=40*(p.fort+1)){F.gold-=40*(p.fort+1);p.fort++;}}
+}
+/* =====================================================================
+   AI ARMY OPERATIONS (Track B mechanics). Targets come from aiTargets(f), defence from aiDefendNeeds(f) (Track D).
+   Each army: attack the best target it can reach this season with odds >= BAL_B.aiOdds, otherwise march toward
+   a target (stopping short of enemy ground) or join the main army. Armies sharing a province merge.
+   ===================================================================== */
+/** March army a along its reach tree toward province `to`, as far as its movement allows, never entering hostile ground. */
+function armAiStep(a,R0,to){const path=armPathFrom(R0,to);if(!path)return false;const steps=R0.term[to]?path.slice(0,-1):path;
+ const k=Math.min(a.mp,steps.length);if(k<=0)return false;return armyMove(a.id,steps[k-1]).kind==='move';}
+function armAiMergeHere(f){const L=armyList(f).sort((a,b)=>b.n-a.n);
+ for(const a of L){if(!armyById(a.id))continue;for(const b of L)if(b!==a&&armyById(b.id)&&b.loc===a.loc&&a.n+b.n<=BAL_B.aiMaxStack)armyMerge(a,b);}}
+function armAiOps(f,enemies,tg){
+ if(!S.armies.some(a=>a.f===f))return;
+ armAiMergeHere(f);
+ const L=armyList(f).sort((a,b)=>b.n-a.n),held=new Set();
+ // defence: the nearest army goes to the most urgent province D asks for
+ const needs=(aiDefendNeeds(f)||[]).slice().sort((a,b)=>b.need-a.need);
+ if(needs.length){const nd=needs[0];let best=null,bd=1e9,bR=null;
+  for(const a of L){const R0=armReach(a),d=a.loc===nd.i?0:R0.dist[nd.i];if(d>=0&&!R0.term[nd.i]&&d<bd){bd=d;best=a;bR=R0;}}
+  if(best){held.add(best.id);if(bd>0&&best.mp>0)armAiStep(best,bR,nd.i);}}
+ if(!enemies.size||!tg.length)return;
+ const main=L[0];
+ for(const a of L){if(held.has(a.id)||!armyById(a.id)||a.mp<=0)continue;
+  const R0=armReach(a);let best=null,bs=0,far=null,fs=0,near=null,nd=1e9;
+  for(const t of tg){const d=R0.dist[t.i];if(d<=0)continue;
+   if(d<=a.mp&&R0.term[t.i]){const od=battleOdds({att:f,to:t.i,army:a});if(od.p>=BAL_B.aiOdds){const sc=t.prio*od.p;if(sc>bs){bs=sc;best=t;}}}
+   if(d<=BAL_B.aiReach){const sc=t.prio/d;if(sc>fs){fs=sc;far=t;}}
+   if(d<nd){nd=d;near=t;}}
+  if(best){armyMove(a.id,best.i);continue;}
+  // not strong enough here: a secondary army joins the main army if it can reach it this season
+  if(main&&a!==main&&armyById(main.id)&&main.loc!==a.loc&&a.n+main.n<=BAL_B.aiMaxStack){const d=R0.dist[main.loc];
+   if(d>0&&d<=a.mp&&!R0.term[main.loc]){if(armyMove(a.id,main.loc).kind==='move')armyMerge(main,a);continue;}}
+  const goal=far||near;if(goal)armAiStep(a,R0,goal.i);}
 }
 /* =====================================================================
    AI STRATEGY (Track D): diplomacy, target selection, defence needs, nudges
@@ -1735,22 +2056,34 @@ function pickAt(sx,sy){let x,y;if(G3.on){const m=G3.pick(sx,sy);if(!m)return -1;
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id];
  tip.innerHTML=`<b>${PD[id].name}</b> · ${FAC[p.o].s} · ${fmtK(p.t)}`;tip.style.left=sx+'px';tip.style.top=sy+'px';tip.hidden=false;}
 /* =====================================================================
-   MAP SELECTION (Track B): province click -> select / target, clear, target check
+   MAP SELECTION (Track B): province / army click -> select, order a move, clear, target check
+   - nothing selected: tap a province -> select it (and the player's largest army there, if any)
+   - army selected: tap a province it can reach this season -> move order (panel "orders", confirm with amove)
+   - tap an army token (tokenAt from Track A, if present) -> select that army
    ===================================================================== */
+/** Select province i and (optionally) army id; with id undefined the player's largest army in i is picked. */
+function armSelect(i,id){sel=i;tgt=-1;confirmKey='';
+ if(id===undefined){const a=S&&S.player?armyAt(i,S.player).sort((x,y)=>y.n-x.n)[0]:null;selArmy=a?a.id:null;}else selArmy=id;}
 function mapClick(sx,sy){
  if(!S||!S.player||busy||!$('#start').hidden)return;
+ const tok=typeof tokenAt==='function'?tokenAt(sx,sy):null,ta=tok!=null?armyById(tok):null;
+ if(ta){if(ta.f===S.player){const same=selArmy===ta.id&&tgt<0;if(same){clearSel();return;}armSelect(ta.loc,ta.id);}
+  else{const a=armyById(selArmy);if(a&&a.f===S.player&&armyCanMove(a.id,ta.loc).ok){tgt=ta.loc;SND.play('select');renderPanel();req();return;}armSelect(ta.loc,null);}
+  SND.play('select');renderPanel();req();return;}
  const id=pickAt(sx,sy);
  if(id<0){clearSel();return;}
- if(sel>=0&&S.prov[sel].o===S.player&&id!==sel&&PD[sel].adj.includes(id)){
-  const o=S.prov[id].o;
-  if(o===S.player||atWar(S.player,o)){if(avail(sel)<100){toast('Bu eyaletteki askerler bu tur zaten hareket etti.');return;}tgt=id;amt=Math.round(avail(sel)/100)*100;SND.play('select');renderPanel();req();return;}
+ const a=armyById(selArmy);
+ if(a&&a.f===S.player&&id!==a.loc){const c=armyCanMove(a.id,id);
+  if(c.ok){tgt=id;sel=a.loc;SND.play('select');renderPanel();req();return;}
+  if(c.path&&c.cost<=a.mpMax){toast(c.reason);return;} // in range in principle, but not this season
  }
- if(id===sel&&tgt<0){clearSel();return;}
- sel=id;tgt=-1;confirmKey='';SND.play('select');renderPanel();req();
+ if(id===sel&&tgt>=0){tgt=-1;renderPanel();req();return;}
+ if(id===sel){clearSel();return;}
+ armSelect(id);SND.play('select');renderPanel();req();
 }
-function clearSel(){sel=-1;tgt=-1;confirmKey='';$('#panel').hidden=true;req();}
-function tgtOk(){if(sel<0||tgt<0||!S||!S.player)return false;const f=S.player,o=S.prov[tgt].o;return S.prov[sel].o===f&&PD[sel].adj.includes(tgt)&&(o===f||atWar(f,o));}
-
+function clearSel(){sel=-1;tgt=-1;selArmy=null;confirmKey='';$('#panel').hidden=true;req();}
+/** The pending move order (selected player army -> tgt) is still legal. */
+function tgtOk(){if(sel<0||tgt<0||!S||!S.player)return false;const a=armyById(selArmy);return !!a&&a.f===S.player&&armyCanMove(a.id,tgt).ok;}
 /* =====================================================================
    SOUND (Web Audio, fully synthesized)
    ===================================================================== */
@@ -1903,23 +2236,57 @@ function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.playe
    Panel order slots: 30 armies B, 35 general C, 40 orders B (data-sheet="action"),
    50 recruit B, 60 build B, 70 foreign B, 90 advisor D.
    ===================================================================== */
-let amt=0;
-PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0,html(c){
- const {f,F}=c,td=PD[tgt],tp=S.prov[tgt],av=avail(sel),war=tp.o!==f;amt=clamp(amt,Math.min(100,av),av);
- let h=`<div class="sec" data-sheet="action"><h3>${war?'Sefer':'Asker yürüt'} → ${esc(td.name)}</h3>
-   <div class="amt"><span>Gönderilecek</span><b id="amtv">${amt.toLocaleString('tr')}</b><span>/ ${av.toLocaleString('tr')}</span></div>
-   <input type="range" id="amt" min="${Math.min(100,av)}" max="${av}" step="100" value="${amt}" aria-label="Asker sayısı"></div>`;
- if(war){h+=`<div class="odds" id="odds"></div><div class="hint">Savunma: ${fmtK(tp.t)} asker + yerel milis, kale ${tp.fort}${PD[tgt].mtn?', dağlık arazi':''}${F.cannon?' (topçun kale etkisini kırıyor)':''}${S.turn%4===3?'. Kış seferi: saldırı gücü −15%':''}.</div>`;}
- h+=`<div class="acts"><button class="btn ${war?'danger':'primary'}" data-act="go">${war?'Saldır':'Yürüt'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div>`;
- return h;},
- bind(root,c){const f=c.f,r=$('#amt');if(!r)return;const upd=()=>{amt=+r.value;$('#amtv').textContent=amt.toLocaleString('tr');const od=$('#odds');if(od){const ratio=atkPower(amt,f)/defPower(tgt,f);
-   const [t,cl]=ratio>1.6?['Ezici üstünlük','var(--ok)']:ratio>1.15?['Üstünüz','#4f7d2a']:ratio>.9?['Başa baş','var(--brass)']:ratio>.6?['Riskli','#a0521a']:['Umutsuz','var(--war2)'];
-   od.innerHTML=`<span>Güç ${fmtK(atkPower(amt,f))} : ${fmtK(defPower(tgt,f))}</span><b style="color:${cl}">${t}</b>`;}};r.addEventListener('input',upd);upd();}});
-PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine,html(c){const F=c.F,av=avail(sel);
- return `<div class="hint">${av>0?`Hazır asker: <b>${av.toLocaleString('tr')}</b>. Yürütmek ya da saldırmak için komşu bir eyalete dokun. <span style="color:#1f6f4a;font-weight:700">Yeşil</span> kendi toprağın, <span style="color:#a3301e;font-weight:700">kırmızı</span> savaştaki düşman.`:'Bu eyaletteki askerler bu tur hareket etti.'}</div>
-  <div class="sec"><h3>Asker topla</h3><div class="acts">
-   <button class="btn" data-act="rec1" ${F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
-   <button class="btn" data-act="rec5" ${F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>`;}});
+let amt=0; // legacy (pre-army slider); kept so old references do not break
+const armPct=v=>`${v>=0?'+':'−'}${Math.abs(Math.round(v*100))}%`;
+/** One battle modifier in plain Turkish, e.g. "Kale 3 · savunma +45%". */
+function armModText(m){let t=`${m.l} · ${m.side==='att'?'saldırı':'savunma'} ${armPct(m.m-1)}`;if(m.loss&&m.loss!==1)t+=`, ${m.side==='def'?'saldıranın':'savunanın'} kaybı ${armPct(m.loss-1)}`;return t;}
+function armOddsWord(p){return p>=.85?['Ezici üstünlük','var(--ok)']:p>=.6?['Üstünüz','#4f7d2a']:p>=.4?['Başa baş','var(--brass)']:p>=.15?['Riskli','#a0521a']:['Umutsuz','var(--war2)'];}
+function armMoraleWord(m){return m>=1.1?'Coşkulu':m>=.95?'İyi':m>=.75?'Yorgun':'Dağınık';}
+function armRow(a,on){const own=a.f===S.player,g=armGenName(a);
+ const inner=`${shield(a.f)}<span class="an">${own?esc(armName(a)):esc(FAC[a.f].s+' ordusu')}${g?`<small>${esc(g)}</small>`:''}</span><span class="as"><b>${fmtK(a.n)}</b>${own?`<small>Yürüyüş ${a.mp}/${a.mpMax} · ${armMoraleWord(a.morale)}</small>`:''}</span>`;
+ return own?`<button class="arm${on?' on':''}" data-act="asel" data-id="${a.id}" aria-pressed="${on?'true':'false'}">${inner}</button>`:`<div class="arm foe">${inner}</div>`;}
+
+PANEL_SECTIONS.push({id:'armies',order:30,when:c=>armyAt(c.i).length>0||c.mine,html(c){
+ const f=c.f,here=armyAt(c.i).sort((x,y)=>(y.f===f)-(x.f===f)||y.n-x.n),mineH=here.filter(a=>a.f===f),sa=armyById(selArmy);
+ const on=sa&&sa.f===f&&sa.loc===c.i?sa:null,cnt=armyList(f).length,cap=armyCap(f);
+ let h=`<div class="sec armsec"><h3>Ordular <span class="cap">${cnt}/${cap}</span></h3>`;
+ if(!here.length)h+=`<div class="hint">Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.</div>`;
+ else h+=`<div class="arms">${here.map(a=>armRow(a,on&&on.id===a.id)).join('')}</div>`;
+ if(on&&c.tgt<0){const others=mineH.filter(a=>a.id!==on.id).length,ck='dis:'+on.id;
+  h+=`<div class="hint">${on.mp>0?`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`:'Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.'}</div>
+  <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">Orduları birleştir</button>`:''}
+   <button class="btn" data-act="asplit" data-id="${on.id}" ${cnt>=cap||on.n<200?'disabled':''}>İkiye böl</button>
+   <button class="btn danger" data-act="adisband" data-id="${on.id}">${confirmKey===ck?'Emin misin? Dağıt':'Dağıt'}</button></div>`;}
+ else if(mineH.length&&c.tgt<0)h+=`<div class="hint">Emir vermek için bir ordu seç.</div>`;
+ return h+'</div>';}});
+
+PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0&&!!armyById(selArmy),html(c){
+ const f=c.f,a=armyById(selArmy),mv=armyCanMove(a.id,tgt),td=PD[tgt],kind=mv.kind||'move';
+ const title=kind==='battle'?'Meydan muharebesi':kind==='assault'?'Hücum':'Yürüyüş';
+ let h=`<div class="sec orders" data-sheet="action"><h3>${title} → ${esc(td.name)}</h3>
+  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>Yol <b>${mv.cost||0} eyalet</b></span>${kind==='battle'?`<span>Düşman ordusu <b>${fmtK(armFoesAt(tgt,f).reduce((s,x)=>s+x.n,0))}</b></span>`:''}${kind==='assault'?`<span>Garnizon <b>${fmtK(S.prov[tgt].t)}</b> + milis</span>`:''}</div>`;
+ if(kind!=='move'){const od=battleOdds({att:f,to:tgt,army:a}),[w,cl]=armOddsWord(od.p),pc=Math.round(od.p*100);
+  h+=`<div class="odds armodds" data-tip="odds" data-army="${a.id}" data-to="${tgt}"><span>Zafer şansı</span><div class="obar" role="img" aria-label="Zafer şansı yüzde ${pc}"><i style="width:${pc}%;background:${cl}"></i></div><b style="color:${cl}">${w} · %${pc}</b></div>`;
+  const ms=od.mods.map(armModText);if(od.need>1)ms.push(`Güçlü kale: surları ancak savunmanın ${{1.5:'bir buçuk',2:'iki',2.5:'iki buçuk',3:'üç'}[od.need]||od.need} katı güçle aşabilirsin`);
+  if(ms.length)h+=`<ul class="mods">${ms.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+  h+=`<div class="hint">${kind==='battle'?'Kazanırsan düşman ordusu geri çekilir ya da kuşatılıp yok olur. Kaybedersen ordun geri döner.':'Kazanırsan eyalet senin olur, ordun içeri girer ve bir kısmı garnizon olarak kalır.'}</div>`;}
+ else{h+=`<div class="hint">Ordu kendi ya da müttefik topraklarında mevsimde ${a.mpMax} eyalet yürür.${armyAt(tgt,f).length?' Oradaki orduya katılmak için yürüt, sonra orduları birleştir.':''}</div>`;
+  const there=armyAt(tgt,f);if(there.length)h+=`<div class="acts">${there.map(x=>`<button class="btn" data-act="asel" data-id="${x.id}">Oradaki orduyu seç: ${esc(armName(x))}</button>`).join('')}</div>`;}
+ h+=`<div class="acts"><button class="btn ${kind==='move'?'primary':'danger'}" data-act="amove">${kind==='move'?'Yürü':'Saldır'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div></div>`;
+ return h;}});
+
+PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine,html(c){const {F,f,i}=c,p=c.p;
+ const d=armRecruitDest(f,i,{army:selArmy}),cnt=armyList(f).length,cap=armyCap(f);
+ const where=d.to==='army'?`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`:d.to==='new'?`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`:d.to==='gar'?`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`:esc(d.reason||'');
+ const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i;
+ return `<div class="sec"><h3>Asker topla</h3><div class="hint">${where}</div><div class="acts">
+   <button class="btn" data-act="rec1" ${!d.to||F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
+   <button class="btn" data-act="rec5" ${!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>
+  <div class="sec garsec"><h3>Garnizon <span class="cap">${fmtK(p.t)} / ${fmtK(gm)}</span></h3>
+   <div class="hint">Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.</div><div class="acts">
+   <button class="btn" data-act="grec" ${room<100||F.gold<RC*gn/1000||F.mp<gn?'disabled':''}>Garnizonu güçlendir ${gn>=100?'+'+gn.toLocaleString('tr'):''} <span class="c">${room<100?'dolu':Math.ceil(RC*gn/1000)+' altın'}</span></button>
+   <button class="btn" data-act="gdisband" ${p.t<=garMin(i)?'disabled':''}>${confirmKey===ck?'Emin misin? Azalt':'Garnizonu azalt'}</button></div></div>`;}});
+
 PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine,html(c){const {F,p}=c;
  return `
   <div class="sec"><h3>İnşa et</h3><div class="acts">
@@ -1927,25 +2294,50 @@ PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine,html(c){const {
    <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?'Pazar var':'Pazar'} <span class="c">${p.mkt?'✓':'60'}</span></button>
    <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>Kale ${p.fort+1} <span class="c">${p.fort>=5?'azami':40*(p.fort+1)}</span></button>
    <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?'Kışla var':'Kışla'} <span class="c">${p.brk?'✓':'50'}</span></button></div>
-   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır.</div></div>`;}});
+   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır; kale ve gelişim garnizonun sığacağı asker sayısını da artırır.</div></div>`;}});
 PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
  const f=c.f,o=c.p.o,dp=defPower(sel,f);
  let h=`<div class="meta"><span>Hükümdar <b>${esc(rulerName(o))}</b></span><span>İlişki <b>${getOp(f,o)}</b></span><span>Ordu <b>${fmtK(strength(o))}</b></span><span>Tahmini savunma <b>${fmtK(dp)}</b></span></div>`;
  if(!atWar(f,o)){const ck='war:'+o;
-  if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin.</div>`;
+  if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin. Orduların bu topraklardan geçebilir.</div>`;
   else if(inTruce(f,o))h+=`<div class="hint">Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.</div>`;
   else h+=`<div class="hint">Bu eyalete saldırmak için önce savaş ilan etmelisin.</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?'Emin misin? Savaş ilan et':'Savaş ilan et'}</button>`;}
- else h+=`<div class="hint">Savaştasın. Komşu eyaletini seçip buraya dokunarak saldır.</div>`;
+ else h+=`<div class="hint">Savaştasın. Komşu eyaletteki ordunu seçip buraya dokunarak saldır. Garnizonlar sefere çıkmaz; saldırı için sahra ordusu gerekir.</div>`;
  return h;}});
 
+/* ---- actions ---- */
+['amove','amerge','asplit','adisband','gdisband','grec'].forEach(a=>OVERBLOCK.add(a));
+['asel','amove','grec'].forEach(a=>QUIET.add(a));
 ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
-ACTS.go=(t,f,F)=>{if(!tgtOk()){tgt=-1;toast('Bu hedefe artık saldıramazsın: savaş sona erdi ya da eyalet el değiştirdi.');renderPanel();req();return;}const n=Math.min(amt,avail(sel));if(n<=0)return;const o=S.prov[tgt].o;
- if(o===f){S.prov[sel].t-=n;S.prov[tgt].t+=n;S.prov[tgt].mv+=n;addFx({type:'march',a:sel,b:tgt,dur:520,col:FAC[f].c});SND.play('march');const to=tgt;sel=to;tgt=-1;}
- else{const a0=sel,b0=tgt;const rep=battle(sel,tgt,n);if(rep){SND.play('march');const cn=!!S.fac[f].cannon,w=rep.win;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[b0].fort>=2}),420);addFx({type:'march',a:a0,b:b0,dur:460,col:FAC[f].c});addFx({type:'boom',p:b0,dur:1500,delay:440,seed:Math.random()*6,label:rep.win?'Zafer!':'Püskürtüldü',good:rep.win});toast(rep.win?`Zafer! ${PD[rep.to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,rep.win?'good':'war');
-   if(rep.win){sel=rep.to;}tgt=-1;checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}}
+ACTS.asel=t=>{const a=armyById(+t.dataset.id);if(!a||a.f!==S.player)return;if(selArmy===a.id&&sel===a.loc&&tgt<0){selArmy=null;}else armSelect(a.loc,a.id);SND.play('select');renderPanel();req();};
+ACTS.amove=(t,f)=>{const a=armyById(selArmy);
+ if(!a||!tgtOk()){tgt=-1;toast(a?armyCanMove(a.id,tgt).reason||'Bu emir artık geçerli değil.':'Önce bir ordu seç.');renderPanel();req();return;}
+ const a0=a.loc,to=tgt,n0=a.n,name=armName(a),r=armyMove(a.id,to);
+ if(r.kind==='none'){toast(r.reason);tgt=-1;renderPanel();req();return;}
+ addFx({type:'march',a:a0,b:to,dur:r.kind==='move'?520:460,col:FAC[f].c});SND.play('march');
+ if(r.kind!=='move'&&r.rep){const rep=r.rep,w=rep.win,cn=!!S.fac[f].cannon;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[to].fort>=2}),420);
+  addFx({type:'boom',p:to,dur:1500,delay:440,seed:Math.random()*6,label:w?'Zafer!':'Püskürtüldü',good:w});
+  if(r.kind==='assault')toast(w?`Zafer! ${PD[to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,w?'good':'war');
+  else toast(w?`Meydan muharebesi kazanıldı! Düşman kaybı ${fmtK(rep.dLoss)}, kaybımız ${fmtK(rep.aLoss)}.${rep.surrounded?' Kuşatılan düşman ordusu yok edildi.':' Düşman geri çekildi.'}`:`Meydan muharebesi kaybedildi. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}.`,w?'good':'war');
+  if(!armyById(a.id))toast(`${name} dağıldı.`,'war');}
+ const still=armyById(a.id);if(still){sel=still.loc;selArmy=still.id;}else{sel=to;selArmy=null;}tgt=-1;
+ if(r.kind!=='move'){checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}
  renderAll();};
-ACTS.rec1=ACTS.rec5=(t,f,F)=>{const n=t.dataset.act==='rec1'?1:5;if(F.gold<RC*n||F.mp<1000*n)return;F.gold-=RC*n;F.mp-=1000*n;S.prov[sel].t+=1000*n;S.prov[sel].mv+=1000*n;SND.play('recruit');renderAll();};
+ACTS.go=ACTS.amove; // pre-army name of the confirm button
+ACTS.amerge=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;let k=0;for(const b of armyAt(a.loc,f))if(b.id!==a.id&&armyMerge(a,b))k++;
+ if(k){SND.play('march');toast(`Ordular birleşti: ${armName(a)} artık ${fmtK(a.n)}.`,'good');}renderAll();};
+ACTS.asplit=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;const b=armySplit(a.id);
+ if(!b){toast(armyList(f).length>=armyCap(f)?`Ordu sınırına ulaştın (${armyCap(f)}). Yeni ordu için daha çok eyalete hükmetmelisin.`:'Bu ordu bölünemeyecek kadar küçük.');return;}
+ selArmy=b.id;SND.play('march');toast(`${armName(b)} kuruldu: ${fmtK(b.n)} asker.`,'good');renderAll();};
+ACTS.adisband=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;const ck='dis:'+a.id;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
+ const name=armName(a),back=armyDisband(a.id);SND.play('coin');toast(`${name} dağıtıldı. ${fmtK(back)} kişi köyüne döndü ve yeniden askere yazılabilir.`,'good');renderAll();};
+ACTS.gdisband=(t,f)=>{const i=sel,p=S.prov[i];if(!p||p.o!==f)return;const ck='gdis:'+i;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
+ const n=garDisband(i);if(n){SND.play('coin');toast(`${PD[i].name} garnizonundan ${fmtK(n)} asker terhis edildi.`,'good');}renderAll();};
+ACTS.grec=(t,f,F)=>{if(sel<0||S.prov[sel].o!==f)return;const r=armRecruit(f,sel,1000,{gar:true});if(!r.to){toast(r.reason);return;}SND.play('recruit');renderAll();};
+ACTS.rec1=ACTS.rec5=(t,f,F)=>{if(sel<0)return;const n=t.dataset.act==='rec1'?1000:5000,r=armRecruit(f,sel,n,{army:selArmy});
+ if(!r.to){toast(r.reason);return;}if(r.army)selArmy=r.army.id;SND.play('recruit');
+ if(r.to==='new')toast(`${armName(r.army)} kuruldu. Yeni askerler bu mevsim eğitimde, gelecek mevsim yürüyebilir.`,'good');else if(r.to==='gar')toast(`${fmtK(r.n)} asker garnizona yazıldı.`);renderAll();};
 ACTS.bdev=(t,f,F)=>{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)return;F.gold-=c;p.dev++;SND.play('build');renderAll();};
 ACTS.bmkt=(t,f,F)=>{const p=S.prov[sel];if(p.mkt||F.gold<60)return;F.gold-=60;p.mkt=1;SND.play('build');renderAll();};
 ACTS.bbrk=(t,f,F)=>{const p=S.prov[sel];if(p.brk||F.gold<50)return;F.gold-=50;p.brk=1;SND.play('build');renderAll();};
@@ -1984,10 +2376,11 @@ ACTS.chron=()=>showChron();
 /* =====================================================================
    DIPLOMACY UI (Track B): Divan, peace offers, battle report rows
    ===================================================================== */
-function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
- const title=mineAtk?`${PD[r.to].name} seferi`:`${FAC[r.att].s} saldırısı: ${PD[r.to].name}`;
+function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win,fld=r.kind==='field';
+ const title=mineAtk?`${PD[r.to].name} ${fld?'meydan muharebesi':'seferi'}`:`${FAC[r.att].s} ${fld?'ordusuyla meydan muharebesi':'saldırısı'}: ${PD[r.to].name}`;
+ const end=fld?(r.surrounded?'<span>Kuşatılan ordu yok edildi</span>':r.win&&r.retreat!=null?`<span>Yenilen ordu ${esc(PD[r.retreat].name)} yönüne çekildi</span>`:''):(r.win?'<span>Eyalet el değiştirdi</span>':'');
  return `<div class="btl"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
-  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>Savunan <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}</div></div>`;}
+  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>${fld?'Savunan ordu':'Savunan garnizon'} <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}${end}</div></div>`;}
 REPORT_SECTIONS.push({id:'offers',order:10,html:()=>S.offers.length?`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`:''});
 REPORT_SECTIONS.push({id:'battles',order:20,html(){const rep=(S.report||[]).filter(r=>r.att!==S.player);return rep.length?`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`:'';}});
 function showDiplo(){

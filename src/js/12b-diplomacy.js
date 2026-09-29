@@ -1,10 +1,11 @@
 /* =====================================================================
    DIPLOMACY UI (Track B): Divan, peace offers, battle report rows
    ===================================================================== */
-function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win;
- const title=mineAtk?`${PD[r.to].name} seferi`:`${FAC[r.att].s} saldırısı: ${PD[r.to].name}`;
+function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win,fld=r.kind==='field';
+ const title=mineAtk?`${PD[r.to].name} ${fld?'meydan muharebesi':'seferi'}`:`${FAC[r.att].s} ${fld?'ordusuyla meydan muharebesi':'saldırısı'}: ${PD[r.to].name}`;
+ const end=fld?(r.surrounded?'<span>Kuşatılan ordu yok edildi</span>':r.win&&r.retreat!=null?`<span>Yenilen ordu ${esc(PD[r.retreat].name)} yönüne çekildi</span>`:''):(r.win?'<span>Eyalet el değiştirdi</span>':'');
  return `<div class="btl"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
-  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>Savunan <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}</div></div>`;}
+  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>${fld?'Savunan ordu':'Savunan garnizon'} <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}${end}</div></div>`;}
 REPORT_SECTIONS.push({id:'offers',order:10,html:()=>S.offers.length?`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`:''});
 REPORT_SECTIONS.push({id:'battles',order:20,html(){const rep=(S.report||[]).filter(r=>r.att!==S.player);return rep.length?`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`:'';}});
 function showDiplo(){
