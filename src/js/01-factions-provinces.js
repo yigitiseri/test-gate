@@ -31,6 +31,41 @@ const FAC={
  HAF:{n:'Hafsîler',s:'Hafsî',c:'#a7b86a',r:'Ebû Amr Osman',rel:'İslam',cap:'trablusgarp',m:1,dif:3,d:'Tunus merkezli hanedanın doğu uç beyliği Trablusgarp.'},
  SAF:{n:'Safevîler',s:'Safevî',c:'#1d7a52',r:'Şah İsmail',rel:'İslam',cap:'tebriz',m:1.2,dif:9,d:''}
 };
+/** English realm texts (n long name, s short name, r ruler at start, d description); merged into FAC when EN. */
+const FAC_EN={
+ OSM:{n:'Ottoman Empire',s:'Ottomans',r:'Mehmed II',d:'The young Sultan Mehmed II has taken the throne. Only one obstacle still stands between Rumelia and Anatolia: the walls of Constantinople. Karaman watches for its chance in the west, and the Hungarians wait along the Danube.'},
+ BYZ:{n:'Byzantine Empire',s:'Byzantium',r:'Constantine XI',d:'Of a thousand-year empire, one city and the Morea remain. Hold the Theodosian Walls, keep your alliance with Venice and win back the lost lands.'},
+ VEN:{n:'Republic of Venice',s:'Venice',r:'Francesco Foscari',d:'The merchant republic of the Adriatic and the Aegean. Its fortresses and islands are rich but scattered. The sea lanes carry you from Crete to the Morea.'},
+ HUN:{n:'Kingdom of Hungary',s:'Hungary',r:'John Hunyadi',d:'The wound of Varna is still fresh. John Hunyadi is the shield of Christendom along the Danube, and the fortress of Belgrade is the gate to the realm.'},
+ SRB:{n:'Serbian Despotate',s:'Serbia',r:'Đurađ Branković',d:'A despotate rich in silver mines, but squeezed between two great powers. The fortress of Smederevo is its last refuge.'},
+ BOS:{n:'Kingdom of Bosnia',s:'Bosnia',r:'Stjepan Tomaš',d:'A mountainous, divided kingdom. Without Hungarian help it will struggle to stand.'},
+ WAL:{n:'Principality of Wallachia',s:'Wallachia',r:'Vladislav II',d:'A principality north of the Danube that keeps the balance between Hungary and the Ottomans.'},
+ MOL:{n:'Principality of Moldavia',s:'Moldavia',r:'Alexăndrel',d:'The ports of Cetatea Albă and Kilia are the keys to the Black Sea trade. Poland lies to the north, the steppe to the east.'},
+ ALB:{n:'League of Lezhë',s:'Albania',r:'Skanderbeg',d:'Skanderbeg holds out in the mountains and is at war with the Ottomans. As long as Krujë stands, Albania is unbeaten.'},
+ KRM:{n:'Crimean Khanate',s:'Crimea',r:'Haji I Giray',d:'A young khanate newly broken away from the Golden Horde. You are at war with the Great Horde, and the Genoese of Caffa are your neighbours.'},
+ GEN:{n:'Republic of Genoa',s:'Genoa',r:'Pietro Fregoso',d:'Trading colonies that stretch from Caffa to Chios. The fortresses are strong, but the lands lie far apart.'},
+ KAR:{n:'Karamanids',s:'Karaman',r:'Ibrahim Bey',d:'Claimant to the Seljuk legacy. From Konya you defy the Ottomans, with the Aq Qoyunlu as your allies.'},
+ CAN:{n:'Jandarids',s:'Jandar',r:'Ismail Bey',d:'A small beylik of Kastamonu and Sinope, rich in copper mines.'},
+ DUL:{n:'Dulkadirids',s:'Dulkadir',r:'Suleiman Bey',d:'A Turkmen beylik in the Taurus Mountains, under Mamluk protection.'},
+ MAM:{n:'Mamluk Sultanate',s:'Mamluks',r:'Sayf al-Din Jaqmaq',d:'An ancient sultanate that stretches from Cairo to Aleppo. The bounty of the Nile makes it rich, and Turkmen beyliks line its northern border.'},
+ AKK:{n:'Aq Qoyunlu',s:'Aq Qoyunlu',r:'Uzun Hasan',d:'The White Sheep Turkmens of Diyarbakir. To the east lies the old enemy, the Qara Qoyunlu; to the west, the rising Ottomans.'},
+ KKY:{n:'Qara Qoyunlu',s:'Qara Qoyunlu',r:'Jahan Shah',d:'Jahan Shah rules a broad but loose realm from Tabriz to Baghdad. You are at war with the Aq Qoyunlu.'},
+ TRB:{n:'Empire of Trebizond',s:'Trebizond',r:'John IV',d:'The last stronghold of the Komnenos dynasty. It is bound to the Aq Qoyunlu by marriage.'},
+ GEO:{n:'Kingdom of Georgia',s:'Georgia',r:'George VIII',d:'The mountain kingdom of the Caucasus. Qara Qoyunlu raids press hard on its borders.'},
+ HAB:{n:'Archduchy of Austria',s:'Austria',r:'Frederick III',d:'From Vienna, the House of Habsburg has set its eyes on the Hungarian crown.'},
+ POL:{n:'Poland-Lithuania',s:'Poland',r:'Casimir IV',d:'The southern marches of the great union of the north. A friend of Moldavia, eager to reach the Black Sea.'},
+ GH:{n:'Great Horde',s:'Great Horde',r:'Sayyid Ahmad',d:'The crumbling legacy of the Golden Horde. The riders of the steppe want Crimea back.'},
+ ARA:{n:'Kingdom of Naples',s:'Naples',r:'Alfonso V',d:'Alfonso of Aragon has united southern Italy and Sicily. From Otranto the Albanian coast is in sight.'},
+ PAP:{n:'Papal States',s:'Papacy',r:'Nicholas V',d:'The master of Rome. Every call for a crusade begins with you.'},
+ CYP:{n:'Kingdom of Cyprus',s:'Cyprus',r:'John II',d:'The island kingdom of the Lusignan dynasty. Famagusta is in Genoese hands.'},
+ RHO:{n:'Knights of Rhodes',s:'Rhodes',r:'Jean de Lastic',d:'The island fortress of the Knights Hospitaller. Few in number, but their walls are very strong.'},
+ HAF:{n:'Hafsids',s:'Hafsids',r:'Abu Amr Uthman',d:'Tripoli, the eastern march of the dynasty that rules from Tunis.'},
+ SAF:{n:'Safavids',s:'Safavids',r:'Shah Ismail',d:''}
+};
+if(EN)for(const f in FAC_EN)Object.assign(FAC[f],FAC_EN[f]);
+/** FAC[f].rel stays the Turkish key ('İslam', 'Ortodoks', 'Katolik') that game logic compares; show it with relName(f). */
+const REL_EN={'İslam':'Islam','Ortodoks':'Orthodox','Katolik':'Catholic'};
+function relName(f){const r=FAC[f]?FAC[f].rel:'';return EN&&REL_EN[r]||r;}
 const PROVS=[
  // Osmanlı
  ['edirne','Edirne',26.55,41.68,'OSM',7,2],['gelibolu','Gelibolu',26.67,40.41,'OSM',3,2],['tekfurdagi','Tekfurdağı',27.5,40.98,'OSM',3,0],
@@ -142,7 +177,57 @@ const LANES=[['istanbul','izmit'],['gelibolu','biga'],['palermo','kalabriya'],['
  ['rodos','mentese'],['rodos','bodrum'],['kibris','icel'],['magosa','trablus'],['midilli','karesi'],['sakiz','izmir'],['korfu','yanya'],['korfu','avlonya'],
  ['egriboz','atina'],['egriboz','izdin'],['otranto','avlonya'],['bari','drac'],['kefe','kuban'],['ankona','zadar'],['silivri','istanbul']];
 
-const PD=PROVS.map((a,i)=>({i,key:a[0],name:a[1],lon:a[2],lat:a[3],o:a[4],dev:a[5],fort:a[6],des:a[7]==='d',adj:[],lanes:[]}));
+/** English province names by key, used when EN (PD[i].name). Turkish names stay the reference for tests. */
+const PROV_EN={
+ edirne:'Adrianople',gelibolu:'Gallipoli',tekfurdagi:'Rodosto',kirkkilise:'Kirk Kilisse',filibe:'Philippopolis',sofya:'Sofia',
+ tirnova:'Tarnovo',sumnu:'Shumen',varna:'Varna',silistre:'Silistra',dobruca:'Dobruja',nigbolu:'Nicopolis',
+ vidin:'Vidin',kostendil:'Kyustendil',uskup:'Skopje',selanik:'Thessalonica',serez:'Serres',drama:'Drama',
+ gumulcine:'Komotini',manastir:'Monastir',ohri:'Ohrid',avlonya:'Valona',yanya:'Ioannina',tesalya:'Thessaly',
+ izdin:'Lamia',atina:'Athens',bursa:'Bursa',izmit:'Nicomedia',biga:'Biga',karesi:'Karasi',
+ saruhan:'Saruhan',izmir:'Smyrna',aydin:'Aydin',mentese:'Menteshe',teke:'Teke',hamid:'Hamid',
+ kutahya:'Kutahya',karahisar:'Karahisar',sultanonu:'Sultanonu',bolu:'Bolu',ankara:'Ankara',cankiri:'Cankiri',
+ corum:'Corum',amasya:'Amasya',canik:'Canik',tokat:'Tokat',sivas:'Sivas',bozok:'Bozok',kirsehir:'Kirsehir',
+ istanbul:'Constantinople',silivri:'Selymbria',misivri:'Mesembria',mistra:'Mystras',balyabadra:'Patras',korint:'Corinth',
+ kastamonu:'Kastamonu',sinop:'Sinope',kefe:'Caffa',amasra:'Amastris',sakiz:'Chios',midilli:'Lesbos',magosa:'Famagusta',
+ konya:'Konya',karaman:'Larende',aksaray:'Aksaray',nigde:'Nigde',kayseri:'Kayseri',beysehir:'Beysehir',alaiye:'Alanya',icel:'Icel',
+ maras:'Marash',elbistan:'Elbistan',divrigi:'Divrigi',
+ kahire:'Cairo',iskenderiye:'Alexandria',dimyat:'Damietta',behire:'Buhayra',sarkiye:'Sharqiya',feyyum:'Faiyum',
+ suveys:'Suez',aris:'Arish',gazze:'Gaza',kudus:'Jerusalem',kerek:'Kerak',safed:'Safed',havran:'Hauran',sam:'Damascus',
+ beyrut:'Beirut',trablus:'Tripoli',humus:'Homs',hama:'Hama',halep:'Aleppo',antakya:'Antioch',ayntab:'Aintab',
+ adana:'Adana',malatya:'Malatya',rakka:'Raqqa',rahbe:'Rahba',tedmur:'Palmyra',barka:'Benghazi',
+ derne:'Derna',tobruk:'Tobruk',matruh:'Matruh',
+ diyarbakir:'Diyarbakir',mardin:'Mardin',urfa:'Edessa',harput:'Harput',erzincan:'Erzincan',bayburt:'Bayburt',
+ hasankeyf:'Hasankeyf',cizre:'Cizre',sebinkarahisar:'Sebinkarahisar',
+ tebriz:'Tabriz',meraga:'Maragheh',urmiye:'Urmia',hoy:'Khoy',nahcivan:'Nakhchivan',revan:'Erivan',karabag:'Karabakh',
+ gence:'Ganja',sirvan:'Shirvan',derbent:'Derbent',kars:'Kars',erzurum:'Erzurum',van:'Van',bitlis:'Bitlis',musul:'Mosul',
+ erbil:'Erbil',kerkuk:'Kirkuk',sehrizor:'Shahrizor',tikrit:'Tikrit',bagdat:'Baghdad',hille:'Hillah',vasit:'Wasit',
+ basra:'Basra',ane:'Anah',erdelan:'Ardalan',kirmansah:'Kermanshah',
+ trabzon:'Trebizond',kerasunt:'Kerasous',tiflis:'Tiflis',kutais:'Kutaisi',ahiska:'Akhaltsikhe',abhazya:'Abkhazia',
+ kaheti:'Kakheti',guriya:'Guria',
+ azak:'Azov',kuban:'Kuban',kipcak:'Kipchak',don:'Don',manic:'Manych',kabartay:'Kabarda',cerkes:'Circassia',
+ dagistan:'Dagestan',terek:'Terek',bahcesaray:'Bakhchisaray',or:'Perekop',gozleve:'Eupatoria',
+ kamanice:'Kamianets',braslav:'Bratslav',umani:'Uman',ozi:'Ochakov',halic:'Halych',
+ sucava:'Suceava',yas:'Iași',akkerman:'Cetatea Albă',kili:'Kilia',bender:'Bender',bakau:'Bacău',
+ tergoviste:'Târgoviște',kraiova:'Craiova',ibrail:'Brăila',buzau:'Buzău',
+ budin:'Buda',istolni:'Székesfehérvár',yanik:'Győr',pojon:'Pressburg',uyvar:'Érsekújvár',egri:'Eger',
+ kassa:'Kassa',segedin:'Szeged',solnok:'Szolnok',pecuy:'Pécs',kanije:'Kanizsa',zagrep:'Zagreb',
+ bihac:'Bihać',pojega:'Požega',belgrad:'Belgrade',temesvar:'Temesvár',severin:'Severin',varad:'Várad',
+ kolojvar:'Kolozsvár',sibin:'Hermannstadt',brasov:'Kronstadt',maramures:'Máramaros',sekel:'Székely Land',
+ viyana:'Vienna',graz:'Graz',linz:'Linz',salzburg:'Salzburg',karintiya:'Carinthia',lubliyana:'Ljubljana',triyeste:'Trieste',
+ venedik:'Venice',friuli:'Friuli',ravenna:'Ravenna',istriya:'Istria',zadar:'Zara',split:'Spalato',
+ raguza:'Ragusa',kotor:'Cattaro',iskodra:'Scutari',drac:'Durazzo',korfu:'Corfu',moton:'Modon',
+ anabolu:'Nauplia',egriboz:'Negroponte',kandiye:'Candia',hanya:'Canea',
+ kroya:'Krujë',debre:'Dibër',les:'Lezhë',
+ semendire:'Smederevo',rudnik:'Rudnik',krusevac:'Kruševac',nis:'Niš',novobirda:'Novo Brdo',prizren:'Prizren',
+ yenipazar:'Novi Pazar',zeta:'Zeta',
+ yayce:'Jajce',hersek:'Herzegovina',vrhbosna:'Vrhbosna',srebrenice:'Srebrenica',usora:'Usora',
+ napoli:'Naples',kapitanata:'Capitanata',bari:'Bari',otranto:'Otranto',basilikata:'Basilicata',kalabriya:'Calabria',
+ abruzzo:'Abruzzo',palermo:'Palermo',katanya:'Catania',
+ roma:'Rome',ankona:'Ancona',umbriya:'Umbria',rimini:'Rimini',
+ kibris:'Nicosia',rodos:'Rhodes',bodrum:'Bodrum',
+ trablusgarp:'Tripolitania',misrata:'Misrata',sirt:'Sirte'
+};
+const PD=PROVS.map((a,i)=>({i,key:a[0],name:EN&&PROV_EN[a[0]]||a[1],lon:a[2],lat:a[3],o:a[4],dev:a[5],fort:a[6],des:a[7]==='d',adj:[],lanes:[]}));
 const NP=PD.length;
 const PK={};PD.forEach(d=>PK[d.key]=d.i);
 const FK=Object.keys(FAC);

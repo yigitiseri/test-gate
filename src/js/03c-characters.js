@@ -35,15 +35,32 @@ function chRuler(f){const F=S&&S.fac[f];if(!F||!S.chars)return null;const c=S.ch
 function chHeir(f){const F=S&&S.fac[f];if(!F||!S.chars)return null;const c=S.chars[F.heir];return chLive(c)?c:null;}
 function chGenerals(f){const F=S&&S.fac[f];if(!F||!S.chars)return [];return (F.gens||[]).map(id=>S.chars[id]).filter(chLive);}
 /** Display name of f's ruler. Every UI place that shows a ruler must use this (never FAC[f].r). */
-function rulerName(f){const c=chRuler(f);return c?(c.rn||c.n):FAC[f].r;}
+function rulerName(f){const c=chRuler(f);return c?chName(c):FAC[f].r;}
+/** Turkish-only letters to plain Latin, for Turkic and Arabic names shown in English. */
+function chAscii(s){return String(s).replace(/[ŞşÇçĞğıİÖöÜüâîûÂ]/g,ch=>({Ş:'Sh',ş:'sh',Ç:'Ch',ç:'ch',Ğ:'G',ğ:'g',ı:'i',İ:'I',Ö:'O',ö:'o',Ü:'U',ü:'u',â:'a',î:'i',û:'u',Â:'A'})[ch]);}
+/** A stored name as shown now. Turkish: unchanged. English: "II. Mehmed" -> "Mehmed II", "Mahmud Paşa" -> "Mahmud Pasha", customary forms. */
+function chDisp(s,f){if(!EN||!s)return s||'';const x=CH_XEN[f+':'+s]||CH_XEN[s];if(x)return x;
+ const m=/^([IVXLC]+)\. (.+)$/.exec(s);let num='',rest=s;
+ if(m){num=m[1];rest=m[2];const w=rest.split(' ');if(CH_REGEN[w[0]])w[0]=CH_REGEN[w[0]];rest=w.join(' ');}
+ rest=rest.split(' ').map(w=>CH_WEN[w]||w).join(' ');
+ rest=(CH_SEED[f]||{}).cul==='ro'?rest.replace(/ş/g,'ș').replace(/Ş/g,'Ș').replace(/ţ/g,'ț').replace(/Ţ/g,'Ț'):chAscii(rest);
+ rest=rest.replace(/^(.+) (Emir|Qaid)$/,'$2 $1');
+ if(!num)return rest;
+ return / (Giray|Khan)$/.test(rest)?rest.replace(/ (Giray|Khan)$/,` ${num} $1`):rest+' '+num;}
+/** Display name of a character (regnal name if any). */
+function chName(c){return c?chDisp(c.rn||c.n,c.f):'';}
+/** Epithet ("Fatih") and dynasty name as shown now. */
+function chEp(e){return EN&&CH_EP_EN[e]||e;}
+function chDyn(d){return EN?(CH_DYN_EN[d]||chAscii(d)):d;}
 /** Title of a character ("Sultan", "Şehzade", "Komutan", ...). */
-function chTitle(c){const sd=CH_SEED[c.f]||{};
+function chTitle(c){const t=chTitle0(c);return EN&&CH_TITLE_EN[t]||t;}
+function chTitle0(c){const sd=CH_SEED[c.f]||{};
  if(c.role==='ruler')return c.t||(c.fem?'Kraliçe':sd.title||'Hükümdar');
  if(c.role==='gen')return 'Komutan';
  if(c.role==='claimant')return 'Taht davacısı';
  if(c.fem)return 'Prenses';return c.role==='heir'?(sd.ht||'Veliaht'):(sd.ht||'');}
 /** Name with the role title where it reads naturally ("Şehzade Bayezid", "II. Mehmed", "Mahmud Paşa"). */
-function chLabel(c){if(!c)return '';if(c.role==='ruler')return c.rn||c.n;if(c.role==='gen')return c.n;const t=chTitle(c);return (t&&c.role!=='claimant'?t+' ':'')+c.n;}
+function chLabel(c){if(!c)return '';if(c.role==='ruler')return chName(c);if(c.role==='gen')return chDisp(c.n,c.f);const t=chTitle(c);return (t&&c.role!=='claimant'?t+' ':'')+chDisp(c.n,c.f);}
 /** Portrait spec for Track A (W2): deterministic from the character. */
 function chPortraitSpec(c){const sd=CH_SEED[c.f]||{};const cul=sd.cul||'tr';
  const hat={tr:'kavuk',tk:'sarık',mm:'sarık',ar:'sarık',tt:'börk',gr:'taç',sr:'taç',ro:'kalpak',hu:'kalpak',de:'taç',pl:'kalpak',it:'bere',es:'taç',fr:'bere',ka:'taç',sq:'kalpak',pp:'mitre'}[cul];
@@ -126,14 +143,14 @@ function chSucceed(f,old,o={}){const F=S.fac[f],sd=CH_SEED[f]||{};if(!F||!F.aliv
  if(minor)S.c.regency[f]=S.turn+BAL_C.regencyTurns;else delete S.c.regency[f];
  S.c.lastSucc[f]=S.turn;
  if(o.quiet)return neu;
- const nm=neu.rn||neu.n,ttl=chTitle(neu);
- let msg=how==='elect'?`${FAC[f].s}: ${nm} yeni ${ttl.toLowerCase()} seçildi.`:how==='invite'?`${FAC[f].s} tahtına ${nm} davet edildi.`:how==='crisis'?`${FAC[f].s} tahtı boş kaldı; beyler ${nm} adını taşıyan uzak bir akrabayı tahta çıkardı.`:`${FAC[f].s} tahtına ${nm} çıktı.`;
- if(minor)msg+=` Hükümdar henüz ${age} yaşında; devleti bir naip yönetecek.`;
+ const nm=chName(neu),ttl=chTitle(neu),fs=FAC[f].s;
+ let msg=how==='elect'?lng(`${fs}: ${nm} yeni ${ttl.toLowerCase()} seçildi.`,`${fs}: ${nm} has been elected the new ${ttl.toLowerCase()}.`):how==='invite'?lng(`${fs} tahtına ${nm} davet edildi.`,`${fs}: ${nm} has been invited to take the throne.`):how==='crisis'?lng(`${fs} tahtı boş kaldı; beyler ${nm} adını taşıyan uzak bir akrabayı tahta çıkardı.`,`${fs}: the throne stood empty, and the nobles have raised a distant relative, ${nm}, to it.`):lng(`${fs} tahtına ${nm} çıktı.`,`${fs}: ${nm} has ascended the throne.`);
+ if(minor)msg+=lng(` Hükümdar henüz ${age} yaşında; devleti bir naip yönetecek.`,` The new ruler is only ${age}; a regent will govern the realm.`);
  chNews(f,msg,'cap');
  if(f===S.player){try{SND.play('succession');}catch(e){}
   if(how==='crisis')chAsk('crisis',{f,id:neu.id});
-  else{const hd=chHeir(f),d=(old?`${old.rn||old.n} artık yok. `:'')+msg+(hd?` Veliaht: ${chLabel(hd)}.`:' Tahtın bir varisi yok; hanedanın geleceği belirsiz.');
-   queueModal(()=>eventModal({t:how==='elect'?'Yeni Seçim':'Taht Değişti',e:dateStr(S.turn),d,ch:[{l:`Yaşasın ${nm}!`}]}));}}
+  else{const hd=chHeir(f),d=(old?lng(`${chName(old)} artık yok. `,`${chName(old)} is no more. `):'')+msg+(hd?lng(` Veliaht: ${chLabel(hd)}.`,` Heir: ${chLabel(hd)}.`):lng(' Tahtın bir varisi yok; hanedanın geleceği belirsiz.',' The throne has no heir; the future of the dynasty is uncertain.'));
+   queueModal(()=>eventModal({t:how==='elect'?lng('Yeni Seçim','A New Election'):lng('Taht Değişti','The Throne Passes'),e:dateStr(S.turn),d,ch:[{l:lng(`Yaşasın ${nm}!`,`Long live ${nm}!`)}]}));}}
  else if(how==='crisis')chCrisisAI(f);
  runHooks('succession',f,old,neu);
  return neu;}
@@ -147,14 +164,14 @@ function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive
  for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2){a.mpMax--;a.mp=Math.min(a.mp,a.mpMax);}}
  if(F){F.gens=(F.gens||[]).filter(x=>x!==c.id);}
  const wasRuler=F&&F.ruler===c.id,wasHeir=F&&F.heir===c.id;
- if(!wasRuler){const who=c.role==='gen'?`${FAC[f].s} komutanı ${c.n}`:`${FAC[f].s} ${chLabel(c)}`;
-  const why=cause==='battle'?'muharebede can verdi':cause==='executed'?'idam edildi':'hayatını kaybetti';
+ if(!wasRuler){const who=c.role==='gen'?lng(`${FAC[f].s} komutanı ${c.n}`,`Commander ${chDisp(c.n,f)}`):lng(`${FAC[f].s} ${chLabel(c)}`,chLabel(c));
+  const why=cause==='battle'?lng('muharebede can verdi','fell in battle'):cause==='executed'?lng('idam edildi','was executed'):lng('hayatını kaybetti','has died');
   if(f===S.player)chNews(f,`${who} ${why}.`,wasHeir?'war':'info');}
  runHooks('charDied',c);
- if(wasRuler&&F.alive){const age=chAge(c),nm=c.rn||c.n;
-  const why=cause==='battle'?'muharebe meydanında düştü':cause==='fall'?'şehrinin surlarında savaşarak can verdi':cause==='plague'?'vebadan öldü':age>=70?`${age} yaşında, ihtiyarlıktan öldü`:`${age} yaşında öldü`;
+ if(wasRuler&&F.alive){const age=chAge(c),nm=chName(c);
+  const why=cause==='battle'?lng('muharebe meydanında düştü','fell on the field of battle'):cause==='fall'?lng('şehrinin surlarında savaşarak can verdi','died fighting on the walls of the city'):cause==='plague'?lng('vebadan öldü','died of the plague'):age>=70?lng(`${age} yaşında, ihtiyarlıktan öldü`,`died of old age at ${age}`):lng(`${age} yaşında öldü`,`died at the age of ${age}`);
   if(f===S.player){try{SND.play('bell');}catch(e){}}
-  chNews(f,`${FAC[f].s} hükümdarı ${nm} ${why}.`,'cap');
+  chNews(f,lng(`${FAC[f].s} hükümdarı ${nm} ${why}.`,`${FAC[f].s}: the ruler ${nm} ${why}.`),'cap');
   chSucceed(f,c);}
  else if(wasHeir&&F.alive)chPickHeir(f);
  return c;}
@@ -171,17 +188,17 @@ function chSpawnYear(y){
  FK.forEach(f=>{const F=S.fac[f],sd=CH_SEED[f];if(!F.alive||!sd)return;
   for(const e of [...(sd.kin||[]),...(sd.alt||[]).filter(x=>x.par)]){const sk=f+':'+e.k;if(S.c.sp[sk]||e.b>y)continue;S.c.sp[sk]=1;
    const p=e.par&&chBySeed(f,e.par);if(!chLive(p)||e.d<=y)continue;
-   const c=chFromSeed(f,e,'kin');if(f===S.player)chNews(f,`Sarayda bir çocuk dünyaya geldi: ${c.n}.`,'good');}
+   const c=chFromSeed(f,e,'kin');if(f===S.player)chNews(f,lng(`Sarayda bir çocuk dünyaya geldi: ${c.n}.`,`A child has been born at court: ${chDisp(c.n,f)}.`),'good');}
   for(const e of sd.gen||[]){const sk=f+':'+e.k;if(S.c.sp[sk]||(e.from||0)>y||y-e.b<16)continue;S.c.sp[sk]=1;if(e.d<=y)continue;
-   const g=chFromSeed(f,e,'gen');F.gens.push(g.id);if(f===S.player)chNews(f,`${g.n} komutanlarının arasına katıldı.`,'good');}
+   const g=chFromSeed(f,e,'gen');F.gens.push(g.id);if(f===S.player)chNews(f,lng(`${g.n} komutanlarının arasına katıldı.`,`${chDisp(g.n,f)} has joined your commanders.`),'good');}
   const r=chRuler(f);if(!r||r.nk||r.hk||r.fem)return;const a=y-r.born;if(a<BAL_C.kidAge[0]||a>BAL_C.kidAge[1])return;
   let kids=0;for(const id in S.chars){const c=S.chars[id];if(c.par===r.id&&chLive(c))kids++;}
   if(kids<BAL_C.maxKids&&R()<BAL_C.birth*(kids?.5:1)){const c=chCreate({n:chPick(CH_NAMES[sd.cul==='pp'?'it':sd.cul]||CH_NAMES.tr),f,role:'kin',born:y,par:r.id,dyn:r.dyn});
-   if(f===S.player)chNews(f,`${r.rn||r.n} bir oğul sahibi oldu: ${c.n}.`,'good');chPickHeir(f);}
+   if(f===S.player)chNews(f,lng(`${r.rn||r.n} bir oğul sahibi oldu: ${c.n}.`,`${chName(r)} has been blessed with a son: ${chDisp(c.n,f)}.`),'good');chPickHeir(f);}
   else if(!chHeir(f))chPickHeir(f);});}
 function chTick(){if(!S.c)return;const y=chYear(),dead=[];
  for(const id in S.chars){const c=S.chars[id];if(!chLive(c))continue;const F=S.fac[c.f];if(!F||!F.alive){c.died=S.turn;c.dc='exile';continue;}
-  if(c.cap!=null&&S.turn>=c.cap){delete c.cap;if(c.f===S.player)chNews(c.f,`${c.n} fidye karşılığı esaretten döndü.`,'good');}
+  if(c.cap!=null&&S.turn>=c.cap){delete c.cap;if(c.f===S.player)chNews(c.f,lng(`${c.n} fidye karşılığı esaretten döndü.`,`${chDisp(c.n,c.f)} has been ransomed and is back from captivity.`),'good');}
   if(y-c.born>=BAL_C.maxAge||R()<chHazard(c,y))dead.push(c);}
  for(const c of dead)chKill(c,y-c.born>=BAL_C.maxAge?'old':'natural');
  FK.forEach(f=>{const F=S.fac[f];if(!F.alive)return;if(!chRuler(f)){if(!Object.keys(S.chars).some(id=>S.chars[id].f===f))chSeedFaction(f);else chSucceed(f,null);}else if(!chHeir(f))chPickHeir(f);});
@@ -211,41 +228,41 @@ function chCtxGen(ctx,side){if(!S.c)return null;
  const c=a&&a.gen!=null?S.chars[a.gen]:null;return chLive(c)&&c.cap==null?c:null;}
 BATTLE_MODS.push(ctx=>{if(!S.c||(ctx.from==null&&ctx.to==null&&!ctx.army&&!ctx.attArmy))return null;const out=[];
  for(const side of ['att','def']){const g=chCtxGen(ctx,side);if(!g)continue;const sk=Math.max(1,g.skill||1);
-  out.push({l:`Komutan: ${g.rn||g.n}`,m:1+BAL_C.genMul*sk,side,k:'gen',gid:g.id});
-  if(ctx.to!=null){if(g.traits.includes('dag')&&PD[ctx.to].mtn)out.push({l:`${g.n}: Dağ Kurdu`,m:BAL_C.mul.dag,side,k:'gtrait'});
-   if(side==='att'&&g.traits.includes('topcu')&&S.prov[ctx.to].fort>0&&ctx.kind!=='field')out.push({l:`${g.n}: Topçu`,m:BAL_C.mul.topcu,side,k:'gtrait'});}}
+  out.push({l:lng(`Komutan: ${g.rn||g.n}`,`Commander: ${chName(g)}`),m:1+BAL_C.genMul*sk,side,k:'gen',gid:g.id});
+  if(ctx.to!=null){if(g.traits.includes('dag')&&PD[ctx.to].mtn)out.push({l:lng(`${g.n}: Dağ Kurdu`,`${chDisp(g.n,g.f)}: Mountain Wolf`),m:BAL_C.mul.dag,side,k:'gtrait'});
+   if(side==='att'&&g.traits.includes('topcu')&&S.prov[ctx.to].fort>0&&ctx.kind!=='field')out.push({l:lng(`${g.n}: Topçu`,`${chDisp(g.n,g.f)}: Gunner`),m:BAL_C.mul.topcu,side,k:'gtrait'});}}
  return out;});
 /* ruler traits in battle */
 BATTLE_MODS.push(ctx=>{if(!S.c)return null;const out=[];
  const ra=ctx.att&&chRuler(ctx.att),rd=ctx.def&&chRuler(ctx.def);
- if(ra){if(ra.traits.includes('cengaver'))out.push({l:'Hükümdar: Cengâver',m:BAL_C.mul.cengaver,side:'att',k:'ruler'});
-  if(ra.traits.includes('fatih')&&ctx.to!=null&&S.prov[ctx.to].fort>=2)out.push({l:'Hükümdar: Fatih',m:BAL_C.mul.fatih,side:'att',k:'ruler'});}
- if(rd){if(rd.traits.includes('sebatkar'))out.push({l:'Hükümdar: Sebatkâr',m:BAL_C.mul.sebatkar,side:'def',k:'ruler'});
-  if(rd.traits.includes('zalim'))out.push({l:'Hükümdar: Zalim',m:BAL_C.mul.zalim,side:'def',k:'ruler'});
-  if(rd.traits.includes('dindar')&&ctx.att&&FAC[ctx.att].rel!==FAC[ctx.def].rel)out.push({l:'Hükümdar: Dindar',m:BAL_C.mul.dindar,side:'def',k:'ruler'});}
+ if(ra){if(ra.traits.includes('cengaver'))out.push({l:lng('Hükümdar: Cengâver','Ruler: Valiant'),m:BAL_C.mul.cengaver,side:'att',k:'ruler'});
+  if(ra.traits.includes('fatih')&&ctx.to!=null&&S.prov[ctx.to].fort>=2)out.push({l:lng('Hükümdar: Fatih','Ruler: Conqueror'),m:BAL_C.mul.fatih,side:'att',k:'ruler'});}
+ if(rd){if(rd.traits.includes('sebatkar'))out.push({l:lng('Hükümdar: Sebatkâr','Ruler: Steadfast'),m:BAL_C.mul.sebatkar,side:'def',k:'ruler'});
+  if(rd.traits.includes('zalim'))out.push({l:lng('Hükümdar: Zalim','Ruler: Cruel'),m:BAL_C.mul.zalim,side:'def',k:'ruler'});
+  if(rd.traits.includes('dindar')&&ctx.att&&FAC[ctx.att].rel!==FAC[ctx.def].rel)out.push({l:lng('Hükümdar: Dindar','Ruler: Pious'),m:BAL_C.mul.dindar,side:'def',k:'ruler'});}
  return out.length?out:null;});
 /* the losing commander may fall or be captured: rep.genFate={id,n,f,fate:'died'|'captured',t} */
 hook('battleResolved',rep=>{if(!S.c||!rep||!rep.mods)return;const lose=rep.win?'def':'att';
  const m=rep.mods.find(x=>x.k==='gen'&&x.side===lose);if(!m)return;const c=S.chars[m.gid];if(!chLive(c))return;
  const ruler=S.fac[c.f]&&S.fac[c.f].ruler===c.id,q=R();let fate=null;
  if(q<(ruler?BAL_C.rulerDie:BAL_C.genDie))fate='died';else if(!ruler&&q<BAL_C.genDie+BAL_C.genCap)fate='captured';
- if(!fate)return;const nm=c.rn||c.n,where=PD[rep.to]?PD[rep.to].name:'';
- rep.genFate={id:c.id,n:nm,f:c.f,fate,t:fate==='died'?`${nm} ${where} muharebesinde can verdi.`:`${nm} ${where} muharebesinde esir düştü.`};
+ if(!fate)return;const nm=chName(c),where=PD[rep.to]?PD[rep.to].name:'';
+ rep.genFate={id:c.id,n:nm,f:c.f,fate,t:fate==='died'?lng(`${nm} ${where} muharebesinde can verdi.`,`${nm} fell in the battle of ${where}.`):lng(`${nm} ${where} muharebesinde esir düştü.`,`${nm} was taken prisoner in the battle of ${where}.`)};
  if(fate==='died')chKill(c,'battle');
  else{c.cap=S.turn+BAL_C.captiveTurns;for(const a of S.armies)if(a.gen===c.id){a.gen=null;if(c.traits.includes('akinci')&&a.mpMax>2){a.mpMax--;a.mp=Math.min(a.mp,a.mpMax);}}
-  chNews(c.f,`${FAC[c.f].s} komutanı ${nm} esir düştü.`,c.f===S.player?'war':'info');}},40);
+  chNews(c.f,lng(`${FAC[c.f].s} komutanı ${nm} esir düştü.`,`${FAC[c.f].s}: commander ${nm} has been taken prisoner.`),c.f===S.player?'war':'info');}},40);
 
 /* ---------------- ruler traits and regency in the economy ---------------- */
 ECON_ROWS.push(f=>{if(!S.c)return null;const r=chRuler(f),out=[];
- if(r)for(const t of r.traits){const v=BAL_C.gold[t];if(!v)continue;out.push({id:'ch-'+t,l:`Hükümdar: ${CH_TRAITS[t].l}`,v,k:t==='savurgan'||t==='zalim'?'exp':'inc'});}
- const rg=S.c.regency[f];if(rg!=null&&S.turn<rg){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);out.push({id:'ch-regency',l:`Naip yönetimi (${rg-S.turn} tur)`,v:s*BAL_C.regencyCut,k:'exp'});}
+ if(r)for(const t of r.traits){const v=BAL_C.gold[t];if(!v)continue;out.push({id:'ch-'+t,l:lng(`Hükümdar: ${CH_TRAITS[t].l}`,`Ruler: ${CH_TRAITS[t].l}`),v,k:t==='savurgan'||t==='zalim'?'exp':'inc'});}
+ const rg=S.c.regency[f];if(rg!=null&&S.turn<rg){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);out.push({id:'ch-regency',l:lng(`Naip yönetimi (${rg-S.turn} tur)`,`Regency (${rg-S.turn} turns)`),v:s*BAL_C.regencyCut,k:'exp'});}
  return out;});
 
 /* ---------------- world events touching dynasties ---------------- */
 hook('capture',(i,nf,old)=>{if(!S.c||PD[i].key!=='istanbul')return;
  const r=chRuler(nf);if(r&&!r.ep&&old==='BYZ'){r.ep=nf==='OSM'?'Fatih':'Kurtarıcı';if(nf==='OSM'&&!r.traits.includes('fatih'))r.traits.push('fatih');}
  if(old!=='BYZ')return;const F=S.fac.BYZ,k=S.chars[F.ruler];if(!k||(k.died!=null&&!(k.died===S.turn&&k.dc==='exile')))return;
- if(F.alive)chKill(k,'fall');else{k.died=S.turn;k.dc='fall';chNews('BYZ',`${k.rn||k.n} şehrinin surlarında savaşarak can verdi. Doğu Roma İmparatorluğu sona erdi.`,'cap');}});
+ if(F.alive)chKill(k,'fall');else{k.died=S.turn;k.dc='fall';chNews('BYZ',lng(`${k.rn||k.n} şehrinin surlarında savaşarak can verdi. Doğu Roma İmparatorluğu sona erdi.`,`${chName(k)} died fighting on the walls of the city. The Eastern Roman Empire has come to an end.`),'cap');}});
 hook('eliminate',f=>{if(!S.c)return;for(const id in S.chars){const c=S.chars[id];if(c.f===f&&chLive(c)){c.died=S.turn;c.dc='exile';}}const F=S.fac[f];F.heir=null;F.gens=[];});
 
 /* ---------------- pending decisions (survive a reload) ---------------- */
@@ -256,11 +273,11 @@ function chShowPend(p){if(!S.c.pend.includes(p))return;let spec=null;try{spec=CH
  if(!spec){S.c.pend=S.c.pend.filter(x=>x!==p);return;}
  eventModal({...spec,e:spec.e||dateStr(S.turn),ch:spec.ch.map(c=>({...c,f:()=>{S.c.pend=S.c.pend.filter(x=>x!==p);if(c.f)c.f();}}))});}
 hook('enterGame',()=>{if(S&&S.c&&S.c.pend.length)S.c.pend.forEach(p=>queueModal(()=>chShowPend(p)));});
-CH_PEND.crisis=({f,id})=>{const c=S.chars[id];if(!chLive(c)||f!==S.player)return null;const F=S.fac[f],g=chCrisisGold(f),nm=c.rn||c.n;
- return {t:'Taht Boşluğu',d:`Hanedanın erkek varisi kalmadı. Divan, uzak bir akraba olan ${nm} adını öne sürdü; ama beyler bölünmüş durumda. Tahtı nasıl sağlamlaştıracaksın?`,
-  ch:[{l:'Beyleri kendi hâllerine bırak (2 eyalet 6 tur huzursuz)',f:()=>chCrisisAI(f)},
-   {l:`Beylere altın dağıt (−${g} altın)`,dis:F.gold<g,f:()=>{F.gold=Math.max(0,F.gold-g);}},
-   {l:'Ordunun adayını destekle (hükümdar Cengâver olur, başkent garnizonu −20%)',f:()=>{if(!c.traits.includes('cengaver'))c.traits.push('cengaver');const p=S.prov[F.cap];p.t=Math.round(p.t*.8/100)*100;}}]};};
+CH_PEND.crisis=({f,id})=>{const c=S.chars[id];if(!chLive(c)||f!==S.player)return null;const F=S.fac[f],g=chCrisisGold(f),nm=chName(c);
+ return {t:lng('Taht Boşluğu','An Empty Throne'),d:lng(`Hanedanın erkek varisi kalmadı. Divan, uzak bir akraba olan ${nm} adını öne sürdü; ama beyler bölünmüş durumda. Tahtı nasıl sağlamlaştıracaksın?`,`No male heir of the dynasty remains. The Divan has put forward a distant relative, ${nm}, but the nobles are divided. How will you secure the throne?`),
+  ch:[{l:lng('Beyleri kendi hâllerine bırak (2 eyalet 6 tur huzursuz)','Leave the nobles to themselves (2 provinces restless for 6 turns)'),f:()=>chCrisisAI(f)},
+   {l:lng(`Beylere altın dağıt (−${g} altın)`,`Hand out gold to the nobles (−${g} gold)`),dis:F.gold<g,f:()=>{F.gold=Math.max(0,F.gold-g);}},
+   {l:lng('Ordunun adayını destekle (hükümdar Cengâver olur, başkent garnizonu −20%)','Back the army\'s candidate (the ruler becomes Valiant, capital garrison −20%)'),f:()=>{if(!c.traits.includes('cengaver'))c.traits.push('cengaver');const p=S.prov[F.cap];p.t=Math.round(p.t*.8/100)*100;}}]};};
 
 /* ---------------- lifecycle hooks ---------------- */
 hook('newGame',(s)=>{s.c=chNewC();chSeedAll();},5);
@@ -276,32 +293,35 @@ hook('migrate',(s)=>{const prev=S;S=s;try{
  }finally{S=prev;}},20);
 
 /* ---------------- UI ---------------- */
-function chStars(n){n=Math.max(0,Math.min(5,n|0));return `<span class="ch-stars" aria-label="Kabiliyet ${n}/5">${'★'.repeat(n)}<i>${'★'.repeat(5-n)}</i></span>`;}
+function chStars(n){n=Math.max(0,Math.min(5,n|0));return `<span class="ch-stars" aria-label="${lng('Kabiliyet','Skill')} ${n}/5">${'★'.repeat(n)}<i>${'★'.repeat(5-n)}</i></span>`;}
 function chTraitChips(c){return c.traits.filter(t=>CH_TRAITS[t]).map(t=>`<span class="chip ch-tr" data-tip="ch-trait" data-tr="${t}" title="${esc(CH_TRAITS[t].d)}">${esc(CH_TRAITS[t].l)}</span>`).join('');}
 TIPS['ch-trait']=el=>{const t=CH_TRAITS[el.dataset.tr];return t?`<b>${esc(t.l)}</b><br>${esc(t.d)}`:'';};
-function chGenStatus(g){if(g.cap!=null)return `esir (${g.cap-S.turn} tur)`;const a=S.armies.find(x=>x.gen===g.id);return a?`ordu başında · ${PD[a.loc].name}`:'boşta';}
+function chGenStatus(g){if(g.cap!=null)return lng(`esir (${g.cap-S.turn} tur)`,`captive (${g.cap-S.turn} turns)`);const a=S.armies.find(x=>x.gen===g.id);return a?lng(`ordu başında · ${PD[a.loc].name}`,`leading an army · ${PD[a.loc].name}`):lng('boşta','idle');}
 STATE_SECTIONS.push({id:'dynasty',order:30,html(f){if(!S.c)return '';const r=chRuler(f);if(!r)return '';const h=chHeir(f),F=S.fac[f];
  const rg=S.c.regency[f],reg=rg!=null&&S.turn<rg;
  const kin=Object.values(S.chars).filter(c=>c.f===f&&chLive(c)&&c.role==='kin').sort((a,b)=>a.born-b.born).slice(0,6);
  const gens=[...new Set([...(r.skill>0?[r]:[]),...(h&&h.skill>0?[h]:[]),...chGenerals(f)])];
  const past=(S.c.past[f]||[]).slice().reverse();
- return `<div class="sec ch-dyn"><h3>Hanedan${r.dyn?` · ${esc(r.dyn)}`:''}</h3>
-  <div class="ch-card"><div class="ch-crown">♛</div><div><b>${esc(r.rn||r.n)}</b>${r.ep?` <em>“${esc(r.ep)}”</em>`:''}<small>${esc(chTitle(r))} · ${chAge(r)} yaşında · ${Math.floor((S.turn-(r.acc||0))/4)} yıldır tahtta</small>
-   <div class="ch-trs">${chTraitChips(r)||'<span class="hint">Belirgin bir huyu yok.</span>'}</div></div></div>
-  ${reg?`<div class="hint ch-warn">Hükümdar çocuk yaşta; ${rg-S.turn} tur daha naip yönetiyor (vergilerin %10'u kayıp).</div>`:''}
-  <div class="ch-row"><span>Veliaht</span><b>${h?`${esc(chLabel(h))} (${chAge(h)})`:'<span class="neg">Yok: hükümdar ölürse taht boşluğu çıkar</span>'}</b></div>
-  ${kin.length?`<div class="ch-row"><span>Aile</span><b>${kin.map(c=>`${esc(c.n)} (${chAge(c)})`).join(', ')}</b></div>`:''}
-  <h3 style="margin-top:10px">Komutanlar</h3>
-  <div class="ch-gens">${gens.length?gens.map(g=>`<div class="ch-gen"><b>${esc(g.rn||g.n)}</b>${chStars(g.skill)}<small>${chGenStatus(g)} · ${chAge(g)} yaşında</small><div class="ch-trs">${chTraitChips(g)}</div></div>`).join(''):'<div class="hint">Henüz tanınmış bir komutan yok. Yeni ordular kurdukça beyler öne çıkar.</div>'}</div>
-  ${past.length?`<div class="ch-row ch-past"><span>Önceki hükümdarlar</span><b>${past.map(p=>`${esc(p.n)}${p.ep?` “${esc(p.ep)}”`:''} (${START_YEAR+Math.floor(p.t0/4)}–${START_YEAR+Math.floor(p.t1/4)})`).join(' · ')}</b></div>`:''}
+ const ep=e=>EN?` ${esc(chEp(e))}`:` “${esc(e)}”`,yrs=Math.floor((S.turn-(r.acc||0))/4);
+ return `<div class="sec ch-dyn"><h3>${lng('Hanedan','Dynasty')}${r.dyn?` · ${esc(chDyn(r.dyn))}`:''}</h3>
+  <div class="ch-card"><div class="ch-crown">♛</div><div><b>${esc(chName(r))}</b>${r.ep?` <em>${ep(r.ep).slice(1)}</em>`:''}<small>${esc(chTitle(r))} · ${chAgeS(chAge(r))} · ${lng(`${yrs} yıldır tahtta`,yrs===1?'1 year on the throne':`${yrs} years on the throne`)}</small>
+   <div class="ch-trs">${chTraitChips(r)||`<span class="hint">${lng('Belirgin bir huyu yok.','No notable traits.')}</span>`}</div></div></div>
+  ${reg?`<div class="hint ch-warn">${lng(`Hükümdar çocuk yaşta; ${rg-S.turn} tur daha naip yönetiyor (vergilerin %10'u kayıp).`,`The ruler is still a child; a regent governs for ${rg-S.turn} more turns (10% of taxes lost).`)}</div>`:''}
+  <div class="ch-row"><span>${lng('Veliaht','Heir')}</span><b>${h?`${esc(chLabel(h))} (${chAge(h)})`:`<span class="neg">${lng('Yok: hükümdar ölürse taht boşluğu çıkar','None: if the ruler dies, the throne will stand empty')}</span>`}</b></div>
+  ${kin.length?`<div class="ch-row"><span>${lng('Aile','Family')}</span><b>${kin.map(c=>`${esc(chDisp(c.n,c.f))} (${chAge(c)})`).join(', ')}</b></div>`:''}
+  <h3 style="margin-top:10px">${lng('Komutanlar','Commanders')}</h3>
+  <div class="ch-gens">${gens.length?gens.map(g=>`<div class="ch-gen"><b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${chGenStatus(g)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div>`).join(''):`<div class="hint">${lng('Henüz tanınmış bir komutan yok. Yeni ordular kurdukça beyler öne çıkar.','No renowned commander yet. As you raise new armies, capable nobles will step forward.')}</div>`}</div>
+  ${past.length?`<div class="ch-row ch-past"><span>${lng('Önceki hükümdarlar','Previous rulers')}</span><b>${past.map(p=>`${esc(chDisp(p.n,f))}${p.ep?ep(p.ep):''} (${START_YEAR+Math.floor(p.t0/4)}–${START_YEAR+Math.floor(p.t1/4)})`).join(' · ')}</b></div>`:''}
  </div>`;}});
+/** "40 yaşında" / "age 40". */
+function chAgeS(a){return lng(`${a} yaşında`,`age ${a}`);}
 PANEL_SECTIONS.push({id:'general',order:35,when:c=>{if(selArmy==null||!S.c)return false;const a=armyById(selArmy);return !!a&&a.loc===c.i&&a.gen!=null&&chLive(S.chars[a.gen]);},
  html(c){const a=armyById(selArmy),g=S.chars[a.gen];const bonus=Math.round(BAL_C.genMul*Math.max(1,g.skill)*100);
-  return `<div class="sec ch-cmd"><h3>Komutan</h3><div class="ch-gen"><b>${esc(g.rn||g.n)}</b>${chStars(g.skill)}<small>Muharebede +${bonus}% · ${chAge(g)} yaşında</small><div class="ch-trs">${chTraitChips(g)}</div></div></div>`;}});
+  return `<div class="sec ch-cmd"><h3>${lng('Komutan','Commander')}</h3><div class="ch-gen"><b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${lng(`Muharebede +${bonus}%`,`+${bonus}% in battle`)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div></div>`;}});
 REPORT_SECTIONS.push({id:'dynasty',order:40,html(){const L=chRep;if(!L.length)return '';
- return `<div class="sec"><h3>Hanedanlar</h3><div class="logl">${L.slice(0,8).map(x=>`<div><time>${esc(FAC[x.f].s)}</time><span>${esc(x.m)}</span></div>`).join('')}</div></div>`;}});
+ return `<div class="sec"><h3>${lng('Hanedanlar','Dynasties')}</h3><div class="logl">${L.slice(0,8).map(x=>`<div><time>${esc(FAC[x.f].s)}</time><span>${esc(x.m)}</span></div>`).join('')}</div></div>`;}});
 DIPLO_ROW.push({id:'dyn',order:20,meta(f){if(!S.c)return '';const r=chRuler(f);if(!r)return '';const h=chHeir(f);
- return `<span>Hükümdar <b>${chAge(r)}</b> yaşında</span>${h?'':'<span class="neg">Varisi yok</span>'}`;}});
+ return lng(`<span>Hükümdar <b>${chAge(r)}</b> yaşında</span>`,`<span>Ruler's age <b>${chAge(r)}</b></span>`)+(h?'':`<span class="neg">${lng('Varisi yok','No heir')}</span>`);}});
 
-KE.rulerName=f=>rulerName(f);
+KE.rulerName=f=>rulerName(f);KE.chDisp=(s,f)=>chDisp(s,f);
 KE.ch={create:s=>chCreate(s),kill:(id,c)=>chKill(id,c),ruler:f=>chRuler(f),heir:f=>chHeir(f),gens:f=>chGenerals(f),age:id=>chAge(id),title:c=>chTitle(c),label:c=>chLabel(c),succeed:f=>chSucceed(f,chRuler(f)),tick:()=>chTick(),bal:BAL_C,portrait:c=>chPortraitSpec(c)};

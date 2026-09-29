@@ -82,8 +82,7 @@ const MOUNTAINS=[
  [[29.2,40.05],[30.0,39.8]]
 ];
 const REGION_LABELS=[
- ['KARADENİZ',34.4,43.35,22,'sea'],['AKDENİZ',25.6,33.6,26,'sea'],['ADALAR DENİZİ',25.2,37.3,12,'sea'],
- ['ADRİYATİK',15.9,42.55,12,'sea'],['İYON DENİZİ',18.4,37.8,13,'sea'],['AZAK',37.2,46.35,10,'sea'],
- ['Deşt-i Kıpçak',44.2,46.8,17,'land'],['Sahrâ-yı Libya',24.4,30.2,18,'land'],['Şam Çölü',39.6,32.3,16,'land'],['Vahşi Topraklar',33.2,48.2,13,'land']
+ ['KARADENİZ',34.4,43.35,22,'sea','BLACK SEA'],['AKDENİZ',25.6,33.6,26,'sea','MEDITERRANEAN'],['ADALAR DENİZİ',25.2,37.3,12,'sea','AEGEAN SEA'],
+ ['ADRİYATİK',15.9,42.55,12,'sea','ADRIATIC'],['İYON DENİZİ',18.4,37.8,13,'sea','IONIAN SEA'],['AZAK',37.2,46.35,10,'sea','AZOV'],
+ ['Deşt-i Kıpçak',44.2,46.8,17,'land','Dasht-i Kipchak'],['Sahrâ-yı Libya',24.4,30.2,18,'land','Libyan Desert'],['Şam Çölü',39.6,32.3,16,'land','Syrian Desert'],['Vahşi Topraklar',33.2,48.2,13,'land','Wild Fields']
 ];
-

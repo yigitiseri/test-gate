@@ -247,3 +247,54 @@ const CH_TRAITS={
  topcu:{l:'Topçu',d:'Kaleli eyaletlere saldırıda +10%.'},
  akinci:{l:'Akıncı',d:'Hızlı süvari: ordusu her tur bir adım fazla yürür.'}
 };
+/* ---------------- English ----------------
+   Names are stored in the save in the Turkish form above ("II. Mehmed", "Mahmud Paşa"): the regnal
+   numbering reads them. English is applied only when a name is shown (chDisp in 03c). */
+const CH_TRAITS_EN={
+ adil:{l:'Just',d:'The people pay their taxes willingly: +2 gold each turn.'},
+ tuccar:{l:'Merchant',d:'Knows the ways of trade: +3 gold each turn.'},
+ alim:{l:'Learned',d:'A patron of schools and libraries: +1 gold each turn.'},
+ savurgan:{l:'Spendthrift',d:'The court spends lavishly: −2 gold each turn.'},
+ cengaver:{l:'Valiant',d:'Gives the army courage: +5% when attacking.'},
+ sebatkar:{l:'Steadfast',d:'Unshakeable: +5% in defence.'},
+ dindar:{l:'Pious',d:'+5% in defence against enemies of another faith.'},
+ zalim:{l:'Cruel',d:'Rules by fear: +10% in defence, but −1 gold each turn.'},
+ hasta:{l:'Sickly',d:'In poor health; may not live long.'},
+ fatih:{l:'Conqueror',d:'Knows how to bring down fortresses: +10% when attacking walled cities.'},
+ dag:{l:'Mountain Wolf',d:'+15% in battles fought in mountains.'},
+ topcu:{l:'Gunner',d:'+10% when attacking fortified provinces.'},
+ akinci:{l:'Raider',d:'Swift cavalry: the army marches one step further each turn.'}
+};
+if(EN)for(const k in CH_TRAITS_EN)Object.assign(CH_TRAITS[k],CH_TRAITS_EN[k]);
+/** Titles and roles. */
+const CH_TITLE_EN={'Sultan':'Sultan','İmparator':'Emperor','Doç':'Doge','Kral':'King','Despot':'Despot','Voyvoda':'Voivode','Bey':'Bey',
+ 'Han':'Khan','Papa':'Pope','Büyük Üstat':'Grand Master','Şah':'Shah','Arşidük':'Archduke','Şehzade':'Prince','Prens':'Prince',
+ 'Veliaht':'Heir','Kalgay':'Kalga','Emir':'Emir','Mirza':'Mirza','Naip':'Regent','Birlik Başkomutanı':'Commander of the League',
+ 'Kraliçe':'Queen','Hükümdar':'Ruler','Komutan':'Commander','Taht davacısı':'Pretender','Prenses':'Princess'};
+/** Whole names with a customary English form ("FAC:name" for one realm only). */
+const CH_XEN={'Hunyadi Yanoş':'John Hunyadi','Yanoş':'János','Matyas Korvin':'Matthias Corvinus','Matyas':'Matthias','Layoş':'Lajos','ALB:İskender Bey':'Skanderbeg',
+ 'IV. Petru (Rareş)':'Petru Rareș','II. Gjon Kastrioti':'Gjon Kastrioti II','I. Jan Olbracht':'John I Albert','Jan Olbracht':'John Albert',
+ 'Aleksander Jagiełło':'Alexander Jagiellon','II. Zygmunt August':'Sigismund II Augustus','Zygmunt August':'Sigismund Augustus',
+ 'Szilágyi Mihály':'Mihály Szilágyi','Kinizsi Pál':'Pál Kinizsi','Báthory István':'István Báthory','Tomori Pál':'Pál Tomori',
+ 'Herceg Stjepan Kosača':'Stjepan Vukčić Kosača','Seyyid Ahmed':'Sayyid Ahmad','Ahmed Han':'Akhmat Khan','Ebû Amr Osman':'Abu Amr Uthman',
+ 'Ebû Zekeriyyâ Yahyâ':'Abu Zakariya Yahya','Cihan Şah':'Jahan Shah','Uğurlu Mehmed':'Ughurlu Muhammad'};
+/** Given names of numbered rulers ("II. Süleyman" -> "Suleiman II"). */
+const CH_REGEN={Süleyman:'Suleiman',Konstantinos:'Constantine',Ioannes:'John',Yuannis:'John',Mikhael:'Michael',Theodoros:'Theodore',
+ Giorgi:'George',Aleksandre:'Alexander',Konstantine:'Constantine',Davit:'David',Friedrich:'Frederick',Albrecht:'Albert',Philipp:'Philip',
+ Karl:'Charles',Sigmund:'Sigismund',Kazimierz:'Casimir',Władysław:'Ladislaus',Zygmunt:'Sigismund',Bolesław:'Boleslaus',Jan:'John',
+ Jean:'John',Jacques:'James',Pierre:'Peter',Hugues:'Hugh',Henri:'Henry',Nikolaus:'Nicholas',Nicolaus:'Nicholas',Paulus:'Paul',
+ Innocentius:'Innocent',Hadrianus:'Adrian',Clemens:'Clement',Gregorius:'Gregory',Martinus:'Martin',Eugenius:'Eugene',Urbanus:'Urban',
+ László:'Ladislaus',István:'Stephen',Mátyás:'Matthias',János:'John',Lajos:'Louis',Layoş:'Louis',Ulászló:'Vladislaus',András:'Andrew',
+ Károly:'Charles',Ştefan:'Stephen',Pedro:'Peter',Juan:'John',Fernando:'Ferdinand',Carlo:'Charles',Giovanni:'John',Hacı:'Haji'};
+/** Single words inside any name (titles and customary Arabic, Persian and Turkic forms). */
+const CH_WEN={'Paşa':'Pasha','Han':'Khan','Şah':'Shah','Kaid':'Qaid','Hacı':'Haji','Seyyid':'Sayyid','Şeyh':'Sheikh','Cihan':'Jahan',
+ 'Eşref':'al-Ashraf','Zâhir':'al-Zahir','Seyfeddin':'Sayf al-Din','Nâsır':'al-Nasir','Müeyyed':'al-Mu\'ayyad','Çakmak':'Jaqmaq',
+ 'Hoşkadem':'Khushqadam','Kayıtbay':'Qaitbay','Kansu':'Qansuh','Gavri':'al-Ghawri','Tomanbay':'Tumanbay',
+ 'Canbalat':'Janbalat','Timurbuga':'Timurbugha','Özdemir':'Uzdemir','Yeşbek':'Yashbak','Mehdi':'Mahdi','Ebû':'Abu','Bekir':'Bakr',
+ 'Zekeriyyâ':'Zakariya','Abdülmümin':'Abd al-Mu\'min','el-Mütevekkil':'al-Mutawakkil','Muhammed':'Muhammad','Süleyman':'Suleiman',
+ 'Rüstem':'Rustam','Elvend':'Alvand','Cihangir':'Jahangir','Kılıç':'Kilij','Uğurlu':'Ughurlu','Ştefan':'Stephen','Şehsuvar':'Shahsuvar',
+ 'György':'George','İskender':'Iskandar'};
+/** Epithets and dynasties. */
+const CH_EP_EN={'Fatih':'the Conqueror','Kurtarıcı':'the Deliverer'};
+const CH_DYN_EN={'Osmanoğlu':'House of Osman','Karamanoğlu':'Karamanids','Candaroğlu':'Jandarids','Dulkadiroğlu':'Dulkadirids',
+ 'Bayındır':'Bayandur','Hafsî':'Hafsids','Safevî':'Safavids','Muşat':'Mușat','Jagiello':'Jagiellon'};

@@ -8,11 +8,11 @@ const BAL_EV={chance:.3,minCd:18};          // 30% a turn after turn 1; an event
 const EVENTS=[];
 function historic(){
  const t=S.turn;
- if(t===8&&alive('OSM')){S.fac.OSM.cannon=1;news('Macar dökümcü Urban, Osmanlı için dev toplar döktü. Osmanlı ordusu kale surlarını artık çok daha kolay aşıyor.','cap');
-  if(S.player==='OSM')queueModal(()=>eventModal({t:'Urban\'ın Topları',e:dateStr(t),d:'Macar dökümcü Urban, Edirne\'de şimdiye dek görülmemiş büyüklükte toplar döktü. Ordunun karşısında kale surları eskisi kadar güçlü değil.',ch:[{l:'Surlara karşı yürü'}]}));}
- if(t===20)news('Gökyüzünde parlak bir kuyruklu yıldız göründü. Kimisi uğursuzluk, kimisi zafer diyor.');
- if(t===36){FK.forEach(f=>{if(S.fac[f].alive)S.fac[f].cannon=1;});news('Barut çağı: Artık bütün ordular kuşatma topları kullanıyor.','cap');}
- if(t===164)news('Uzak batıda Kolomb adlı bir denizci okyanusun ötesinde yeni topraklar buldu. Endülüs\'te Gırnata düştü.');
+ if(t===8&&alive('OSM')){S.fac.OSM.cannon=1;news(lng('Macar dökümcü Urban, Osmanlı için dev toplar döktü. Osmanlı ordusu kale surlarını artık çok daha kolay aşıyor.','The Hungarian gunfounder Urban has cast giant cannon for the Ottomans. The Ottoman army now breaks through fortress walls far more easily.'),'cap');
+  if(S.player==='OSM')queueModal(()=>eventModal({t:lng('Urban\'ın Topları','Urban\'s Guns'),e:dateStr(t),d:lng('Macar dökümcü Urban, Edirne\'de şimdiye dek görülmemiş büyüklükte toplar döktü. Ordunun karşısında kale surları eskisi kadar güçlü değil.','The Hungarian gunfounder Urban has cast cannon at Adrianople larger than any seen before. Fortress walls no longer stand as strong against your army.'),ch:[{l:lng('Surlara karşı yürü','March on the walls')}]}));}
+ if(t===20)news(lng('Gökyüzünde parlak bir kuyruklu yıldız göründü. Kimisi uğursuzluk, kimisi zafer diyor.','A bright comet has appeared in the sky. Some call it an ill omen, others a sign of victory.'));
+ if(t===36){FK.forEach(f=>{if(S.fac[f].alive)S.fac[f].cannon=1;});news(lng('Barut çağı: Artık bütün ordular kuşatma topları kullanıyor.','The age of gunpowder: every army now brings siege guns.'),'cap');}
+ if(t===164)news(lng('Uzak batıda Kolomb adlı bir denizci okyanusun ötesinde yeni topraklar buldu. Endülüs\'te Gırnata düştü.','Far to the west, a sailor named Columbus has found new lands beyond the ocean. In Andalusia, Granada has fallen.'));
  if(t===200)spawnSafavid();
 }
 function spawnSafavid(){
@@ -26,8 +26,8 @@ function spawnSafavid(){
  if(S.fac[old].alive&&!facProvs(old).length)eliminate(old,'SAF');
  if(S.fac[old].alive){S.fac[old].cap=facProvs(old).includes(S.fac[old].cap)?S.fac[old].cap:facProvs(old)[0];S.war[key('SAF',old)]=newWar('SAF',old);runHooks('warDeclared','SAF',old);}
  const hasTb=take.has(tb);
- news(hasTb?`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`:`Şah İsmail ${PD[F.cap].name} merkezli bir ayaklanmayla taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu; Tebriz hâlâ ${fname(old)} elinde.`,'cap');polDirty=true;
- if(old===S.player&&S.fac[old].alive)queueModal(()=>eventModal({t:'Kızılbaş Ayaklanması',e:dateStr(S.turn),d:`Şah İsmail'in müritleri ${take.size} eyalette ayaklandı ve Safevî devletini kurdu. ${hasTb?'Tebriz düştü':'Tebriz surları dayandı, ama çevresindeki eyaletler elden çıktı'}; Safevîler sana savaş açtı.`,ch:[{l:'Kılıçlar kınından çıksın'}]}));
+ news(hasTb?lng(`Şah İsmail Tebriz\'de taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu.`,`Shah Ismail has been crowned in Tabriz. The Qizilbash Safavid state is born in the lands of ${FAC[old].n}.`):lng(`Şah İsmail ${PD[F.cap].name} merkezli bir ayaklanmayla taç giydi. Kızılbaş Safevî devleti ${fname(old)} topraklarında doğdu; Tebriz hâlâ ${fname(old)} elinde.`,`Shah Ismail has been crowned at the head of an uprising around ${PD[F.cap].name}. The Qizilbash Safavid state is born in the lands of ${FAC[old].n}; Tabriz is still held by ${fname(old)}.`),'cap');polDirty=true;
+ if(old===S.player&&S.fac[old].alive)queueModal(()=>eventModal({t:lng('Kızılbaş Ayaklanması','The Qizilbash Revolt'),e:dateStr(S.turn),d:lng(`Şah İsmail'in müritleri ${take.size} eyalette ayaklandı ve Safevî devletini kurdu. ${hasTb?'Tebriz düştü':'Tebriz surları dayandı, ama çevresindeki eyaletler elden çıktı'}; Safevîler sana savaş açtı.`,`The disciples of Shah Ismail have risen in ${take.size} provinces and founded the Safavid state. ${hasTb?'Tabriz has fallen':'The walls of Tabriz held, but the provinces around it are lost'}; the Safavids have declared war on you.`),ch:[{l:lng('Kılıçlar kınından çıksın','Draw your swords')}]}));
 }
 
 /* ---------------- event pool engine ---------------- */

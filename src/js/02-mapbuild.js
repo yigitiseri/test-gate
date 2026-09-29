@@ -169,7 +169,7 @@ function renderBase(SD,LD,MD,RD){
   b.strokeStyle='rgba(60,46,32,.55)';b.lineWidth=.6;b.beginPath();b.moveTo(jx-s,jy+s*.5);b.lineTo(jx,jy-s);b.lineTo(jx+s,jy+s*.5);b.stroke();}
  [[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>galley(b,x,y,sc,fl));
  [b,base3C.getContext('2d')].forEach(b=>{compass(b,...P(17.2,34.4),46);compass(b,...P(37.4,42.6),24);cartouche(b);
- REGION_LABELS.forEach(([t,lon,lat,sz,k])=>{const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
+ REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const t=lng(t0,en);const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
   if(k==='sea'){b.fillStyle='rgba(34,58,56,.62)';spaced(b,t,x,y,sz*.32);}else{b.fillStyle='rgba(92,70,40,.6)';spaced(b,t,x,y,sz*.12);}b.restore();});});
  // frame
  frame(b);frame(base3C.getContext('2d'));
@@ -190,8 +190,8 @@ function cartouche(b){const [cx,cy]=P(23.4,29.5),w=392,h=64;b.save();b.translate
  b.fillStyle='rgba(50,32,14,.28)';b.fillRect(-w/2+5,-h/2+6,w,h);
  for(const sx of[-1,1]){b.fillStyle='#e0cb9c';b.strokeStyle='#4a2f16';b.lineWidth=1.6;b.beginPath();b.ellipse(sx*(w/2+6),0,10,h/2+4,0,0,7);b.fill();b.stroke();b.beginPath();b.ellipse(sx*(w/2+6),0,4.5,h/2-8,0,0,7);b.stroke();}
  b.fillStyle='#efe1bd';b.strokeStyle='#4a2f16';b.lineWidth=2;b.fillRect(-w/2,-h/2,w,h);b.strokeRect(-w/2,-h/2,w,h);b.lineWidth=.8;b.strokeRect(-w/2+5,-h/2+5,w-10,h-10);
- b.fillStyle='#8e1f14';b.textBaseline='middle';b.font='700 17px Cinzel, Georgia, serif';spaced(b,'RUM VE ANADOLU MEMÂLİKİ',0,-10,2.2);
- b.fillStyle='#3a2410';b.font='italic 500 14px "EB Garamond", Georgia, serif';b.textAlign='center';b.fillText('Anno Domini MCDLI · Sene 855 Hicrî',0,13);b.restore();}
+ b.fillStyle='#8e1f14';b.textBaseline='middle';b.font='700 17px Cinzel, Georgia, serif';spaced(b,lng('RUM VE ANADOLU MEMÂLİKİ','RUMELIA AND ANATOLIA'),0,-10,2.2);
+ b.fillStyle='#3a2410';b.font='italic 500 14px "EB Garamond", Georgia, serif';b.textAlign='center';b.fillText(lng('Anno Domini MCDLI · Sene 855 Hicrî','Anno Domini MCDLI · Anno Hegirae 855'),0,13);b.restore();}
 function frame(b){const m=12,t=7;b.save();b.fillStyle='#2e2114';b.fillRect(0,0,W,m);b.fillRect(0,H-m,W,m);b.fillRect(0,0,m,H);b.fillRect(W-m,0,m,H);
  for(let lon=LON0;lon<LON1;lon++){const x0=P(lon,0)[0],x1=P(lon+1,0)[0];b.fillStyle=lon%2?'#2e2114':'#efe2c2';b.fillRect(x0,m,x1-x0,t);b.fillRect(x0,H-m-t,x1-x0,t);}
  for(let lat=Math.floor(LAT0);lat<LAT1;lat++){const y0=P(0,Math.min(lat+1,LAT1))[1],y1=P(0,Math.max(lat,LAT0))[1];b.fillStyle=lat%2?'#2e2114':'#efe2c2';b.fillRect(m,y0,t,y1-y0);b.fillRect(W-m-t,y0,t,y1-y0);}
@@ -205,7 +205,7 @@ function compass(b,x,y,r){b.save();b.translate(x,y);
  for(const tier of [3,2,1])for(let k=0;k<16;k++){const t=k%4===0?1:k%2===0?2:3;if(t!==tier)continue;const a=k*Math.PI/8-Math.PI/2;const L=t===1?r:t===2?r*.64:r*.42,wd=t===1?r*.14:r*.09;
   for(const sd of[-1,1]){b.beginPath();b.moveTo(0,0);b.lineTo(Math.cos(a)*L,Math.sin(a)*L);b.lineTo(Math.cos(a+sd*Math.PI/2)*wd,Math.sin(a+sd*Math.PI/2)*wd);b.closePath();b.fillStyle=sd>0?'rgba(246,238,216,.95)':'rgba(120,34,24,.9)';b.fill();b.strokeStyle='rgba(58,38,20,.6)';b.lineWidth=.6;b.stroke();}}
  b.fillStyle='#c9a14e';b.beginPath();b.arc(0,0,r*.07,0,7);b.fill();
- b.fillStyle='#8e1f14';b.font=`700 ${Math.max(11,r*.33)}px Cinzel,Georgia,serif`;b.textAlign='center';b.textBaseline='middle';b.fillText('K',0,-r-10);b.restore();}
+ b.fillStyle='#8e1f14';b.font=`700 ${Math.max(11,r*.33)}px Cinzel,Georgia,serif`;b.textAlign='center';b.textBaseline='middle';b.fillText(lng('K','N'),0,-r-10);b.restore();}
 function spaced(c,t,x,y,sp){const chars=[...t];const ws=chars.map(ch=>c.measureText(ch).width);const tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);
  let cx=x-tot/2;c.textAlign='left';chars.forEach((ch,k)=>{c.fillText(ch,cx,y);cx+=ws[k]+sp;});c.textAlign='center';}
 
