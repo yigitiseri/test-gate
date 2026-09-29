@@ -628,6 +628,12 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
   .pick .ph h2{font-size:19px}
   .pick p{font-size:14.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }
+/* language switch (00b-i18n) */
+.langsw{display:inline-flex;border:1px solid rgba(74,53,32,.45);border-radius:8px;overflow:hidden;vertical-align:middle}
+.langsw .btn{border:0;border-radius:0;min-height:44px;padding:6px 12px;font-size:14px;margin:0;background:transparent}
+.langsw .btn.on{background:var(--brass,#c99a3b);color:#2a1c0e;font-weight:700}
+.herorow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.herorow .gbtn{margin-top:0!important}
 </style>
 </head>
 <body>
@@ -661,10 +667,10 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
 <div id="start" hidden>
   <div class="side">
     <div class="hero">
-      <div class="eyebrow">Büyük strateji · Sıra tabanlı · Sesli</div>
-      <h1><small>Age of</small>Dynasties<span>MCDLI · HİCRÎ 855</span></h1>
-      <p>Genç bir sultan tahta çıktı, Konstantiniyye surları hâlâ ayakta. Bir devlet seç, ordunu topla, eyalet eyalet genişle. 1531 yılına kadar tarihin akışını değiştir.</p>
-      <button class="btn gbtn" data-act="guide" data-t="genel">ⓘ Oyun rehberi</button>
+      <div class="eyebrow" data-en="Grand strategy · Turn based · With sound">Büyük strateji · Sıra tabanlı · Sesli</div>
+      <h1><small>Age of</small>Dynasties<span data-en="MCDLI · 855 AH">MCDLI · HİCRÎ 855</span></h1>
+      <p data-en="A young sultan has taken the throne and the walls of Constantinople still stand. Pick a realm, raise your armies, grow province by province. Change the course of history until 1531.">Genç bir sultan tahta çıktı, Konstantiniyye surları hâlâ ayakta. Bir devlet seç, ordunu topla, eyalet eyalet genişle. 1531 yılına kadar tarihin akışını değiştir.</p>
+      <div class="herorow"><button class="btn gbtn" data-act="guide" data-t="genel" data-en="ⓘ Game guide">ⓘ Oyun rehberi</button><span id="heroLang"></span></div>
     </div>
     <div class="flist" id="flist"></div>
     <div class="pick" id="pick"></div>
@@ -834,6 +840,43 @@ const R=mkRng(Math.floor(Math.random()*4294967296));
 KE.seed=n=>R.seed(n);
 KE.reg={HOOKS,ACTS,OVERBLOCK,QUIET,PANEL_SECTIONS,TOP_BUTTONS,REPORT_SECTIONS,STATE_SECTIONS,DIPLO_ROW,MENU_SECTIONS,BATTLE_MODS,ECON_ROWS,DRAW_LAYERS,PRESENTERS,TIPS,TUT_STEPS,TURN_TRACE};
 const bySlot=L=>L.slice().sort((a,b)=>a.order-b.order); // registry entries in order
+/* =====================================================================
+   I18N: Turkish and English. Load order: right after 00a, before any data.
+   - Code text:    lng('Türkçe metin', 'English text') -> the string for the current language.
+                   Templates work too: lng(`${n} asker`, `${n} troops`). (Not L/T: those are common locals.)
+   - Data text:    a field may be a string (Turkish only) or {tr:'…', en:'…'}; read it with tx(v).
+                   Big data tables may instead keep Turkish in place and add an English table keyed by
+                   id that is merged at load when EN (e.g. PROV_EN / FAC_EN in 01).
+   - Static HTML:  data-en="English innerHTML", data-en-title, data-en-aria, data-en-ph on template nodes.
+   - EN (boolean) for the rare branch that differs by more than text (word order, plural rules).
+   The language is fixed for one page load: setLang() saves and reloads, so every string is rebuilt.
+   Text already stored in a save (chronicle, news, report lines) stays in the language it was written in.
+   ===================================================================== */
+const LANGS=['tr','en'];
+const LANG=(()=>{try{const v=localStorage.getItem('ke-lang');if(LANGS.includes(v))return v;}catch(e){}
+ return /^tr\b/i.test((navigator.languages&&navigator.languages[0])||navigator.language||'')?'tr':'en';})();
+const EN=LANG==='en';
+/** Pick the string for the current language (English falls back to Turkish when missing). */
+function lng(tr,en){return EN&&en!=null?en:tr;}
+/** Resolve a data field: string, {tr,en}, or null. */
+function tx(v){if(v==null)return '';if(typeof v==='object'&&!Array.isArray(v))return EN&&v.en!=null?v.en:(v.tr!=null?v.tr:'');return v;}
+/** Switch language: save the running game, remember the choice, reload. */
+function setLang(l){if(!LANGS.includes(l)||l===LANG)return;
+ try{if(typeof save==='function'&&typeof S!=='undefined'&&S&&S.player)save();}catch(e){}
+ try{localStorage.setItem('ke-lang',l);}catch(e){}location.reload();}
+function i18nDom(root){if(!EN)return;root=root||document;
+ root.querySelectorAll('[data-en]').forEach(e=>{e.innerHTML=e.dataset.en;});
+ root.querySelectorAll('[data-en-title]').forEach(e=>{e.title=e.dataset.enTitle;});
+ root.querySelectorAll('[data-en-aria]').forEach(e=>{e.setAttribute('aria-label',e.dataset.enAria);});
+ root.querySelectorAll('[data-en-ph]').forEach(e=>{e.placeholder=e.dataset.enPh;});}
+document.documentElement.lang=LANG;
+i18nDom(document);
+/** Two-button language switch (start screen and menu). */
+function langSwitch(){return `<div class="langsw" role="group" aria-label="${lng('Dil','Language')}">${LANGS.map(l=>`<button class="btn ${l===LANG?'on':''}" data-act="lang" data-l="${l}" aria-pressed="${l===LANG}">${l==='tr'?'Türkçe':'English'}</button>`).join('')}</div>`;}
+ACTS.lang=t=>setLang(t.dataset.l);
+MENU_SECTIONS.push({id:'lang',order:15,html:()=>`<div class="sec"><h3>${lng('Dil','Language')}</h3>${langSwitch()}</div>`});
+KE.lang=LANG;KE.setLang=l=>setLang(l);KE.lng=lng;KE.tx=tx;
+{const hl=document.getElementById('heroLang');if(hl)hl.innerHTML=langSwitch();}
 /* =====================================================================
    FACTIONS AND PROVINCES (1451)
    ===================================================================== */

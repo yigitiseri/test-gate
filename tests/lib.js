@@ -29,7 +29,7 @@ function opts(defaults) {
  *  three: 'serve' (local three.js), '404' (no three.js -> 2D fallback)
  *  start3d: value for localStorage 'ke-3d' before boot (true/false), or null to leave the default
  */
-async function launch({ three = '404', start3d = null, viewport = 'desktop' } = {}) {
+async function launch({ three = '404', start3d = null, viewport = 'desktop', lang = process.env.KE_LANG || 'tr' } = {}) {
   const vp = VIEWPORTS[viewport] || VIEWPORTS.desktop;
   const browser = await pw.chromium.launch({
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'],
@@ -39,6 +39,8 @@ async function launch({ three = '404', start3d = null, viewport = 'desktop' } = 
     ? r.fulfill({ body: fs.readFileSync(THREE), contentType: 'application/javascript' })
     : r.fulfill({ status: 404, body: 'not found' }));
   await context.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  // the game picks its language from the browser; tests pin it (default Turkish, KE_LANG=en for English)
+  if (lang) await context.addInitScript(v => { try { if (!localStorage.getItem('ke-lang')) localStorage.setItem('ke-lang', v); } catch (e) {} }, lang);
   if (start3d != null) await context.addInitScript(v => { try { localStorage.setItem('ke-3d', v); } catch (e) {} }, start3d ? '1' : '0');
   const page = await context.newPage();
   const errors = [];

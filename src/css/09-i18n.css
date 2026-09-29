@@ -1,0 +1,6 @@
+/* language switch (00b-i18n) */
+.langsw{display:inline-flex;border:1px solid rgba(74,53,32,.45);border-radius:8px;overflow:hidden;vertical-align:middle}
+.langsw .btn{border:0;border-radius:0;min-height:44px;padding:6px 12px;font-size:14px;margin:0;background:transparent}
+.langsw .btn.on{background:var(--brass,#c99a3b);color:#2a1c0e;font-weight:700}
+.herorow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.herorow .gbtn{margin-top:0!important}
