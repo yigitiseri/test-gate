@@ -1,0 +1,9 @@
+/* commander choice in the army panel (03e-commanders) */
+.cmd-sec .cmd-tog{width:100%;justify-content:center}
+.cmd-none{margin:4px 0 6px;color:var(--muted);font-size:14px}
+.cmd-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.cmd-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.cmd-who{flex:1;min-width:0}
+.cmd-who b{font-weight:700;margin-right:6px}
+.cmd-who small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.cmd-row .btn{flex:none;min-height:44px}
