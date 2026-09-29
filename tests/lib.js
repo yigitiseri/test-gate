@@ -79,7 +79,8 @@ async function closeModals(page) {
     if (r.s === 2) return 'stuck: modal without a close button: ' + r.title;
     await page.waitForTimeout(60);
   }
-  return 'stuck: modals keep opening: ' + seen.join(' / ');
+  const diag = await page.evaluate(() => { const K = window.__ke, m = document.getElementById('modal'); return { q: K && K.modalQ && K.modalQ(), offers: K && K.S && K.S.offers && K.S.offers.map(o => o.f + ':' + (o.k || o.type || '')), offBtns: [...m.querySelectorAll('[data-act="off"]')].map(b => b.outerHTML.slice(0, 120)) }; }).catch(() => null);
+  return 'stuck: modals keep opening: ' + [...new Set(seen)].join(' / ') + ' x' + seen.length + ' ' + JSON.stringify(diag);
 }
 
 /** End the turn through the debug hook and wait until the turn flow finishes. */
