@@ -1,0 +1,18 @@
+/* Track B: field armies, garrisons and move orders in the province panel */
+.sec h3 .cap{float:right;letter-spacing:.04em;color:inherit;opacity:.8;text-transform:none}
+.arms{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.arm{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 10px;border-radius:8px;background:var(--ink3);border:1px solid var(--line);color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer}
+.arm.on{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset;background:var(--ink2)}
+.arm.foe{cursor:default;opacity:.9}
+.arm .an{flex:1;font-weight:700;font-size:14px;line-height:1.2}
+.arm .an small,.arm .as small{display:block;font-weight:500;font-size:11.5px;opacity:.75}
+.arm .as{text-align:right;white-space:nowrap}
+.arm .as b{font:800 16px/1 var(--display)}
+.armodds{flex-wrap:wrap;gap:6px 10px;align-items:center}
+.armodds span{font-size:12px;opacity:.8}
+.armodds .obar{flex:1 1 100%;order:3;height:8px;border-radius:4px;background:rgba(0,0,0,.25);overflow:hidden}
+.armodds .obar i{display:block;height:100%}
+.armodds b{font-size:16px}
+.orders .mods{margin:8px 0 4px;padding-left:18px;font-size:12.5px;line-height:1.45;opacity:.9}
+.orders .meta,.garsec .meta{margin-bottom:6px}
+.armsec .acts .btn,.orders .acts .btn,.garsec .acts .btn{min-height:44px}
