@@ -26,6 +26,8 @@ STATE_SECTIONS.push({id:'meta',order:20,html(f){const F=S.fac[f],ps=facProvs(f),
  return `<div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>`;}});
 ACTS.ev=t=>{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();};
 ACTS.mclose=()=>closeModal();
+KE.showReport=()=>showReport();
+KE.declareWar=(a,b)=>declareWar(a,b);
 KE.modalQ=()=>modalQ.map(f=>f.name||String(f).slice(0,60));
 ACTS.state=()=>showState();
 ACTS.chron=()=>showChron();
