@@ -1,0 +1,21 @@
+/* ---------- Track C: dynasty, commanders, mission tree ---------- */
+.ch-dyn .ch-card{display:flex;gap:12px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.08)}
+.ch-crown{font-size:26px;line-height:1;color:var(--brass);flex:none}
+.ch-card b{font:700 17px/1.2 var(--display)}
+.ch-card em{color:var(--brass);font-style:italic}
+.ch-card small,.ch-gen small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.ch-trs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip.ch-tr{cursor:help;min-height:24px}
+.ch-row{display:flex;gap:10px;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.ch-row>span{color:var(--muted);flex:none}
+.ch-row>b{text-align:right;font-weight:600}
+.ch-past b{font-weight:500;font-size:13px}
+.ch-warn{color:var(--war2)}
+.ch-gens{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.ch-gen{padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.ch-gen b{font-weight:700}
+.ch-stars{margin-left:6px;color:var(--brass);letter-spacing:1px;font-size:13px;white-space:nowrap}
+.ch-stars i{font-style:normal;opacity:.25}
+.mis.locked{opacity:.55}
+.mis-br h3{margin-top:10px}
+@media (max-width:760px){.ch-gens{grid-template-columns:1fr}.ch-row{flex-direction:column;gap:2px}.ch-row>b{text-align:left}}
