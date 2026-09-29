@@ -54,8 +54,8 @@ module.exports = {
     check('preferred snap is remembered', await E(() => localStorage.getItem('ke-sheet') === 'peek'));
 
     // drag the sheet up by the handle (start from a settled peek)
-    // wait until the sheet stops sliding (headless frames are slow with the token layer)
-    const settleSheet = async () => { await W(200); await E(() => { window.__gripTop = null; window.__gripN = 0; }); await page.waitForFunction(() => { const t = document.querySelector('#panel .sheet-grip').getBoundingClientRect().top; window.__gripN = window.__gripTop === t ? window.__gripN + 1 : 0; window.__gripTop = t; return window.__gripN >= 2; }, null, { polling: 150, timeout: 6000 }).catch(() => {}); };
+    // wait until the sheet has slid to its committed height (headless Chromium runs CSS transitions slowly)
+    const settleSheet = () => page.waitForFunction(() => { const p = document.getElementById('panel'), h = p.style.height ? parseFloat(p.style.height) : p.getBoundingClientRect().height; return Math.abs(p.getBoundingClientRect().top - (innerHeight - h)) < 3; }, null, { polling: 100, timeout: 8000 }).catch(() => {});
     const toPeek = async () => { for (let k = 0; k < 4 && (await sheet()).snap !== 'peek'; k++) { await page.click('#panel .sheet-grip'); await W(500); } await settleSheet(); };
     await toPeek();
     const g = await E(() => { const r = document.querySelector('#panel .sheet-grip').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
