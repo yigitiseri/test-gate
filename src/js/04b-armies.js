@@ -24,7 +24,7 @@ function garMin(i){return Math.min(garrisonMax(i),Math.max(100,Math.round(S.prov
 /** Player-facing army name: "Birinci Ordu", ... (a.no is the faction-wide ordinal given at creation). */
 function armName(a){const k=(a.no||1)-1;return `${ARM_ORD[k]||a.no+'.'} Ordu`;}
 /** Name of the army's general (Track C character), or ''. */
-function armGenName(a){const c=a&&a.gen!=null&&S.chars&&S.chars[a.gen];return c&&c.n?c.n:'';}
+function armGenName(a){const c=a&&a.gen!=null&&S.chars&&S.chars[a.gen];return c&&c.n?chDisp(c.n,c.f):'';}
 const ARM_ORD=['Birinci','İkinci','Üçüncü','Dördüncü','Beşinci','Altıncı'];
 KE.armyCreate=(f,loc,n,o)=>armyCreate(f,loc,n,o);
 KE.armyList=f=>armyList(f);
