@@ -1,7 +1,8 @@
 /* ---------------- guide ---------------- */
-const GUIDE_TABS=[['genel','Genel'],['para','Para'],['savas','Savaş'],['bina','Binalar'],['diplo','Diplomasi'],['olay','Olaylar']];
+const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Savaş','War')],['bina',lng('Binalar','Buildings')],['diplo',lng('Diplomasi','Diplomacy')],['olay',lng('Olaylar','Events')]];
 function guideBody(t){
  const half=Math.ceil(NP*.5);
+ if(EN)return guideBodyEn(t,half);
  if(t==='para')return `<p>Devletin hazinesi eyaletlerinden gelen vergiyle dolar. Her mevsimin sonunda bütün eyaletlerin vergisini öder. Bir eyalet ne kadar gelişmişse o kadar çok vergi verir; büyük bir şehir, küçük bir kasabanın birkaç katını getirir.</p>
  <h3>Parayı ne artırır?</h3>
  <ul><li><b>Pazar kurmak.</b> Bir eyalette pazar varsa o eyaletin vergisi yarı yarıya artar.</li>
@@ -89,10 +90,99 @@ function guideBody(t){
  <li>Klavyede <b>Boşluk</b> turu bitirir, <b>Esc</b> pencereyi kapatır, <b>1–4</b> Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</li></ul>
  <p class="tip">Oyun her hamleden sonra kendiliğinden kaydedilir. Kapatsan bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>`;
 }
+/** The English guide: same tabs and facts as the Turkish one, told in plain words. */
+function guideBodyEn(t,half){
+ if(t==='para')return `<p>Your treasury is filled by the taxes of your provinces. At the end of every season each province pays its share. The more developed a province is, the more it pays: a great city brings in several times what a small town does.</p>
+ <h3>What brings in more gold?</h3>
+ <ul><li><b>Building a market.</b> A province with a market pays half as much tax again.</li>
+ <li><b>Conquest.</b> When you take a new city, your soldiers plunder it and some gold goes straight into the treasury.</li>
+ <li><b>Tribute.</b> A realm you have beaten in war may pay you part of its treasury in exchange for peace.</li>
+ <li><b>Goals and events.</b> Completing historical goals, or events such as a rich caravan or a bountiful harvest, also bring gold.</li></ul>
+ <h3>Where does the gold go?</h3>
+ <p>Soldiers want their pay: one gold every season for each thousand men. The bigger your army, the bigger the bill. In the top bar, the small number next to the Treasury shows what is left over each season. <b>Green</b> means you are earning, <b>red</b> means you are losing money.</p>
+ <p>If the treasury runs completely dry, unpaid soldiers begin to desert, and part of the army in every province melts away.</p>
+ <h3>Restless lands</h3>
+ <p>The people of a newly conquered province do not accept you at once. For two years they stay restless and pay only half their usual taxes.</p>
+ <h3>Manpower</h3>
+ <p>Gold alone does not raise an army: you also need young men willing to enlist. This is your manpower. Every season new recruits come in from your provinces, up to a certain limit. Provinces with barracks train twice as many.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> In the early years, spend your gold on markets, starting with your richest cities. In peacetime, do not feed a larger army than you need: the wages will drain your treasury.</p>`;
+ if(t==='savas')return `<p>To enter another realm's lands you must first <b>declare war</b> on it. You can do this from the Diplomacy screen, or by tapping one of the enemy's provinces.</p>
+ <h3>Armies and garrisons</h3>
+ <p>Your soldiers come in two kinds. A <b>garrison</b> guards its city and never moves; it is cheap to pay. A <b>field army</b> marches across the map under its banner, fights battles and takes cities. When you raise troops, they form a field army in that province, or join the army already there.</p>
+ <p>The <b>banners</b> on the map are armies: the realm's arms on top, the number of troops below, and the commander's initials on a red seal. A gold frame means the army is yours; a red frame marks an enemy you are at war with. The small <b>tower plaques</b> are garrisons; they appear when you zoom in or select a province.</p>
+ <h3>How to attack</h3>
+ <ol><li>Tap the army's banner, or select its province and pick the army in the panel.</li><li>Tap the province you want to go to; the route appears on the map as a dashed gold line.</li><li>Look at the estimate in the panel and press <b>March</b> or <b>Attack</b>.</li></ol>
+ <p>An army can only travel so far each season; the gold dots under its banner show how much movement it has left. The dashed blue lines on the map are sea routes crossed by ship. You can merge armies, split them or disband them.</p>
+ <p>At the end of each turn, <b>Campaign news</b> briefly replays the season's marches and battles on the map; press <b>Skip</b> to pass over it. You can turn it off or speed it up under Menu → Display.</p>
+ <h3>Who has the upper hand?</h3>
+ <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>
+ <ul><li><b>Fortress walls</b> strengthen the defenders; the higher the fortress, the harder the city is to take.</li>
+ <li><b>Mountains</b> favour the defender, and desert helps a little too.</li>
+ <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out.</li>
+ <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
+ <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
+ <h3>After the battle</h3>
+ <p><b>If you win</b>, the province is yours. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed and the rest flee to neighbouring provinces. The walls are damaged and your soldiers plunder the city.</p>
+ <p><b>If you lose</b>, your army suffers heavy losses and the survivors fall back. The enemy loses some men too.</p>
+ <p>The <b>Battle card</b> shows why a battle was won or lost: walls, terrain, winter, commander and the dice of fortune. You can open it again by tapping the lines in the Season Report.</p>
+ <p>When a realm's <b>capital falls</b>, part of its treasury is plundered and it moves its capital to another city. A realm that loses its last city vanishes from history.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Look at the estimate in the panel before you attack. If it says <b>"Overwhelming"</b>, attack with confidence; if it says <b>"Even odds"</b> or <b>"Risky"</b>, gather troops on the border for a few more seasons. Do not storm thick-walled cities before your cannon arrive, and not in winter.</p>`;
+ if(t==='bina')return `<p>Tap one of your own provinces to open its panel: there you can raise troops and put up buildings. Each button shows its price; the gold leaves the treasury at once and the work is finished on the spot.</p>
+ <h3>Develop</h3><p>Makes the city grow. A bigger city pays more tax, trains more soldiers, and more of its people take up arms when it is attacked. The bigger the city gets, the more the next round of development costs.</p>
+ <h3>Market</h3><p>Merchants arrive and the city pays half as much tax again. Each province can have one. Early in the game it is the investment that pays for itself fastest.</p>
+ <h3>Barracks</h3><p>Doubles the number of soldiers the province can train. Build them where you will raise many troops, close to the border.</p>
+ <h3>Fortress</h3><p>Raises the walls. It strengthens the defence against attackers, and more of the townsfolk take up arms. It can be raised up to five levels, each dearer than the last. When a city changes hands, its walls take some damage.</p>
+ <h3>Raising troops</h3><p>You can raise a thousand or five thousand soldiers at a time. This takes both gold and manpower. New troops stay in their province for that season and can only set out the next one.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> First markets in your rich cities, then fortresses in the border towns that face the enemy. Developing is costly but it lasts for ever; once your treasury is full, begin with your capital.</p>`;
+ if(t==='diplo')return `<p>The <b>⚖ Diplomacy</b> button in the top bar shows every realm in the world: how strong they are, how they regard you, and where you stand with each other.</p>
+ <h3>Relations</h3>
+ <p>Every realm has its own attitude towards you. Realms of your own faith look on you more warmly, those of another faith more coldly; old friendships and old feuds from history add to this. You can win a realm's favour by sending gifts. Both grudges and friendships slowly fade back to how they were.</p>
+ <h3>War and peace</h3>
+ <ul><li><b>When you declare war</b>, that realm takes deep offence, and its allies join the war against you.</li>
+ <li>When you ask for <b>peace</b>, the enemy accepts if it is losing the war, if it is clearly weaker than you, or if the war has dragged on too long.</li>
+ <li><b>Tribute</b> can only be demanded once you have the enemy truly cornered. If it agrees, it pays you gold from its treasury in return for peace.</li>
+ <li>After peace comes a <b>three-year truce</b>; during it neither side can declare war on the other again.</li></ul>
+ <h3>Who is winning the war?</h3>
+ <p>The Diplomacy screen shows a score for every war. Each battle you win, and above all each capital you take, tips the score in your favour; attacks you beat off count as well. When you are ahead, the enemy is readier to accept peace and pay tribute.</p>
+ <h3>Alliances</h3>
+ <p>A realm that likes you, or that is fighting the same enemy, will accept an offer of alliance. When someone declares war on you, your ally rushes to your aid.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Before you go to war with a great neighbour, look at its allies. Nobody will declare war on you in the first year and a half of the game; use that time to prepare.</p>`;
+ if(t==='olay')return `<h3>Unexpected events</h3>
+ <p>In some seasons news reaches your palace and a decision is asked of you: a rich caravan arrives from the east, plague breaks out in a city, the harvest is bountiful, a famous scholar seeks your patronage, mercenaries offer their service, an earthquake shakes the walls, a harsh winter sets in, a newly conquered city rises in revolt, or a foreign envoy comes bearing gifts. Your choice affects your treasury, your army or your relations with your neighbours.</p>
+ <h3>The course of history</h3>
+ <ul><li><b>1453:</b> Urban, the Hungarian founder, casts great cannon for the Ottomans.</li>
+ <li><b>1456:</b> A comet is seen in the sky.</li>
+ <li><b>1460:</b> The age of gunpowder begins, and everyone uses cannon.</li>
+ <li><b>1492:</b> The New World is discovered and Granada falls.</li>
+ <li><b>1501:</b> Shah Ismail is crowned in Tabriz and the Safavid state is born.</li></ul>
+ <h3>Goals</h3>
+ <p>The <b>✦ Goals</b> screen holds historical tasks special to your realm: the conquest of Constantinople, the defence of Belgrade, the resistance of Krujë and more. Each one brings gold to the treasury and raises your score.</p>`;
+ return `<p>The year is 1451. From the Balkans to the Caucasus, from the Danube to the Nile, 28 dynasties are vying for power. Choose one and rule your realm until the year 1531.</p>
+ <h3>The goal</h3>
+ <p>Rule half of the provinces on the map (${half} provinces) and you win at once. If you do not get there, the game ends in 1531 and the mightiest dynasty is named. Your score depends on how many cities you hold and how developed they are, on the goals you have completed and on your treasury. If you lose your last city, the game is over.</p>
+ <h3>How a season passes</h3>
+ <ol><li>Raise troops, put up buildings, march your armies, attack, and deal with your neighbours.</li>
+ <li>When you are ready, press <b>End Turn</b>.</li>
+ <li>The other realms make their moves; wars are fought and cities change hands.</li>
+ <li>Taxes are collected, new soldiers are trained and armies rest.</li>
+ <li>Now and then news reaches your palace and a decision is asked of you.</li></ol>
+ <p>Each turn is one season; a year lasts four turns.</p>
+ <h3>Using the map</h3>
+ <ul><li>Tap one of your provinces to select it. Neighbours that glow <b>green</b> are your own land; those that glow <b>red</b> belong to an enemy you are at war with.</li>
+ <li>Drag the map with your finger or the mouse; zoom with two fingers or the mouse wheel.</li>
+ <li>The buttons at the bottom left switch between the 3D and 2D views.</li>
+ <li>On a phone, province details sit in a drawer that slides up from the bottom. Tap its handle or pull it up to enlarge it, pull it down to close it.</li></ul>
+ <h3>The Vizier's help</h3>
+ <ul><li>Rest the pointer on a number, or tap it on a phone, and the vizier tells you where it comes from. Look at the Treasury to see your income and expenses item by item.</li>
+ <li>The vizier's counsel appears at the bottom left (bottom right on a phone): he warns you when the treasury is draining, when your army sits idle or when the time for peace has come. Tap it and he will tell you what to do.</li>
+ <li>In your first game the vizier guides you step by step. You can restart or turn off the lessons from the Menu.</li>
+ <li>On the keyboard, <b>Space</b> ends the turn, <b>Esc</b> closes a window, and <b>1–4</b> open Diplomacy, Goals, the Chronicle and the State Ledger.</li></ul>
+ <p class="tip">The game saves itself after every move. Even if you close it, <b>Continue saved game</b> on the opening screen takes you back to where you left off.</p>`;
+}
 function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
- openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>Oyun Rehberi</h2>
+ openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>${lng('Oyun Rehberi','Game Guide')}</h2>
  <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
  <div class="gbody">${guideBody(t)}</div>
- <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
+ <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);
