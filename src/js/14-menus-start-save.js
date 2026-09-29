@@ -1,4 +1,15 @@
-function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
+function showHelp(){openModal(EN?`<div class="eyebrow">How to play</div><h2>The Art of War</h2>
+ <div class="logl">
+ <div><time>Select</time><span>Tap one of your provinces. Green neighbours are your own land, red ones belong to an enemy you are at war with.</span></div>
+ <div><time>March</time><span>From the selected province tap a neighbour, then <b>March</b> or <b>Attack</b>. Troops that have moved cannot move again that turn.</span></div>
+ <div><time>Battle</time><span>The garrison, the local militia (by development and walls) and the walls all join the defence. Mountain provinces defend 30% better. Attacks in winter are 15% weaker.</span></div>
+ <div><time>Cannon</time><span>The Ottomans gain siege cannon in 1453, everyone else in 1460. Cannon cancel most of the fortress bonus.</span></div>
+ <div><time>Treasury</time><span>Income comes from province development; every 1,000 soldiers cost 1 gold in pay each turn. If the treasury goes negative, soldiers desert.</span></div>
+ <div><time>Conquest</time><span>A newly taken province stays restless for 8 turns and gives half income. Losing your capital costs 30% of the treasury.</span></div>
+ <div><time>Diplomacy</time><span>Declare war, ask for peace or tribute, form alliances. Allies help in defensive wars. Peace is followed by a 12-turn truce.</span></div>
+ <div><time>Tips</time><span>Rest on a number or a button (press and hold on a phone): the vizier explains what it does. On a keyboard Space ends the turn, Esc closes, 1–4 open Diplomacy, Goals, Chronicle and the State book.</span></div>
+ <div><time>Victory</time><span>Rule half the provinces, or gather the highest score by 1531. Drag the map; zoom with the wheel or two fingers.</span></div>
+ </div><div class="foot"><button class="btn primary" data-act="mclose">Got it</button></div>`:`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
  <div class="logl">
  <div><time>Seç</time><span>Kendi eyaletine dokun. Yeşil komşular kendi toprağın, kırmızılar savaşta olduğun düşmanın.</span></div>
  <div><time>Yürüt</time><span>Seçili eyaletten komşuya dokun, asker sayısını ayarla, <b>Yürüt</b> ya da <b>Saldır</b>. Hareket eden askerler o tur tekrar hareket edemez.</span></div>
@@ -10,38 +21,40 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  <div><time>İpuçları</time><span>Bir sayının ya da düğmenin üzerinde dur (telefonda basılı tut): vezir ne işe yaradığını anlatır. Klavyede Boşluk turu bitirir, Esc kapatır, 1–4 Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</span></div>
  <div><time>Zafer</time><span>Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla. Haritayı sürükle, tekerlek ya da iki parmakla yakınlaştır.</span></div>
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
-function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
- <p class="lead" style="font-size:14px">Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>
+function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>${lng('Menü','Menu')}</h2>
+ <p class="lead" style="font-size:14px">${lng('Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.','The game saves itself in this browser after every move. Even if the page closes, <b>Continue saved game</b> on the start screen takes you back to where you left off.')}</p>
  ${bySlot(MENU_SECTIONS).map(x=>{try{return x.html()||'';}catch(e){console.error('menu '+x.id,e);return '';}}).join('')}
- <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">Oyun rehberi</button>
- <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
- <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
+ <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">${lng('Oyun rehberi','Game guide')}</button>
+ <button class="btn danger" data-act="newgame">${lng('Yeni oyun başlat','Start a new game')}</button>
+ <button class="btn primary" data-act="mclose">${lng('Oyuna dön','Back to the game')}</button></div>`);
  const root=$('#modal .card');for(const x of bySlot(MENU_SECTIONS))if(x.bind){try{x.bind(root);}catch(e){console.error('menu '+x.id,e);}}}
-MENU_SECTIONS.push({id:'sound',order:20,html:()=>`<div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
- <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>`,
+MENU_SECTIONS.push({id:'sound',order:20,html:()=>`<div class="sec"><h3>${lng('Ses','Sound')}</h3><div class="acts"><button class="btn" data-act="snd-music">${lng('Müzik','Music')} <span class="c">${SND.st.music?lng('Açık','On'):lng('Kapalı','Off')}</span></button><button class="btn" data-act="snd-sfx">${lng('Efektler','Effects')} <span class="c">${SND.st.sfx?lng('Açık','On'):lng('Kapalı','Off')}</span></button></div>
+ <div class="amt" style="margin-top:10px"><label for="vol">${lng('Ses düzeyi','Volume')}</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>`,
  bind(){const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}});
 function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
- const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
- const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
+ const t=S.over==='win'?lng('Cihan Hâkimiyeti','Dominion of the World'):S.over==='lose'?lng('Devletin Sonu','The End of the Realm'):lng('1531: Bir Devrin Sonu','1531: The End of an Era');
+ const d=S.over==='win'?lng(`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`,`${FAC[pl].n} rules more than half the map. Your dynasty has written its name into history in letters of gold.`):S.over==='lose'?lng(`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`,`${FAC[pl].n} has lost its last land. The history books will remember you as a footnote.`):lng(`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`,`Eighty years of rule have come to an end. Your realm ranks ${ordEn(rank)} among the powers.`);
  openModal(`<div class="eyebrow endm">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
- <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} eyalet</small></div><b>${x.s}</b></div>`).join('')}</div>
- <p class="hint">Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.</p>
- <div class="foot"><button class="btn" data-act="mclose">Haritaya bak</button><button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
+ <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} ${lng('eyalet',facProvs(x.f).length===1?'province':'provinces')}</small></div><b>${x.s}</b></div>`).join('')}</div>
+ <p class="hint">${lng('Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.','The game is over. You can still look at the map; the <b>Game over</b> button in the top bar opens this screen again.')}</p>
+ <div class="foot"><button class="btn" data-act="mclose">${lng('Haritaya bak','View the map')}</button><button class="btn primary" data-act="newgame">${lng('Yeni oyun','New game')}</button></div>`);}
+/** English ordinal: 1st, 2nd, 3rd, 11th … */
+function ordEn(n){const v=n%100;return n+(v>=11&&v<=13?'th':['th','st','nd','rd'][n%10]||'th');}
 
 /* ---------------- start screen ---------------- */
 /* start screen: group anchors (Güçlü / Dengeli / Zorlu) at the top of the list, a scroll hint while
    more cards are below, and the choice bar under the list (never over it). */
-const uiStartGroups=[[1,'Güçlü başlangıç','Güçlü'],[2,'Dengeli','Dengeli'],[3,'Zorlu','Zorlu']];
+const uiStartGroups=[[1,lng('Güçlü başlangıç','Strong start'),lng('Güçlü','Strong')],[2,lng('Dengeli','Balanced'),lng('Dengeli','Balanced')],[3,lng('Zorlu','Hard'),lng('Zorlu','Hard')]];
 function renderStart(){
  const fl=$('#flist'),top=fl.scrollTop;
- fl.innerHTML=`<div class="fjump" role="navigation" aria-label="Devlet grupları">${uiStartGroups.map(([g,,s])=>`<button class="fj" data-act="sgrp" data-g="${g}">${s}</button>`).join('')}</div>`
-  +uiStartGroups.map(([g,t])=>`<div class="fgroup" id="fg${g}"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('')
-  +'<div class="fmore" aria-hidden="true">Aşağıda başka devletler de var ↓</div>';
+ fl.innerHTML=`<div class="fjump" role="navigation" aria-label="${lng('Devlet grupları','Realm groups')}">${uiStartGroups.map(([g,,s])=>`<button class="fj" data-act="sgrp" data-g="${g}">${s}</button>`).join('')}</div>`
+  +uiStartGroups.map(([g,t])=>`<div class="fgroup" id="fg${g}"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} ${lng('eyalet',facProvs(f).length===1?'province':'provinces')} · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('')
+  +`<div class="fmore" aria-hidden="true">${lng('Aşağıda başka devletler de var ↓','More realms below ↓')}</div>`;
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
- $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
-  <div class="row2">${has?'<button class="btn" data-act="continue">Kayıtlı oyuna dön</button>':''}<button class="btn primary" data-act="begin">Sefere başla</button></div>`
-  :`<p>Soldan bir devlet seç. Haritada toprakları parlayacak.</p>${has?'<div class="row2"><button class="btn primary" data-act="continue">Kayıtlı oyuna dön</button></div>':''}`;
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+  <div class="row2">${has?`<button class="btn" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button>`:''}<button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
+  :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${has?`<div class="row2"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button></div>`:''}`;
 }
 function uiStartScroll(){const fl=$('#flist');fl.classList.toggle('more',fl.scrollTop+fl.clientHeight<fl.scrollHeight-24);}
 $('#flist').addEventListener('scroll',uiStartScroll,{passive:true});addEventListener('resize',()=>{if(!$('#start').hidden)uiStartScroll();});
@@ -55,7 +68,7 @@ function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);
  const smax=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1),fit=Math.min((vw-side-60)/(x1-x0+90),(vh-60)/(y1-y0+90))*(G3.on?.8:1);
  centerOn((x0+x1)/2,(y0+y1)/2,clamp(fit,fitS*.9,smax),side);}
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
- queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
+ queueModal(()=>eventModal({t:FAC[f].n,e:dateStr(0),d:FAC[f].d+lng(' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',' Start by tapping one of your provinces; tap a neighbouring province to march troops there.'),ch:[{l:lng('Hükmetmeye başla','Begin your reign')}]}));save();}
 function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
  if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);
  runHooks('enterGame');}
@@ -78,7 +91,7 @@ KE.migrate=s=>migrate(s);
 function loadGame(){try{const raw=localStorage.getItem(SAVE),s=JSON.parse(raw);if(!s||!s.prov||s.prov.length!==NP)throw 0;
   if((s.v||1)<2){try{if(!localStorage.getItem(SAVE+'-backup'))localStorage.setItem(SAVE+'-backup',raw);}catch(e){}}
   S=migrate(s);pruneOffers();$('#start').hidden=true;enterGame();}
- catch(e){toast('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','war');}}
+ catch(e){toast(lng('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','The saved game could not be read. Start a new game.'),'war');}}
 ACTS.menu=()=>showMenu();
 ACTS['snd-music']=()=>{SND.set('music',!SND.st.music);showMenu();};
 ACTS['snd-sfx']=()=>{SND.set('sfx',!SND.st.sfx);showMenu();};

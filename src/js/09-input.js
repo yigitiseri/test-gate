@@ -29,11 +29,11 @@ function uiNearCentre(sx,sy,r){let best=-1,bd=r*r;
  for(let i=0;i<NP;i++){const d=PD[i],p=pj(d.lx,d.ly);if(p[2]===false)continue;const dx=p[0]-sx,dy=p[1]-sy,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=i;}}
  return best;}
 /** Plain word for a win chance 0..1. */
-function uiOddsWord(p){return p>=.9?'Ezici üstünlük':p>=.65?'Üstünüz':p>=.4?'Başa baş':p>=.15?'Riskli':'Umutsuz';}
+function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
 /** Map hover card (desktop): name, owner, garrison; with an own province selected and an enemy
  neighbour hovered, the chance of victory as a word and a percentage. */
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id],d=PD[id];
  let h=`<b>${esc(d.name)}</b> · ${esc(FAC[p.o].s)} · ${fmtK(p.t)}`;
  if(S.player&&sel>=0&&id!==sel&&S.prov[sel].o===S.player&&p.o!==S.player&&atWar(S.player,p.o)&&PD[sel].adj.includes(id)){
-  try{const n=Math.max(100,avail(sel)),o=battleOdds({att:S.player,to:id,n,from:sel});h+=`<span class="tip-odds">Zafer şansı: ${uiOddsWord(o.p)} · %${Math.round(o.p*100)}</span>`;}catch(e){}}
+  try{const n=Math.max(100,avail(sel)),o=battleOdds({att:S.player,to:id,n,from:sel});h+=`<span class="tip-odds">${lng('Zafer şansı','Chance of victory')}: ${uiOddsWord(o.p)} · ${lng('%'+Math.round(o.p*100),Math.round(o.p*100)+'%')}</span>`;}catch(e){}}
  tip.innerHTML=h;tip.style.left=sx+'px';tip.style.top=sy+'px';tip.hidden=false;}

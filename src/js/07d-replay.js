@@ -67,7 +67,7 @@ function aRpTrails(c,now,g3){if(!aRp.on)return false;
  return true;}
 
 function aBoomLabel(ev){const pl=S.player;if(!ev.rep)return {label:'',good:false};
- if(ev.def===pl)return {label:ev.win?'Kaybedildi':'Savunuldu',good:!ev.win};if(ev.att===pl)return {label:ev.win?'Zafer':'Bozgun',good:ev.win};return {label:'',good:false};}
+ if(ev.def===pl)return {label:ev.win?lng('Kaybedildi','Lost'):lng('Savunuldu','Held'),good:!ev.win};if(ev.att===pl)return {label:ev.win?lng('Zafer','Victory'):lng('Bozgun','Rout'),good:ev.win};return {label:'',good:false};}
 /** Replay off (or nothing visible): only booms on visible battles, no waiting. */
 function aRpQuick(){let k=0;for(const e of TURN_TRACE){if(k>=12)break;if(!e||e.k!=='battle'||e.to==null||!PD[e.to]||!aOnScreen(e.to))continue;
  const r=e.rep||{},lb=aBoomLabel({rep:r,def:r.def,att:r.att||e.f,win:e.win!=null?e.win:r.win});addFx({type:'boom',p:e.to,dur:1300,delay:k*140,seed:k*1.7,label:lb.label,good:lb.good});k++;}}
@@ -86,7 +86,7 @@ function aRpStart(shown,T,next){const pl=S.player,now=performance.now();let lead
   addFx({type:'boom',p:e.to,dur:1100,delay:lead+Math.random()*T*.85,seed:(k++)*1.7,label:'',rp:1});extra++;}
  // HUD: title, progress, skip
  const hud=$('#hud');if(hud){const b=document.createElement('div');b.className='a-rpbar';b.setAttribute('role','status');
-  b.innerHTML=`<span class="a-rpico" aria-hidden="true">⚔</span><span class="a-rptx"><b>Sefer haberleri</b><small>${shown.length} hamle${pl?' · '+esc(dateStr(S.turn)):''}</small></span><span class="a-rppg"><i></i></span><button class="a-rpskip" data-act="a-skip" aria-label="Hamle tekrarını geç">Geç<span aria-hidden="true"> ›</span></button>`;
+  b.innerHTML=`<span class="a-rpico" aria-hidden="true">⚔</span><span class="a-rptx"><b>${lng('Sefer haberleri','Campaign news')}</b><small>${shown.length} ${lng('hamle',shown.length===1?'move':'moves')}${pl?' · '+esc(dateStr(S.turn)):''}</small></span><span class="a-rppg"><i></i></span><button class="a-rpskip" data-act="a-skip" aria-label="${lng('Hamle tekrarını geç','Skip the move replay')}">${lng('Geç','Skip')}<span aria-hidden="true"> ›</span></button>`;
   hud.appendChild(b);aRp.bar=b;}
  if(!$('#modal').hidden)document.body.classList.add('a-rp-defer');   // an event modal waits until the moves are shown
  clearTimeout(aRp.timer);aRp.timer=setTimeout(()=>aRpFinish(false),lead+T+260);

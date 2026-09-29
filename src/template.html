@@ -22,26 +22,26 @@
 </head>
 <body>
 <canvas id="gl" hidden></canvas>
-<canvas id="map" aria-label="Strateji haritası"></canvas>
+<canvas id="map" aria-label="Strateji haritası" data-en-aria="Strategy map"></canvas>
 <div id="vig"></div>
 
 <header id="top" hidden>
-  <div class="brand">Age of Dynasties<small>Memâlik-i Rûm · MCDLI</small></div>
-  <button class="facbtn" id="facBtn" data-act="state" title="Devlet defteri"><span class="shield" id="pShield"></span><b id="pName"></b></button>
+  <div class="brand" data-en="Age of Dynasties<small>Lands of Rûm · MCDLI</small>">Age of Dynasties<small>Memâlik-i Rûm · MCDLI</small></div>
+  <button class="facbtn" id="facBtn" data-act="state" title="Devlet defteri" data-en-title="State book"><span class="shield" id="pShield"></span><b id="pName"></b></button>
   <div class="res">
-    <div class="stat"><label>Hazine</label><b><span id="gold">0</span><small id="goldd"></small></b></div>
-    <div class="stat"><label>İnsan gücü</label><b id="mp">0</b></div>
-    <div class="stat"><label>Ordu</label><b id="army">0</b></div>
-    <div class="stat"><label>Eyalet</label><b id="provs">0</b></div>
-    <div class="stat"><label>Savaş</label><b id="wars">0</b></div>
+    <div class="stat"><label data-en="Treasury">Hazine</label><b><span id="gold">0</span><small id="goldd"></small></b></div>
+    <div class="stat"><label data-en="Manpower">İnsan gücü</label><b id="mp">0</b></div>
+    <div class="stat"><label data-en="Army">Ordu</label><b id="army">0</b></div>
+    <div class="stat"><label data-en="Provinces">Eyalet</label><b id="provs">0</b></div>
+    <div class="stat"><label data-en="Wars">Savaş</label><b id="wars">0</b></div>
   </div>
   <nav class="tabs" id="navTabs"></nav>
-  <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
-  <button id="endTurn" data-act="end">Turu Bitir</button>
+  <div class="date"><b id="season" data-en="Spring">İlkbahar</b><span id="year">1451</span></div>
+  <button id="endTurn" data-act="end" data-en="End Turn">Turu Bitir</button>
 </header>
 
 <aside id="panel" hidden><div class="band"></div><div class="in" id="panelIn"></div></aside>
-<div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır">+</button><button data-act="zout" aria-label="Uzaklaştır">−</button><button data-act="fit" aria-label="Haritayı sığdır" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" title="Arazi haritası" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" style="font:800 13px var(--body)">2D</button></div>
+<div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır" data-en-aria="Zoom in">+</button><button data-act="zout" aria-label="Uzaklaştır" data-en-aria="Zoom out">−</button><button data-act="fit" aria-label="Haritayı sığdır" data-en-aria="Fit the map" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" data-en-aria="Map mode" title="Arazi haritası" data-en-title="Terrain map" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" data-en-aria="3D or 2D view" style="font:800 13px var(--body)">2D</button></div>
 <div id="tip" hidden></div>
 <div id="hud"></div>
 <div id="card" hidden></div>
@@ -61,7 +61,7 @@
   </div>
 </div>
 
-<div id="loading">Harita çiziliyor…<small>Sınırlar, nehirler ve dağlar hazırlanıyor</small></div>
+<div id="loading" data-en="Drawing the map…<small>Preparing borders, rivers and mountains</small>">Harita çiziliyor…<small>Sınırlar, nehirler ve dağlar hazırlanıyor</small></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>

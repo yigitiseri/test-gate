@@ -105,7 +105,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
    const wx=d.lx-W/2,wz=d.ly-H/2;let h=surf(d.lx,d.ly);for(const [ox,oy] of [[-u,-u],[u,-u],[-u,u],[u,u]])h=Math.min(h,surf(d.lx+ox,d.ly+oy));h=Math.max(h,.5)-.1;
    C.copy(lin(FAC[p.o].c));
    set(I.walls,i,wx,h,wz,u*1.9,u*.72,u*1.9);
-   const rel=FAC[p.o].rel,isM=rel==='İslam',isO=rel==='Ortodoks',kh=isM?1.05:isO?1.2:1.35,HID=[0,-50,0,0,0,0];
+   const rel=tx(FAC[p.o].rel),isM=rel==='İslam'||rel==='Islam',isO=rel==='Ortodoks'||rel==='Orthodox',kh=isM?1.05:isO?1.2:1.35,HID=[0,-50,0,0,0,0];
    set(I.keep,i,wx,h,wz,u*.82,u*kh,u*.82);
    if(isM||isO){set(I.roof,i,...HID);set(I.dome,i,wx,h+u*kh,wz,u*.92,u*.92,u*.92);}else{set(I.roof,i,wx,h+u*kh,wz,u*.72,u*1.75,u*.72);set(I.dome,i,...HID);}
    I.roof.setColorAt(i,C);
@@ -168,7 +168,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
   for(;t<=te;t+=st){const x=o.x+d.x*t+W/2,z=o.z+d.z*t+H/2;if(x<0||z<0||x>=W||z>=H)continue;if(o.y+d.y*t<=surf(x,z))return [x,z];}
   return [o.x+d.x*te+W/2,o.z+d.z*te+H/2];};
  G3.resize=()=>{if(!R)return;G3.touch();R.setPixelRatio(qPR());R.setSize(vw,vh,false);};
- G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?'3D bu cihazda açılamadı':G3.on?'2D haritaya geç':'3D haritaya geç';};
+ G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?lng('3D bu cihazda açılamadı','3D could not start on this device'):G3.on?lng('2D haritaya geç','Switch to the 2D map'):lng('3D haritaya geç','Switch to the 3D map');};
  /** Switch 2D/3D. persist=true only for an explicit player choice (the boot default is not stored). */
  G3.set=(on,persist)=>{
   if(on&&!G3.init()){on=false;G3.fail=true;}
