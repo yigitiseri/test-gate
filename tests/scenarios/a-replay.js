@@ -48,7 +48,13 @@ module.exports = {
       await page.waitForFunction(() => !document.querySelector('#hud .a-rpbar'), null, { timeout: 8000 });
       const dt = await E(() => performance.now() - window.__rpT[1]);
       await page.waitForFunction(() => !document.getElementById('endTurn').disabled, null, { timeout: 30000 });
-      const rep = await E(() => { const m = document.getElementById('modal'), h = m.querySelector('h2'); return !m.hidden && h ? h.textContent : null; });
+      // a random event modal may open first (events hook); answer it, the report is queued behind it
+      let rep = null;
+      for (let k = 0; k < 6; k++) {
+        rep = await E(() => { const m = document.getElementById('modal'), h = m.querySelector('h2'); return !m.hidden && h ? h.textContent : null; });
+        if (rep !== null && rep !== 'Mevsim Raporu' && await E(() => !!document.querySelector('#modal [data-act="ev"]:not([disabled])'))) { await E(() => document.querySelector('#modal [data-act="ev"]:not([disabled])').click()); await page.waitForTimeout(250); continue; }
+        break;
+      }
       return { saw, dt, rep };
     };
     const a = await runTurn(true, 'first');

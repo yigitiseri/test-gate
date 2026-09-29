@@ -32,7 +32,7 @@ module.exports = {
     const hit = await E(t => [window.__ke.tokenAt(t.x, t.y), window.__ke.tokenAt(t.x + 20, t.y + 20), window.__ke.tokenAt(t.x + 200, t.y + 200)], a);
     check('tokenAt hits the token, with a 44 px touch box', hit[0] === fx.ids[0] && hit[1] != null && hit[2] !== fx.ids[0], hit);
     // selection ring + render on demand
-    await E(id => window.__ke.selectArmy(id), fx.ids[0]); await page.waitForTimeout(300);
+    await E(id => window.__ke.selectArmy(id), fx.ids[0]); await settle();
     check('selected army is flagged', (await E(() => window.__ke.tokens().filter(t => t.sel).length)) === 1);
     await E(() => window.__ke.selectArmy(null)); await page.waitForTimeout(400);
     const d0 = await E(() => window.__ke.stats.draws); await page.waitForTimeout(1500);
