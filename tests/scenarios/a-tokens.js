@@ -22,7 +22,7 @@ module.exports = {
     const shot = async n => { if (process.env.KE_SHOTS) await page.screenshot({ path: path.join(process.env.KE_SHOTS, n + '.png'), animations: 'disabled' }); };
     const fx = await page.evaluate(FIX);
     await E(e => { const K = window.__ke; K.centerOn(K.PD[e].lx, K.PD[e].ly, 1.6); }, fx.e);
-    await page.waitForFunction(n => window.__ke.tokens().length >= n, 4, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(ids => { const t = new Set(window.__ke.tokens().map(x => x.id)); return ids.every(id => t.has(id)); }, fx.ids, { timeout: 15000 }).catch(() => {});
     const toks = await E(() => window.__ke.tokens());
     const ids = new Set(toks.map(t => t.id));
     check('a token for every on-screen fixture army', fx.ids.every(id => ids.has(id)), { toks, ids: fx.ids });

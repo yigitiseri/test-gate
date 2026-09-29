@@ -54,7 +54,9 @@ module.exports = {
     check('preferred snap is remembered', await E(() => localStorage.getItem('ke-sheet') === 'peek'));
 
     // drag the sheet up by the handle (start from a settled peek)
-    const toPeek = async () => { for (let k = 0; k < 4 && (await sheet()).snap !== 'peek'; k++) { await page.click('#panel .sheet-grip'); await W(500); } await W(300); };
+    // wait until the sheet stops sliding (headless frames are slow with the token layer)
+    const settleSheet = async () => { await W(200); await E(() => { window.__gripTop = null; window.__gripN = 0; }); await page.waitForFunction(() => { const t = document.querySelector('#panel .sheet-grip').getBoundingClientRect().top; window.__gripN = window.__gripTop === t ? window.__gripN + 1 : 0; window.__gripTop = t; return window.__gripN >= 2; }, null, { polling: 150, timeout: 6000 }).catch(() => {}); };
+    const toPeek = async () => { for (let k = 0; k < 4 && (await sheet()).snap !== 'peek'; k++) { await page.click('#panel .sheet-grip'); await W(500); } await settleSheet(); };
     await toPeek();
     const g = await E(() => { const r = document.querySelector('#panel .sheet-grip').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
     await page.mouse.move(g[0], g[1]); await page.mouse.down();
@@ -84,10 +86,12 @@ module.exports = {
     await toPeek();
 
     // --- action bar while an order is pending
+    await settleSheet();
+    await E(c => { const K = window.__ke; K.centerOn(K.PD[c].lx, K.PD[c].ly, 2.2); }, cap); await W(400); // tokens cover small provinces at fit zoom
     const adj = await E(c => window.__ke.PD[c].adj.filter(j => window.__ke.S.prov[j].o === 'OSM'), cap);
     let target = null;
     for (const j of adj) { const pt = await L.provPoint(page, j); if (pt) { target = pt; break; } }
-    check('found a visible own neighbour', !!target);
+    check('found a visible own neighbour', !!target, { adj, pts: await E(a => a.map(j => { const K = window.__ke, d = K.PD[j], p = K.proj(d.x, d.y), el = document.elementFromPoint(p[0], p[1]); return [j, p.map(Math.round), el && (el.id || el.className)]; }), adj), sheet: await sheet() });
     if (target) {
       await page.mouse.click(target[0], target[1]); await W(450);
       s = await sheet();

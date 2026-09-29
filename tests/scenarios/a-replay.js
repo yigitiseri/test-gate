@@ -13,6 +13,7 @@ module.exports = {
     await E(() => {
       const K = window.__ke, S = K.S, PD = K.PD, P = n => PD.findIndex(d => d.name === n);
       const r = { e: P('Edirne'), kk: P('Kırkkilise'), sv: P('Silivri'), ist: P('Konstantiniyye'), fl: P('Filibe'), sf: P('Sofya') };
+      for (let k = S.armies.length - 1; k >= 0; k--) if (S.armies[k].f === 'OSM') S.armies.splice(k, 1); // stay under the army cap
       r.a = K.armyCreate('OSM', r.e, 20000, {}).id;
       r.b = K.armyCreate('OSM', r.sf, 8000, {}).id;
       K.centerOn(PD[r.kk].lx, PD[r.kk].ly);
@@ -26,7 +27,7 @@ module.exports = {
         T.push({ k: 'battle', f: 'OSM', from: r.sv, to: r.ist, path: [r.sv, r.ist], army: r.a, n: 20000, win: false, rep });
         T.push({ k: 'move', f: 'OSM', from: r.sf, to: r.fl, path: [r.sf, r.fl], army: r.b, n: 8000 });
         T.push({ k: 'battle', f: 'BYZ', from: r.ist, to: r.kk, path: [r.ist, r.kk], army: null, n: 4000, win: false, rep: { ...rep, from: r.ist, to: r.kk, att: 'BYZ', def: 'OSM', n: 4000, defT: 2000 } });
-        A(r.a).loc = r.sv; A(r.b).loc = r.fl;
+        A(r.a).loc = r.kk; A(r.b).loc = r.fl; // own soil: B evicts armies from foreign land in peacetime
         S.report.push(rep);
       }, 99);
     });
@@ -68,7 +69,7 @@ module.exports = {
     check('unskipped replay ends within ~4 s', b.saw && ms < 4300, { ms, ...b });
     check('report opens after the full replay', b.rep === 'Mevsim Raporu', b);
     await L.closeModals(page);
-    const pos = await E(() => { const r = window.__rp, S = window.__ke.S; return S.armies.find(x => x.id === r.a).loc === r.sv; });
+    const pos = await E(() => { const r = window.__rp, S = window.__ke.S; return S.armies.find(x => x.id === r.a).loc === r.kk; });
     check('armies keep their real positions after the replay', pos);
     // switched off: no replay bar, report still appears
     await E(() => { window.__ke.replay.opt.replay = false; });

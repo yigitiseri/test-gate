@@ -31,7 +31,8 @@ const L = require('./lib');
     const info = await E(() => { const K = window.__ke; return K.PD.map((d, i) => ({ i, key: d.key, name: d.name, adj: d.adj, o: K.S.prov[i].o, t: K.S.prov[i].t })); });
     const byKey = k => info.find(x => x.key === k).i;
     const ist = byKey('istanbul');
-    // an Ottoman province next to Constantinople that can be clicked
+    // an Ottoman province next to Constantinople that can be clicked (zoom in: at fit zoom army tokens cover the Bosporus)
+    await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 2.5); }, ist); await page.waitForTimeout(400);
     let src = -1;
     for (const j of info[ist].adj) if (info[j].o === 'OSM' && info[j].t >= 1000 && await L.provPoint(page, j)) { src = j; break; }
     check('found an Ottoman province next to Istanbul', src >= 0);
@@ -50,6 +51,8 @@ const L = require('./lib');
 
     // recruit / move / attack are covered by tests/scenarios/b-ui-flow.js (field armies)
     // declare war on Byzantium from the province panel (two clicks: confirm)
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300); // on phones the open sheet covers the lower half
+    await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 2.5); }, ist); await page.waitForTimeout(400);
     await L.clickProv(page, ist);
     check('select Istanbul shows its panel', ((await panelText()) || '').includes(info[ist].name));
     await click('#panel [data-act="dwar"]');

@@ -108,14 +108,15 @@ async function provPoint(page, i) {
     const K = window.__ke, d = K.PD[i], cv = document.getElementById('map'), tip = document.getElementById('tip');
     const hit = (x, y) => {
       if (x < 2 || y < 2 || x > innerWidth - 2 || y > innerHeight - 2 || document.elementFromPoint(x, y) !== cv) return false;
+      if (K.tokenAt && K.tokenAt(x, y) != null) return false; // an army token takes this tap
       cv.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, pointerType: 'mouse', pointerId: 1, bubbles: true }));
       const b = !tip.hidden && tip.querySelector('b'); return !!b && b.textContent === d.name;
     };
     const [sx, sy] = K.proj(d.x, d.y);
     let res = null;
-    for (let r = 0; r <= 24 && !res; r += 3)
-      for (let a = 0; a < (r ? 12 : 1) && !res; a++) {
-        const x = Math.round(sx + r * Math.cos(a * Math.PI / 6)), y = Math.round(sy + r * Math.sin(a * Math.PI / 6));
+    for (let r = 0; r <= 48 && !res; r += 3)
+      for (let a = 0; a < (r ? 16 : 1) && !res; a++) {
+        const x = Math.round(sx + r * Math.cos(a * Math.PI / 8)), y = Math.round(sy + r * Math.sin(a * Math.PI / 8));
         if (hit(x, y)) res = [x, y];
       }
     tip.hidden = true;
