@@ -5,9 +5,9 @@
 let confirmKey='';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function shield(f,big){return `<span class="shield${big?' big':''}" title="${esc(FAC[f].n)}">${armsSVG(f)}</span>`;}
-function relChip(f){const pl=S.player;if(f===pl)return '<span class="chip ally">Senin</span>';
- if(atWar(pl,f))return '<span class="chip war">Savaşta</span>';if(isAlly(pl,f))return '<span class="chip ally">Müttefik</span>';
- if(inTruce(pl,f))return `<span class="chip truce">Ateşkes · ${S.truce[key(pl,f)]-S.turn} tur</span>`;return '<span class="chip">Barış</span>';}
+function relChip(f){const pl=S.player;if(f===pl)return `<span class="chip ally">${lng('Senin','Yours')}</span>`;
+ if(atWar(pl,f))return `<span class="chip war">${lng('Savaşta','At war')}</span>`;if(isAlly(pl,f))return `<span class="chip ally">${lng('Müttefik','Ally')}</span>`;
+ if(inTruce(pl,f))return `<span class="chip truce">${lng('Ateşkes','Truce')} · ${S.truce[key(pl,f)]-S.turn} ${lng('tur','turns')}</span>`;return `<span class="chip">${lng('Barış','Peace')}</span>`;}
 /** Short message at the top centre, under the top bar (never over the panel; never takes taps). */
 function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;t.setAttribute('role','status');$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800);while($('#toasts').children.length>3)$('#toasts').firstChild.remove();}
 
@@ -19,9 +19,9 @@ let navKey='';
 function renderNav(){const L=bySlot(TOP_BUTTONS),k=L.map(b=>b.act+(b.label||'')).join();if(k===navKey)return;navKey=k;
  $('#navTabs').innerHTML=L.map(b=>{const aria=b.aria||b.label||b.title||b.act;
   return `<button class="nb" data-act="${b.act}"${Object.entries(b.data||{}).map(([k,v])=>` data-${k}="${esc(v)}"`).join('')}${b.id?` id="${b.id}"`:''} aria-label="${esc(aria)}" title="${esc(b.title||b.label||aria)}">${b.icon}${b.label?`<span class="lbl">${esc(b.label)}</span>`:''}</button>`;}).join('');sndIcon();}
-TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:'Diplomasi',title:'Diplomasi (1)',order:10},{act:'missions',icon:'✦',label:'Hedefler',title:'Hedefler (2)',order:20},{act:'chron',icon:'❧',label:'Vakayiname',title:'Vakayiname (3)',order:30},
- {act:'guide',icon:'<b style="font:700 15px var(--display)">i</b>',label:'Rehber',aria:'Oyun rehberi',title:'Oyun rehberi',data:{t:'genel'},order:40},
- {act:'snd',icon:'🔊',id:'sndBtn',aria:'Sesi aç/kapat',title:'Ses',order:50},{act:'menu',icon:'☰',aria:'Menü',title:'Menü',order:60});
+TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:lng('Diplomasi','Diplomacy'),title:lng('Diplomasi (1)','Diplomacy (1)'),order:10},{act:'missions',icon:'✦',label:lng('Hedefler','Goals'),title:lng('Hedefler (2)','Goals (2)'),order:20},{act:'chron',icon:'❧',label:lng('Vakayiname','Chronicle'),title:lng('Vakayiname (3)','Chronicle (3)'),order:30},
+ {act:'guide',icon:'<b style="font:700 15px var(--display)">i</b>',label:lng('Rehber','Guide'),aria:lng('Oyun rehberi','Game guide'),title:lng('Oyun rehberi','Game guide'),data:{t:'genel'},order:40},
+ {act:'snd',icon:'🔊',id:'sndBtn',aria:lng('Sesi aç/kapat','Sound on/off'),title:lng('Ses','Sound'),order:50},{act:'menu',icon:'☰',aria:lng('Menü','Menu'),title:lng('Menü','Menu'),order:60});
 
 /* top-bar stats and date get tooltips; warning chips live next to the stats */
 (()=>{const T=[['#gold','gold'],['#mp','mp'],['#army','army'],['#provs','provs'],['#wars','wars']];
@@ -31,10 +31,10 @@ TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:'Diplomasi',title:'Diplomasi (1)'
 
 /** Warnings for the player's realm: [{k,l,tip,cls}] (negative net, bankrupt next turn, unrest). */
 function uiWarnings(f){const F=S.fac[f],net=income(f)-upkeep(f),out=[];
- if(net<0&&F.gold+net<0)out.push({k:'bank',l:'İflas yakın',tip:'gold',cls:'war'});
- else if(net<0)out.push({k:'net',l:'Zarar '+Math.round(net),tip:'gold',cls:'war'});
+ if(net<0&&F.gold+net<0)out.push({k:'bank',l:lng('İflas yakın','Near bankruptcy'),tip:'gold',cls:'war'});
+ else if(net<0)out.push({k:'net',l:lng('Zarar ','Deficit ')+Math.round(net),tip:'gold',cls:'war'});
  let un=0;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f&&p.un>0)un++;}
- if(un)out.push({k:'un',l:'Huzursuz '+un,tip:'provs',cls:'un'});
+ if(un)out.push({k:'un',l:lng('Huzursuz ','Unrest ')+un,tip:'provs',cls:'un'});
  return out;}
 function renderTop(){
  if(!S||!S.player)return;const f=S.player,F=S.fac[f];renderNav();
@@ -45,10 +45,10 @@ function renderTop(){
  const warn=uiWarnings(f);$('#gold').closest('.stat').classList.toggle('warn',warn.some(x=>x.tip==='gold'));$('#provs').closest('.stat').classList.toggle('warn',warn.some(x=>x.k==='un'));
  const wk=warn.map(x=>x.k+x.l).join();const we=$('#uiWarn');if(we&&we.dataset.k!==wk){we.dataset.k=wk;we.innerHTML=warn.map(x=>`<span class="chip ${x.cls}" data-tip="${x.tip}" tabindex="0">${esc(x.l)}</span>`).join('');}
  const y=START_YEAR+Math.floor(S.turn/4);
- if(!busy)$('#endTurn').textContent=S.over?'Oyun bitti':uiEndArmed()?'Yine de bitir':'Turu Bitir';
- $('#endTurn').dataset.date=`${SEASONS[S.turn%4]} ${y}`;$('#endTurn').setAttribute('aria-label',`Turu bitir (${SEASONS[S.turn%4]} ${y})`);
+ if(!busy)$('#endTurn').textContent=S.over?lng('Oyun bitti','Game over'):uiEndArmed()?lng('Yine de bitir','End anyway'):lng('Turu Bitir','End Turn');
+ $('#endTurn').dataset.date=`${SEASONS[S.turn%4]} ${y}`;$('#endTurn').setAttribute('aria-label',lng(`Turu bitir (${SEASONS[S.turn%4]} ${y})`,`End turn (${SEASONS[S.turn%4]} ${y})`));
  document.documentElement.style.setProperty('--toph',Math.round(topH())+'px');
- SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];{$('#year').textContent=`${y} · ${hijri(y)} H · tur ${S.turn+1}`;$('#year').title=`Anno Domini ${roman(y)}`;}
+ SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];{$('#year').textContent=lng(`${y} · ${hijri(y)} H · tur ${S.turn+1}`,`${y} · ${hijri(y)} AH · turn ${S.turn+1}`);$('#year').title=`Anno Domini ${roman(y)}`;}
 }
 
 let uiLastSel=-1,uiSheetCur='peek';
@@ -56,10 +56,10 @@ function renderPanel(){
  const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;if(tgt>=0&&!tgtOk())tgt=-1;
  const fresh=sel!==uiLastSel;if(fresh){uiLastSel=sel;uiSheetCur=uiSheet;}
  const d=PD[sel],p=S.prov[sel],f=S.player,F=S.fac[f],mine=p.o===f,isCap=S.fac[p.o].cap===sel;
- const terr=d.mtn?'Dağlık · +30% savunma':d.des?'Çöl · +10% savunma':'Ova';
- let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="Kapat">×</button></div>
- <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">Huzursuz · ${p.un} tur</span>`:''}${p.mkt?'<span class="chip">Pazar</span>':''}${p.brk?'<span class="chip">Kışla</span>':''}</div>
- <div class="grid4"><div data-tip="dev" data-i="${sel}"><label>Gelişim</label><b>${p.dev}</b></div><div data-tip="fort" data-i="${sel}"><label>Kale</label><b>${p.fort}</b></div><div data-tip="garrison" data-i="${sel}"><label>Garnizon</label><b>${fmtK(p.t)}</b></div><div data-tip="pinc" data-i="${sel}"><label>Gelir</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
+ const terr=d.mtn?lng('Dağlık · +30% savunma','Mountains · +30% defence'):d.des?lng('Çöl · +10% savunma','Desert · +10% defence'):lng('Ova','Plains');
+ let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="${lng('Kapat','Close')}">×</button></div>
+ <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">${lng('Huzursuz','Unrest')} · ${p.un} ${lng('tur','turns')}</span>`:''}${p.mkt?`<span class="chip">${lng('Pazar','Market')}</span>`:''}${p.brk?`<span class="chip">${lng('Kışla','Barracks')}</span>`:''}</div>
+ <div class="grid4"><div data-tip="dev" data-i="${sel}"><label>${lng('Gelişim','Development')}</label><b>${p.dev}</b></div><div data-tip="fort" data-i="${sel}"><label>${lng('Kale','Fortress')}</label><b>${p.fort}</b></div><div data-tip="garrison" data-i="${sel}"><label>${lng('Garnizon','Garrison')}</label><b>${fmtK(p.t)}</b></div><div data-tip="pinc" data-i="${sel}"><label>${lng('Gelir','Income')}</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
  const ctx={i:sel,d,p,f,F,mine,isCap,tgt};
  const secs=bySlot(PANEL_SECTIONS).filter(x=>{try{return x.when(ctx);}catch(e){console.error('panel '+x.id,e);return false;}});
  for(const x of secs){try{h+=`<div class="psec" data-sec="${esc(x.id)}">${x.html(ctx)||''}</div>`;}catch(e){console.error('panel '+x.id,e);}}
@@ -95,7 +95,7 @@ function uiSheetFit(){
 /** Snap the sheet to 'peek' | 'half' | 'full' (remember=true stores it as the preferred snap). */
 function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localStorage.setItem('ke-sheet',m);}catch(e){}}uiSheetFit();}
 (()=>{const pn=$('#panel');
- pn.insertAdjacentHTML('afterbegin','<div class="sheet-grip" role="button" tabindex="0" aria-label="Paneli büyüt ya da küçült"><i></i></div>');
+ pn.insertAdjacentHTML('afterbegin','<div class="sheet-grip" role="button" tabindex="0" aria-label="'+lng('Paneli büyüt ya da küçült','Expand or shrink the panel')+'"><i></i></div>');
  let dr=null;const SN=['peek','half','full'];
  pn.addEventListener('pointerdown',e=>{if(!uiPhone()||pn.classList.contains('sheet-action'))return;const g=e.target.closest('.sheet-grip,.ph');if(!g||e.target.closest('button,[data-act]'))return;
   dr={y:e.clientY,h:pn.style.height?parseFloat(pn.style.height):pn.getBoundingClientRect().height,moved:false,grip:!!e.target.closest('.sheet-grip'),id:e.pointerId};try{pn.setPointerCapture(e.pointerId);}catch(x){}});
@@ -113,7 +113,7 @@ function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localSto
 /** Click dispatcher: OVERBLOCK check, then the ACTS registry. */
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
- if(f&&S.over&&OVERBLOCK.has(a)){toast('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.');return;}
+ if(f&&S.over&&OVERBLOCK.has(a)){toast(lng('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.','The game is over. Press "Game over" to start a new game.'));return;}
  if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
  const h=ACTS[a];if(h)h(t,f,F);
 }
@@ -125,9 +125,12 @@ function uiEndRisk(){if(!S||!S.player||S.over)return null;const f=S.player,F=S.f
  return net<0&&F.gold<-net*uiCfg.endWarnTurns?{net,gold:F.gold}:null;}
 ACTS.end=()=>{const r=uiEndRisk();
  if(r&&!uiEndArmed()){uiEndArm=performance.now();SND.play('click');
-  toast(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,'war');
+  toast(lng(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,`The treasury runs dry ${r.gold<-r.net?'this turn':'within two turns'}, and unpaid soldiers desert. Press again to end the turn anyway.`),'war');
   renderTop();setTimeout(()=>{if(!busy)renderTop();},uiCfg.endArmMs+50);return;}
  uiEndArm=0;endTurn();};
+/* English: the frozen turn flow (06) writes the end-turn label in Turkish; translate it as it lands */
+if(EN){const et=$('#endTurn'),m={'Turu Bitir':'End Turn','Oyun bitti':'Game over','Hamleler…':'Moves…'};
+ new MutationObserver(()=>{const v=m[et.textContent];if(v)et.textContent=v;}).observe(et,{childList:true,characterData:true,subtree:true});}
 KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);KE.uiRender=()=>renderAll();
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});

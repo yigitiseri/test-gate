@@ -638,26 +638,26 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
 </head>
 <body>
 <canvas id="gl" hidden></canvas>
-<canvas id="map" aria-label="Strateji haritası"></canvas>
+<canvas id="map" aria-label="Strateji haritası" data-en-aria="Strategy map"></canvas>
 <div id="vig"></div>
 
 <header id="top" hidden>
-  <div class="brand">Age of Dynasties<small>Memâlik-i Rûm · MCDLI</small></div>
-  <button class="facbtn" id="facBtn" data-act="state" title="Devlet defteri"><span class="shield" id="pShield"></span><b id="pName"></b></button>
+  <div class="brand" data-en="Age of Dynasties<small>Lands of Rûm · MCDLI</small>">Age of Dynasties<small>Memâlik-i Rûm · MCDLI</small></div>
+  <button class="facbtn" id="facBtn" data-act="state" title="Devlet defteri" data-en-title="State book"><span class="shield" id="pShield"></span><b id="pName"></b></button>
   <div class="res">
-    <div class="stat"><label>Hazine</label><b><span id="gold">0</span><small id="goldd"></small></b></div>
-    <div class="stat"><label>İnsan gücü</label><b id="mp">0</b></div>
-    <div class="stat"><label>Ordu</label><b id="army">0</b></div>
-    <div class="stat"><label>Eyalet</label><b id="provs">0</b></div>
-    <div class="stat"><label>Savaş</label><b id="wars">0</b></div>
+    <div class="stat"><label data-en="Treasury">Hazine</label><b><span id="gold">0</span><small id="goldd"></small></b></div>
+    <div class="stat"><label data-en="Manpower">İnsan gücü</label><b id="mp">0</b></div>
+    <div class="stat"><label data-en="Army">Ordu</label><b id="army">0</b></div>
+    <div class="stat"><label data-en="Provinces">Eyalet</label><b id="provs">0</b></div>
+    <div class="stat"><label data-en="Wars">Savaş</label><b id="wars">0</b></div>
   </div>
   <nav class="tabs" id="navTabs"></nav>
-  <div class="date"><b id="season">İlkbahar</b><span id="year">1451</span></div>
-  <button id="endTurn" data-act="end">Turu Bitir</button>
+  <div class="date"><b id="season" data-en="Spring">İlkbahar</b><span id="year">1451</span></div>
+  <button id="endTurn" data-act="end" data-en="End Turn">Turu Bitir</button>
 </header>
 
 <aside id="panel" hidden><div class="band"></div><div class="in" id="panelIn"></div></aside>
-<div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır">+</button><button data-act="zout" aria-label="Uzaklaştır">−</button><button data-act="fit" aria-label="Haritayı sığdır" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" title="Arazi haritası" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" style="font:800 13px var(--body)">2D</button></div>
+<div id="zoom" hidden><button data-act="zin" aria-label="Yakınlaştır" data-en-aria="Zoom in">+</button><button data-act="zout" aria-label="Uzaklaştır" data-en-aria="Zoom out">−</button><button data-act="fit" aria-label="Haritayı sığdır" data-en-aria="Fit the map" style="font-size:15px">⤢</button><button data-act="mode" aria-label="Harita modu" data-en-aria="Map mode" title="Arazi haritası" data-en-title="Terrain map" style="font-size:17px">◐</button><button data-act="v3d" id="v3dBtn" aria-label="3D ya da 2D görünüm" data-en-aria="3D or 2D view" style="font:800 13px var(--body)">2D</button></div>
 <div id="tip" hidden></div>
 <div id="hud"></div>
 <div id="card" hidden></div>
@@ -677,7 +677,7 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
   </div>
 </div>
 
-<div id="loading">Harita çiziliyor…<small>Sınırlar, nehirler ve dağlar hazırlanıyor</small></div>
+<div id="loading" data-en="Drawing the map…<small>Preparing borders, rivers and mountains</small>">Harita çiziliyor…<small>Sınırlar, nehirler ve dağlar hazırlanıyor</small></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -3311,22 +3311,22 @@ function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h
 ACTS.zin=()=>zoomAt(vw/2,vh/2,curS()*1.35);
 ACTS.zout=()=>zoomAt(vw/2,vh/2,curS()/1.35);
 ACTS.fit=()=>centerOn(W/2,H/2,fitS);
-ACTS.v3d=()=>{const on=G3.set(!G3.on,true);toast(on?'3D harita':(G3.fail?'3D bu cihazda açılamadı':'2D harita'));};
-ACTS.mode=t=>{mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?'Arazi haritası':'Siyasi harita';toast(mapMode==='pol'?'Siyasi harita':'Arazi haritası');polDirty=true;req();};
+ACTS.v3d=()=>{const on=G3.set(!G3.on,true);toast(on?lng('3D harita','3D map'):(G3.fail?lng('3D bu cihazda açılamadı','3D could not start on this device'):lng('2D harita','2D map')));};
+ACTS.mode=t=>{mapMode=mapMode==='pol'?'ter':'pol';t.textContent=mapMode==='pol'?'◐':'◑';t.title=mapMode==='pol'?lng('Arazi haritası','Terrain map'):lng('Siyasi harita','Political map');toast(mapMode==='pol'?lng('Siyasi harita','Political map'):lng('Arazi haritası','Terrain map'));polDirty=true;req();};
 
 /* Display settings (per device, localStorage 'ke-anim', never in S):
    replay = play the other realms' moves on the map before the season report; speed = animation speed; q3d = 3D quality. */
 const aOpt={replay:true,speed:1,q3d:'auto'};
 try{const o=JSON.parse(localStorage.getItem('ke-anim')||'{}');if(o&&typeof o==='object')Object.assign(aOpt,o);}catch(e){}
 function aSaveOpt(){try{localStorage.setItem('ke-anim',JSON.stringify(aOpt));}catch(e){}}
-const A_SPEEDS=[[1,'Normal'],[1.6,'Hızlı'],[2.5,'Çok hızlı']],A_Q3D=[['auto','Otomatik'],['low','Düşük'],['mid','Orta'],['high','Yüksek']];
+const A_SPEEDS=[[1,'Normal'],[1.6,lng('Hızlı','Fast')],[2.5,lng('Çok hızlı','Very fast')]],A_Q3D=[['auto',lng('Otomatik','Auto')],['low',lng('Düşük','Low')],['mid',lng('Orta','Medium')],['high',lng('Yüksek','High')]];
 const aLbl=(L,v)=>(L.find(x=>x[0]===v)||L[0])[1];
 const aNext=(L,v)=>L[(L.findIndex(x=>x[0]===v)+1)%L.length][0];
-MENU_SECTIONS.push({id:'display',order:30,html:()=>`<div class="sec a-disp"><h3>Görüntü</h3><div class="acts">
- <button class="btn" data-act="a-replay" aria-label="Hamle tekrarı">Hamle tekrarı <span class="c">${aOpt.replay?'Açık':'Kapalı'}</span></button>
- <button class="btn" data-act="a-speed" aria-label="Animasyon hızı">Animasyon <span class="c">${aLbl(A_SPEEDS,aOpt.speed)}</span></button>
- <button class="btn" data-act="a-q3d" aria-label="3D kalite">3D kalite <span class="c">${aLbl(A_Q3D,aOpt.q3d)}</span></button></div>
- <p class="hint" style="margin:8px 0 0">Hamle tekrarı, tur sonunda diğer devletlerin ordu yürüyüşlerini ve muharebelerini haritada gösterir. Düşük 3D kalite pili korur.</p></div>`});
+MENU_SECTIONS.push({id:'display',order:30,html:()=>`<div class="sec a-disp"><h3>${lng('Görüntü','Display')}</h3><div class="acts">
+ <button class="btn" data-act="a-replay" aria-label="${lng('Hamle tekrarı','Move replay')}">${lng('Hamle tekrarı','Move replay')} <span class="c">${aOpt.replay?lng('Açık','On'):lng('Kapalı','Off')}</span></button>
+ <button class="btn" data-act="a-speed" aria-label="${lng('Animasyon hızı','Animation speed')}">${lng('Animasyon','Animation')} <span class="c">${aLbl(A_SPEEDS,aOpt.speed)}</span></button>
+ <button class="btn" data-act="a-q3d" aria-label="${lng('3D kalite','3D quality')}">${lng('3D kalite','3D quality')} <span class="c">${aLbl(A_Q3D,aOpt.q3d)}</span></button></div>
+ <p class="hint" style="margin:8px 0 0">${lng('Hamle tekrarı, tur sonunda diğer devletlerin ordu yürüyüşlerini ve muharebelerini haritada gösterir. Düşük 3D kalite pili korur.','Move replay shows the other realms\' marches and battles on the map at the end of each turn. Low 3D quality saves battery.')}</p></div>`});
 const aMenuRefresh=()=>{if(!$('#modal').hidden&&$('#modal .a-disp'))showMenu();};
 ACTS['a-replay']=()=>{aOpt.replay=!aOpt.replay;aSaveOpt();aMenuRefresh();};
 ACTS['a-speed']=()=>{aOpt.speed=aNext(A_SPEEDS,aOpt.speed);aSaveOpt();aMenuRefresh();};
@@ -3529,7 +3529,7 @@ function aRpTrails(c,now,g3){if(!aRp.on)return false;
  return true;}
 
 function aBoomLabel(ev){const pl=S.player;if(!ev.rep)return {label:'',good:false};
- if(ev.def===pl)return {label:ev.win?'Kaybedildi':'Savunuldu',good:!ev.win};if(ev.att===pl)return {label:ev.win?'Zafer':'Bozgun',good:ev.win};return {label:'',good:false};}
+ if(ev.def===pl)return {label:ev.win?lng('Kaybedildi','Lost'):lng('Savunuldu','Held'),good:!ev.win};if(ev.att===pl)return {label:ev.win?lng('Zafer','Victory'):lng('Bozgun','Rout'),good:ev.win};return {label:'',good:false};}
 /** Replay off (or nothing visible): only booms on visible battles, no waiting. */
 function aRpQuick(){let k=0;for(const e of TURN_TRACE){if(k>=12)break;if(!e||e.k!=='battle'||e.to==null||!PD[e.to]||!aOnScreen(e.to))continue;
  const r=e.rep||{},lb=aBoomLabel({rep:r,def:r.def,att:r.att||e.f,win:e.win!=null?e.win:r.win});addFx({type:'boom',p:e.to,dur:1300,delay:k*140,seed:k*1.7,label:lb.label,good:lb.good});k++;}}
@@ -3548,7 +3548,7 @@ function aRpStart(shown,T,next){const pl=S.player,now=performance.now();let lead
   addFx({type:'boom',p:e.to,dur:1100,delay:lead+Math.random()*T*.85,seed:(k++)*1.7,label:'',rp:1});extra++;}
  // HUD: title, progress, skip
  const hud=$('#hud');if(hud){const b=document.createElement('div');b.className='a-rpbar';b.setAttribute('role','status');
-  b.innerHTML=`<span class="a-rpico" aria-hidden="true">⚔</span><span class="a-rptx"><b>Sefer haberleri</b><small>${shown.length} hamle${pl?' · '+esc(dateStr(S.turn)):''}</small></span><span class="a-rppg"><i></i></span><button class="a-rpskip" data-act="a-skip" aria-label="Hamle tekrarını geç">Geç<span aria-hidden="true"> ›</span></button>`;
+  b.innerHTML=`<span class="a-rpico" aria-hidden="true">⚔</span><span class="a-rptx"><b>${lng('Sefer haberleri','Campaign news')}</b><small>${shown.length} ${lng('hamle',shown.length===1?'move':'moves')}${pl?' · '+esc(dateStr(S.turn)):''}</small></span><span class="a-rppg"><i></i></span><button class="a-rpskip" data-act="a-skip" aria-label="${lng('Hamle tekrarını geç','Skip the move replay')}">${lng('Geç','Skip')}<span aria-hidden="true"> ›</span></button>`;
   hud.appendChild(b);aRp.bar=b;}
  if(!$('#modal').hidden)document.body.classList.add('a-rp-defer');   // an event modal waits until the moves are shown
  clearTimeout(aRp.timer);aRp.timer=setTimeout(()=>aRpFinish(false),lead+T+260);
@@ -3578,15 +3578,15 @@ document.addEventListener('keydown',e=>{if(aRp.on&&e.key==='Escape')aRpFinish(tr
 const A_CARD={hold:3500,roll:850};
 let aCardTm=0,aCardHover=false,aCardEnd=0,aCardRoll=0;
 const aPct=m=>{const v=Math.round((m-1)*100);return (v>=0?'+':'−')+Math.abs(v)+'%';};
-const A_KIND={assault:'Kale saldırısı',field:'Meydan muharebesi',sally:'Kuşatma çıkışı',siege:'Kuşatma'};
+const A_KIND={assault:lng('Kale saldırısı','Assault on the walls'),field:lng('Meydan muharebesi','Field battle'),sally:lng('Kuşatma çıkışı','Sally'),siege:lng('Kuşatma','Siege')};
 const A_PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 const aDie=v=>`<span class="a-die" data-v="${v}">${[0,1,2,3,4,5,6,7,8].map(k=>`<i${A_PIPS[v].includes(k)?' class="on"':''}></i>`).join('')}</span>`;
 const aFace=r=>clamp(1+Math.round(((r||1)-.85)/.35*5),1,6);
 /** The general's fate in words; accepts a string, {n|name|id, fate|k|type} or an array of those. */
 function aGenFate(g){if(!g)return [];if(Array.isArray(g))return g.flatMap(aGenFate);if(typeof g==='string')return [g];
- const c=g.id!=null&&S.chars&&S.chars[g.id],nm=g.n||g.name||(c&&c.n)||'Komutan',k=String(g.fate||g.k||g.type||'');
- if(/die|dead|kill|death|slain/i.test(k))return [`${nm} savaş meydanında düştü.`];if(/capt/i.test(k))return [`${nm} esir düştü.`];if(/wound/i.test(k))return [`${nm} yaralandı.`];
- if(/flee|escap/i.test(k))return [`${nm} kaçmayı başardı.`];return [k?`${nm}: ${k}`:nm];}
+ const c=g.id!=null&&S.chars&&S.chars[g.id],nm=g.n||g.name||(c&&c.n)||lng('Komutan','The commander'),k=String(g.fate||g.k||g.type||'');
+ if(/die|dead|kill|death|slain/i.test(k))return [lng(`${nm} savaş meydanında düştü.`,`${nm} fell on the field of battle.`)];if(/capt/i.test(k))return [lng(`${nm} esir düştü.`,`${nm} was taken prisoner.`)];if(/wound/i.test(k))return [lng(`${nm} yaralandı.`,`${nm} was wounded.`)];
+ if(/flee|escap/i.test(k))return [lng(`${nm} kaçmayı başardı.`,`${nm} managed to escape.`)];return [k?`${nm}: ${k}`:nm];}
 /** Strength estimate after modifiers and luck, and the modifiers split by side, from what the report carries. */
 function aCardModel(rep){const mods=Array.isArray(rep.mods)?rep.mods:[],roll=rep.roll||{},mul=side=>mods.filter(m=>m.side===side).reduce((v,m)=>v*(+m.m||1),1);
  const kind=rep.kind||'assault',defN=rep.defT!=null?rep.defT:(rep.dn!=null?rep.dn:0);let militia=0;
@@ -3596,32 +3596,32 @@ function aCardModel(rep){const mods=Array.isArray(rep.mods)?rep.mods:[],roll=rep
 function aCardHTML(rep,m){const pl=S.player,att=rep.att,def=rep.def,d=PD[rep.to]||{name:'?'},mineA=att===pl,mineD=def===pl,won=mineA?rep.win:mineD?!rep.win:rep.win;
  const col=f=>(FAC[f]&&FAC[f].c)||'#777',nm=f=>esc((FAC[f]&&FAC[f].s)||f);
  const side=(sd)=>{const L=m.mods.filter(x=>x.side===sd).map(x=>`<li><span>${esc(x.l)}</span><b class="${x.m>=1?'up':'dn'}">${aPct(x.m)}</b></li>`);
-  if(sd==='def'&&m.militia>0)L.push(`<li><span>Yerel milis ve surlar</span><b>+${esc(fmtK(m.militia))}</b></li>`);
-  const r=sd==='att'?m.roll.a:m.roll.d;if(r)L.push(`<li class="a-luck"><span>Talih</span><b data-luck="${sd}">${aPct(r)}</b></li>`);
-  return L.length?`<ul>${L.join('')}</ul>`:'<ul><li class="a-none"><span>Etki yok</span></li></ul>';};
- const place=esc(d.name),res=mineA?(rep.win?`${place} alındı`:'Saldırı püskürtüldü'):mineD?(rep.win?`${place} düştü`:`${place} savunuldu`):(rep.win?`${place} el değiştirdi`:`${place} dayandı`);
- const notes=[];if(rep.fortDmg)notes.push('Surlar hasar gördü.');if(rep.retreat!=null&&PD[rep.retreat])notes.push(`Savunanlar ${esc(PD[rep.retreat].name)} eyaletine çekildi.`);
+  if(sd==='def'&&m.militia>0)L.push(`<li><span>${lng('Yerel milis ve surlar','Militia and walls')}</span><b>+${esc(fmtK(m.militia))}</b></li>`);
+  const r=sd==='att'?m.roll.a:m.roll.d;if(r)L.push(`<li class="a-luck"><span>${lng('Talih','Fortune')}</span><b data-luck="${sd}">${aPct(r)}</b></li>`);
+  return L.length?`<ul>${L.join('')}</ul>`:`<ul><li class="a-none"><span>${lng('Etki yok','No effects')}</span></li></ul>`;};
+ const place=esc(d.name),res=mineA?(rep.win?lng(`${place} alındı`,`${place} taken`):lng('Saldırı püskürtüldü','Attack repulsed')):mineD?(rep.win?lng(`${place} düştü`,`${place} has fallen`):lng(`${place} savunuldu`,`${place} held`)):(rep.win?lng(`${place} el değiştirdi`,`${place} changed hands`):lng(`${place} dayandı`,`${place} held out`));
+ const notes=[];if(rep.fortDmg)notes.push(lng('Surlar hasar gördü.','The walls were damaged.'));if(rep.retreat!=null&&PD[rep.retreat])notes.push(lng(`Savunanlar ${esc(PD[rep.retreat].name)} eyaletine çekildi.`,`The defenders fell back to ${esc(PD[rep.retreat].name)}.`));
  for(const g of aGenFate(rep.genFate))notes.push(esc(g));
  const pctA=Math.round(m.share*100);
  return `<div class="band"></div><div class="a-bc-in">
- <div class="a-bc-eye">${esc(A_KIND[m.kind]||'Muharebe')} · ${esc(dateStr(rep.turn!=null?rep.turn:S.turn))}</div>
- <h3>${place} Muharebesi</h3>
- <div class="a-bc-sides"><div class="a-bc-side att${mineA?' me':''}">${shield(att,true)}<div><b>${nm(att)}</b><small>Saldıran · ${fmtK(rep.n||0)}</small></div></div>
+ <div class="a-bc-eye">${esc(A_KIND[m.kind]||lng('Muharebe','Battle'))} · ${esc(dateStr(rep.turn!=null?rep.turn:S.turn))}</div>
+ <h3>${lng(`${place} Muharebesi`,`Battle of ${place}`)}</h3>
+ <div class="a-bc-sides"><div class="a-bc-side att${mineA?' me':''}">${shield(att,true)}<div><b>${nm(att)}</b><small>${lng('Saldıran','Attacker')} · ${fmtK(rep.n||0)}</small></div></div>
   <div class="a-bc-vs" aria-hidden="true">⚔</div>
-  <div class="a-bc-side def${mineD?' me':''}"><div><b>${nm(def)}</b><small>Savunan · ${fmtK(m.defN)}</small></div>${shield(def,true)}</div></div>
- <div class="a-bc-bar" role="img" aria-label="Güç dengesi: saldıran yüzde ${pctA}"><i class="a" style="width:${pctA}%;background-color:${col(att)}"></i><i class="d" style="background-color:${col(def)}"></i><span class="mid"></span></div>
- <div class="a-bc-pow"><span>Güç ${fmtK(m.aP)}</span><span>Güç ${fmtK(m.dP)}</span></div>
+  <div class="a-bc-side def${mineD?' me':''}"><div><b>${nm(def)}</b><small>${lng('Savunan','Defender')} · ${fmtK(m.defN)}</small></div>${shield(def,true)}</div></div>
+ <div class="a-bc-bar" role="img" aria-label="${lng(`Güç dengesi: saldıran yüzde ${pctA}`,`Balance of strength: attacker ${pctA} percent`)}"><i class="a" style="width:${pctA}%;background-color:${col(att)}"></i><i class="d" style="background-color:${col(def)}"></i><span class="mid"></span></div>
+ <div class="a-bc-pow"><span>${lng('Güç','Strength')} ${fmtK(m.aP)}</span><span>${lng('Güç','Strength')} ${fmtK(m.dP)}</span></div>
  <div class="a-bc-mods">${side('att')}<div class="a-bc-dice">${aDie(3)}${aDie(4)}</div>${side('def')}</div>
- <div class="a-bc-res ${won?'win':'loss'}"><span class="a-bc-seal">${won?'Zafer':'Yenilgi'}</span><small>${res}</small></div>
- <div class="a-bc-loss">Kayıplar <b>${nm(att)} ${fmtK(rep.aLoss||0)}</b> · <b>${nm(def)} ${fmtK(rep.dLoss||0)}</b></div>
+ <div class="a-bc-res ${won?'win':'loss'}"><span class="a-bc-seal">${won?lng('Zafer','Victory'):lng('Yenilgi','Defeat')}</span><small>${res}</small></div>
+ <div class="a-bc-loss">${lng('Kayıplar','Losses')} <b>${nm(att)} ${fmtK(rep.aLoss||0)}</b> · <b>${nm(def)} ${fmtK(rep.dLoss||0)}</b></div>
  ${notes.length?`<div class="a-bc-note">${notes.map(x=>`<div>${x}</div>`).join('')}</div>`:''}
- <div class="a-bc-tm"><i></i></div><button class="a-bc-x" data-act="bcard-x" aria-label="Kartı kapat">×</button></div>`;}
+ <div class="a-bc-tm"><i></i></div><button class="a-bc-x" data-act="bcard-x" aria-label="${lng('Kartı kapat','Close the card')}">×</button></div>`;}
 
 /** Show the card for a battle report. o.over: opened from a modal (card above it, no auto-dismiss race with the modal). */
 function aCardShow(rep,o={}){const el=$('#card');if(!el||!rep||!S)return;
  let m;try{m=aCardModel(rep);}catch(e){console.error('battle card',e);return;}
  clearTimeout(aCardTm);cancelAnimationFrame(aCardRoll);
- el.className='a-bc'+(o.over?' over':'');el.innerHTML=aCardHTML(rep,m);el.hidden=false;el.setAttribute('role','dialog');el.setAttribute('aria-label','Muharebe kartı');
+ el.className='a-bc'+(o.over?' over':'');el.innerHTML=aCardHTML(rep,m);el.hidden=false;el.setAttribute('role','dialog');el.setAttribute('aria-label',lng('Muharebe kartı','Battle card'));
  // phones: never cover the province panel; fall back to a one-line strip when there is no room
  if(vw<760){const p=$('#panel');if(p&&!p.hidden&&!o.over){const room=p.getBoundingClientRect().top-el.getBoundingClientRect().top-8;if(el.offsetHeight>room)el.classList.add('mini');}}
  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,dice=el.querySelectorAll('.a-die'),fin=[aFace(m.roll.a),aFace(m.roll.d)],t0=performance.now();
@@ -3646,8 +3646,8 @@ hook('playerBattle',rep=>{if(!busy&&!aRp.on)aCardShow(rep);});
 hook('enterGame',()=>aCardHide());
 ACTS.bcard=t=>{const r=(S.report||[])[+t.dataset.k];if(r)aCardShow(r,{over:true});};
 REPORT_SECTIONS.push({id:'bcards',order:22,html(){const L=S.report||[];if(!L.length)return '';const pl=S.player;
- return `<div class="sec a-bcs"><h3>Muharebe kartları</h3><div class="a-bcl">${L.map((r,k)=>{if(!PD[r.to])return '';const won=r.att===pl?r.win:!r.win,o=r.att===pl?r.def:r.att;
-  return `<button class="btn a-bcb" data-act="bcard" data-k="${k}" aria-label="${esc(PD[r.to].name)} muharebe kartı">${FAC[o]?shield(o):''}<span>${esc(PD[r.to].name)}</span><b class="${won?'pos':'neg'}">${won?'Zafer':'Yenilgi'}</b></button>`;}).join('')}</div></div>`;}});
+ return `<div class="sec a-bcs"><h3>${lng('Muharebe kartları','Battle cards')}</h3><div class="a-bcl">${L.map((r,k)=>{if(!PD[r.to])return '';const won=r.att===pl?r.win:!r.win,o=r.att===pl?r.def:r.att;
+  return `<button class="btn a-bcb" data-act="bcard" data-k="${k}" aria-label="${lng(`${esc(PD[r.to].name)} muharebe kartı`,`Battle card: ${esc(PD[r.to].name)}`)}">${FAC[o]?shield(o):''}<span>${esc(PD[r.to].name)}</span><b class="${won?'pos':'neg'}">${won?lng('Zafer','Victory'):lng('Yenilgi','Defeat')}</b></button>`;}).join('')}</div></div>`;}});
 /* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
@@ -3755,7 +3755,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
    const wx=d.lx-W/2,wz=d.ly-H/2;let h=surf(d.lx,d.ly);for(const [ox,oy] of [[-u,-u],[u,-u],[-u,u],[u,u]])h=Math.min(h,surf(d.lx+ox,d.ly+oy));h=Math.max(h,.5)-.1;
    C.copy(lin(FAC[p.o].c));
    set(I.walls,i,wx,h,wz,u*1.9,u*.72,u*1.9);
-   const rel=FAC[p.o].rel,isM=rel==='İslam',isO=rel==='Ortodoks',kh=isM?1.05:isO?1.2:1.35,HID=[0,-50,0,0,0,0];
+   const rel=tx(FAC[p.o].rel),isM=rel==='İslam'||rel==='Islam',isO=rel==='Ortodoks'||rel==='Orthodox',kh=isM?1.05:isO?1.2:1.35,HID=[0,-50,0,0,0,0];
    set(I.keep,i,wx,h,wz,u*.82,u*kh,u*.82);
    if(isM||isO){set(I.roof,i,...HID);set(I.dome,i,wx,h+u*kh,wz,u*.92,u*.92,u*.92);}else{set(I.roof,i,wx,h+u*kh,wz,u*.72,u*1.75,u*.72);set(I.dome,i,...HID);}
    I.roof.setColorAt(i,C);
@@ -3818,7 +3818,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
   for(;t<=te;t+=st){const x=o.x+d.x*t+W/2,z=o.z+d.z*t+H/2;if(x<0||z<0||x>=W||z>=H)continue;if(o.y+d.y*t<=surf(x,z))return [x,z];}
   return [o.x+d.x*te+W/2,o.z+d.z*te+H/2];};
  G3.resize=()=>{if(!R)return;G3.touch();R.setPixelRatio(qPR());R.setSize(vw,vh,false);};
- G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?'3D bu cihazda açılamadı':G3.on?'2D haritaya geç':'3D haritaya geç';};
+ G3.label=()=>{const b=document.getElementById('v3dBtn');if(!b)return;b.textContent=G3.on?'2D':'3D';b.disabled=!!G3.fail;b.title=G3.fail?lng('3D bu cihazda açılamadı','3D could not start on this device'):G3.on?lng('2D haritaya geç','Switch to the 2D map'):lng('3D haritaya geç','Switch to the 3D map');};
  /** Switch 2D/3D. persist=true only for an explicit player choice (the boot default is not stored). */
  G3.set=(on,persist)=>{
   if(on&&!G3.init()){on=false;G3.fail=true;}
@@ -3875,13 +3875,13 @@ function uiNearCentre(sx,sy,r){let best=-1,bd=r*r;
  for(let i=0;i<NP;i++){const d=PD[i],p=pj(d.lx,d.ly);if(p[2]===false)continue;const dx=p[0]-sx,dy=p[1]-sy,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=i;}}
  return best;}
 /** Plain word for a win chance 0..1. */
-function uiOddsWord(p){return p>=.9?'Ezici üstünlük':p>=.65?'Üstünüz':p>=.4?'Başa baş':p>=.15?'Riskli':'Umutsuz';}
+function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
 /** Map hover card (desktop): name, owner, garrison; with an own province selected and an enemy
  neighbour hovered, the chance of victory as a word and a percentage. */
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id],d=PD[id];
  let h=`<b>${esc(d.name)}</b> · ${esc(FAC[p.o].s)} · ${fmtK(p.t)}`;
  if(S.player&&sel>=0&&id!==sel&&S.prov[sel].o===S.player&&p.o!==S.player&&atWar(S.player,p.o)&&PD[sel].adj.includes(id)){
-  try{const n=Math.max(100,avail(sel)),o=battleOdds({att:S.player,to:id,n,from:sel});h+=`<span class="tip-odds">Zafer şansı: ${uiOddsWord(o.p)} · %${Math.round(o.p*100)}</span>`;}catch(e){}}
+  try{const n=Math.max(100,avail(sel)),o=battleOdds({att:S.player,to:id,n,from:sel});h+=`<span class="tip-odds">${lng('Zafer şansı','Chance of victory')}: ${uiOddsWord(o.p)} · ${lng('%'+Math.round(o.p*100),Math.round(o.p*100)+'%')}</span>`;}catch(e){}}
  tip.innerHTML=h;tip.style.left=sx+'px';tip.style.top=sy+'px';tip.hidden=false;}
 /* =====================================================================
    MAP SELECTION (Track B): province / army click -> select, order a move, clear, target check
@@ -4010,7 +4010,7 @@ const SND=(()=>{
 document.addEventListener('pointerdown',()=>SND.init(),{passive:true});
 document.addEventListener('keydown',()=>SND.init());
 function sndIcon(){const b=$('#sndBtn');if(b)b.textContent=SND.st.on?'🔊':'🔇';}
-ACTS.snd=()=>{SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'Ses kapalı');};
+ACTS.snd=()=>{SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?lng('Ses açık','Sound on'):lng('Ses kapalı','Sound off'));};
 /* =====================================================================
    UI (Track D): top bar, province panel shell (+ phone bottom sheet), act() dispatcher,
    keyboard shortcuts, end-turn guard
@@ -4018,9 +4018,9 @@ ACTS.snd=()=>{SND.set('on',!SND.st.on);sndIcon();toast(SND.st.on?'Ses açık':'S
 let confirmKey='';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function shield(f,big){return `<span class="shield${big?' big':''}" title="${esc(FAC[f].n)}">${armsSVG(f)}</span>`;}
-function relChip(f){const pl=S.player;if(f===pl)return '<span class="chip ally">Senin</span>';
- if(atWar(pl,f))return '<span class="chip war">Savaşta</span>';if(isAlly(pl,f))return '<span class="chip ally">Müttefik</span>';
- if(inTruce(pl,f))return `<span class="chip truce">Ateşkes · ${S.truce[key(pl,f)]-S.turn} tur</span>`;return '<span class="chip">Barış</span>';}
+function relChip(f){const pl=S.player;if(f===pl)return `<span class="chip ally">${lng('Senin','Yours')}</span>`;
+ if(atWar(pl,f))return `<span class="chip war">${lng('Savaşta','At war')}</span>`;if(isAlly(pl,f))return `<span class="chip ally">${lng('Müttefik','Ally')}</span>`;
+ if(inTruce(pl,f))return `<span class="chip truce">${lng('Ateşkes','Truce')} · ${S.truce[key(pl,f)]-S.turn} ${lng('tur','turns')}</span>`;return `<span class="chip">${lng('Barış','Peace')}</span>`;}
 /** Short message at the top centre, under the top bar (never over the panel; never takes taps). */
 function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;t.setAttribute('role','status');$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800);while($('#toasts').children.length>3)$('#toasts').firstChild.remove();}
 
@@ -4032,9 +4032,9 @@ let navKey='';
 function renderNav(){const L=bySlot(TOP_BUTTONS),k=L.map(b=>b.act+(b.label||'')).join();if(k===navKey)return;navKey=k;
  $('#navTabs').innerHTML=L.map(b=>{const aria=b.aria||b.label||b.title||b.act;
   return `<button class="nb" data-act="${b.act}"${Object.entries(b.data||{}).map(([k,v])=>` data-${k}="${esc(v)}"`).join('')}${b.id?` id="${b.id}"`:''} aria-label="${esc(aria)}" title="${esc(b.title||b.label||aria)}">${b.icon}${b.label?`<span class="lbl">${esc(b.label)}</span>`:''}</button>`;}).join('');sndIcon();}
-TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:'Diplomasi',title:'Diplomasi (1)',order:10},{act:'missions',icon:'✦',label:'Hedefler',title:'Hedefler (2)',order:20},{act:'chron',icon:'❧',label:'Vakayiname',title:'Vakayiname (3)',order:30},
- {act:'guide',icon:'<b style="font:700 15px var(--display)">i</b>',label:'Rehber',aria:'Oyun rehberi',title:'Oyun rehberi',data:{t:'genel'},order:40},
- {act:'snd',icon:'🔊',id:'sndBtn',aria:'Sesi aç/kapat',title:'Ses',order:50},{act:'menu',icon:'☰',aria:'Menü',title:'Menü',order:60});
+TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:lng('Diplomasi','Diplomacy'),title:lng('Diplomasi (1)','Diplomacy (1)'),order:10},{act:'missions',icon:'✦',label:lng('Hedefler','Goals'),title:lng('Hedefler (2)','Goals (2)'),order:20},{act:'chron',icon:'❧',label:lng('Vakayiname','Chronicle'),title:lng('Vakayiname (3)','Chronicle (3)'),order:30},
+ {act:'guide',icon:'<b style="font:700 15px var(--display)">i</b>',label:lng('Rehber','Guide'),aria:lng('Oyun rehberi','Game guide'),title:lng('Oyun rehberi','Game guide'),data:{t:'genel'},order:40},
+ {act:'snd',icon:'🔊',id:'sndBtn',aria:lng('Sesi aç/kapat','Sound on/off'),title:lng('Ses','Sound'),order:50},{act:'menu',icon:'☰',aria:lng('Menü','Menu'),title:lng('Menü','Menu'),order:60});
 
 /* top-bar stats and date get tooltips; warning chips live next to the stats */
 (()=>{const T=[['#gold','gold'],['#mp','mp'],['#army','army'],['#provs','provs'],['#wars','wars']];
@@ -4044,10 +4044,10 @@ TOP_BUTTONS.push({act:'diplo',icon:'⚖',label:'Diplomasi',title:'Diplomasi (1)'
 
 /** Warnings for the player's realm: [{k,l,tip,cls}] (negative net, bankrupt next turn, unrest). */
 function uiWarnings(f){const F=S.fac[f],net=income(f)-upkeep(f),out=[];
- if(net<0&&F.gold+net<0)out.push({k:'bank',l:'İflas yakın',tip:'gold',cls:'war'});
- else if(net<0)out.push({k:'net',l:'Zarar '+Math.round(net),tip:'gold',cls:'war'});
+ if(net<0&&F.gold+net<0)out.push({k:'bank',l:lng('İflas yakın','Near bankruptcy'),tip:'gold',cls:'war'});
+ else if(net<0)out.push({k:'net',l:lng('Zarar ','Deficit ')+Math.round(net),tip:'gold',cls:'war'});
  let un=0;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f&&p.un>0)un++;}
- if(un)out.push({k:'un',l:'Huzursuz '+un,tip:'provs',cls:'un'});
+ if(un)out.push({k:'un',l:lng('Huzursuz ','Unrest ')+un,tip:'provs',cls:'un'});
  return out;}
 function renderTop(){
  if(!S||!S.player)return;const f=S.player,F=S.fac[f];renderNav();
@@ -4058,10 +4058,10 @@ function renderTop(){
  const warn=uiWarnings(f);$('#gold').closest('.stat').classList.toggle('warn',warn.some(x=>x.tip==='gold'));$('#provs').closest('.stat').classList.toggle('warn',warn.some(x=>x.k==='un'));
  const wk=warn.map(x=>x.k+x.l).join();const we=$('#uiWarn');if(we&&we.dataset.k!==wk){we.dataset.k=wk;we.innerHTML=warn.map(x=>`<span class="chip ${x.cls}" data-tip="${x.tip}" tabindex="0">${esc(x.l)}</span>`).join('');}
  const y=START_YEAR+Math.floor(S.turn/4);
- if(!busy)$('#endTurn').textContent=S.over?'Oyun bitti':uiEndArmed()?'Yine de bitir':'Turu Bitir';
- $('#endTurn').dataset.date=`${SEASONS[S.turn%4]} ${y}`;$('#endTurn').setAttribute('aria-label',`Turu bitir (${SEASONS[S.turn%4]} ${y})`);
+ if(!busy)$('#endTurn').textContent=S.over?lng('Oyun bitti','Game over'):uiEndArmed()?lng('Yine de bitir','End anyway'):lng('Turu Bitir','End Turn');
+ $('#endTurn').dataset.date=`${SEASONS[S.turn%4]} ${y}`;$('#endTurn').setAttribute('aria-label',lng(`Turu bitir (${SEASONS[S.turn%4]} ${y})`,`End turn (${SEASONS[S.turn%4]} ${y})`));
  document.documentElement.style.setProperty('--toph',Math.round(topH())+'px');
- SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];{$('#year').textContent=`${y} · ${hijri(y)} H · tur ${S.turn+1}`;$('#year').title=`Anno Domini ${roman(y)}`;}
+ SND.setMood(w?'war':'peace');sndIcon();$('#season').textContent=SEASONS[S.turn%4];{$('#year').textContent=lng(`${y} · ${hijri(y)} H · tur ${S.turn+1}`,`${y} · ${hijri(y)} AH · turn ${S.turn+1}`);$('#year').title=`Anno Domini ${roman(y)}`;}
 }
 
 let uiLastSel=-1,uiSheetCur='peek';
@@ -4069,10 +4069,10 @@ function renderPanel(){
  const pn=$('#panel'),el=$('#panelIn');if(sel<0||!S){pn.hidden=true;return;}pn.hidden=false;if(tgt>=0&&!tgtOk())tgt=-1;
  const fresh=sel!==uiLastSel;if(fresh){uiLastSel=sel;uiSheetCur=uiSheet;}
  const d=PD[sel],p=S.prov[sel],f=S.player,F=S.fac[f],mine=p.o===f,isCap=S.fac[p.o].cap===sel;
- const terr=d.mtn?'Dağlık · +30% savunma':d.des?'Çöl · +10% savunma':'Ova';
- let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="Kapat">×</button></div>
- <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">Huzursuz · ${p.un} tur</span>`:''}${p.mkt?'<span class="chip">Pazar</span>':''}${p.brk?'<span class="chip">Kışla</span>':''}</div>
- <div class="grid4"><div data-tip="dev" data-i="${sel}"><label>Gelişim</label><b>${p.dev}</b></div><div data-tip="fort" data-i="${sel}"><label>Kale</label><b>${p.fort}</b></div><div data-tip="garrison" data-i="${sel}"><label>Garnizon</label><b>${fmtK(p.t)}</b></div><div data-tip="pinc" data-i="${sel}"><label>Gelir</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
+ const terr=d.mtn?lng('Dağlık · +30% savunma','Mountains · +30% defence'):d.des?lng('Çöl · +10% savunma','Desert · +10% defence'):lng('Ova','Plains');
+ let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="${lng('Kapat','Close')}">×</button></div>
+ <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">${lng('Huzursuz','Unrest')} · ${p.un} ${lng('tur','turns')}</span>`:''}${p.mkt?`<span class="chip">${lng('Pazar','Market')}</span>`:''}${p.brk?`<span class="chip">${lng('Kışla','Barracks')}</span>`:''}</div>
+ <div class="grid4"><div data-tip="dev" data-i="${sel}"><label>${lng('Gelişim','Development')}</label><b>${p.dev}</b></div><div data-tip="fort" data-i="${sel}"><label>${lng('Kale','Fortress')}</label><b>${p.fort}</b></div><div data-tip="garrison" data-i="${sel}"><label>${lng('Garnizon','Garrison')}</label><b>${fmtK(p.t)}</b></div><div data-tip="pinc" data-i="${sel}"><label>${lng('Gelir','Income')}</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
  const ctx={i:sel,d,p,f,F,mine,isCap,tgt};
  const secs=bySlot(PANEL_SECTIONS).filter(x=>{try{return x.when(ctx);}catch(e){console.error('panel '+x.id,e);return false;}});
  for(const x of secs){try{h+=`<div class="psec" data-sec="${esc(x.id)}">${x.html(ctx)||''}</div>`;}catch(e){console.error('panel '+x.id,e);}}
@@ -4108,7 +4108,7 @@ function uiSheetFit(){
 /** Snap the sheet to 'peek' | 'half' | 'full' (remember=true stores it as the preferred snap). */
 function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localStorage.setItem('ke-sheet',m);}catch(e){}}uiSheetFit();}
 (()=>{const pn=$('#panel');
- pn.insertAdjacentHTML('afterbegin','<div class="sheet-grip" role="button" tabindex="0" aria-label="Paneli büyüt ya da küçült"><i></i></div>');
+ pn.insertAdjacentHTML('afterbegin','<div class="sheet-grip" role="button" tabindex="0" aria-label="'+lng('Paneli büyüt ya da küçült','Expand or shrink the panel')+'"><i></i></div>');
  let dr=null;const SN=['peek','half','full'];
  pn.addEventListener('pointerdown',e=>{if(!uiPhone()||pn.classList.contains('sheet-action'))return;const g=e.target.closest('.sheet-grip,.ph');if(!g||e.target.closest('button,[data-act]'))return;
   dr={y:e.clientY,h:pn.style.height?parseFloat(pn.style.height):pn.getBoundingClientRect().height,moved:false,grip:!!e.target.closest('.sheet-grip'),id:e.pointerId};try{pn.setPointerCapture(e.pointerId);}catch(x){}});
@@ -4126,7 +4126,7 @@ function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localSto
 /** Click dispatcher: OVERBLOCK check, then the ACTS registry. */
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
- if(f&&S.over&&OVERBLOCK.has(a)){toast('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.');return;}
+ if(f&&S.over&&OVERBLOCK.has(a)){toast(lng('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.','The game is over. Press "Game over" to start a new game.'));return;}
  if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
  const h=ACTS[a];if(h)h(t,f,F);
 }
@@ -4138,9 +4138,12 @@ function uiEndRisk(){if(!S||!S.player||S.over)return null;const f=S.player,F=S.f
  return net<0&&F.gold<-net*uiCfg.endWarnTurns?{net,gold:F.gold}:null;}
 ACTS.end=()=>{const r=uiEndRisk();
  if(r&&!uiEndArmed()){uiEndArm=performance.now();SND.play('click');
-  toast(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,'war');
+  toast(lng(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,`The treasury runs dry ${r.gold<-r.net?'this turn':'within two turns'}, and unpaid soldiers desert. Press again to end the turn anyway.`),'war');
   renderTop();setTimeout(()=>{if(!busy)renderTop();},uiCfg.endArmMs+50);return;}
  uiEndArm=0;endTurn();};
+/* English: the frozen turn flow (06) writes the end-turn label in Turkish; translate it as it lands */
+if(EN){const et=$('#endTurn'),m={'Turu Bitir':'End Turn','Oyun bitti':'Game over','Hamleler…':'Moves…'};
+ new MutationObserver(()=>{const v=m[et.textContent];if(v)et.textContent=v;}).observe(et,{childList:true,characterData:true,subtree:true});}
 KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);KE.uiRender=()=>renderAll();
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
@@ -4167,70 +4170,70 @@ function renderAll(){renderTop();renderPanel();polDirty=true;req();if(S&&S.playe
 let amt=0; // legacy (pre-army slider); kept so old references do not break
 const armPct=v=>`${v>=0?'+':'−'}${Math.abs(Math.round(v*100))}%`;
 /** One battle modifier in plain Turkish, e.g. "Kale 3 · savunma +45%". */
-function armModText(m){let t=`${m.l} · ${m.side==='att'?'saldırı':'savunma'} ${armPct(m.m-1)}`;if(m.loss&&m.loss!==1)t+=`, ${m.side==='def'?'saldıranın':'savunanın'} kaybı ${armPct(m.loss-1)}`;return t;}
-function armOddsWord(p){return p>=.85?['Ezici üstünlük','var(--ok)']:p>=.6?['Üstünüz','#4f7d2a']:p>=.4?['Başa baş','var(--brass)']:p>=.15?['Riskli','#a0521a']:['Umutsuz','var(--war2)'];}
-function armMoraleWord(m){return m>=1.1?'Coşkulu':m>=.95?'İyi':m>=.75?'Yorgun':'Dağınık';}
+function armModText(m){let t=`${m.l} · ${m.side==='att'?lng('saldırı','attack'):lng('savunma','defence')} ${armPct(m.m-1)}`;if(m.loss&&m.loss!==1)t+=lng(`, ${m.side==='def'?'saldıranın':'savunanın'} kaybı ${armPct(m.loss-1)}`,`, ${m.side==='def'?'attacker':'defender'} losses ${armPct(m.loss-1)}`);return t;}
+function armOddsWord(p){return p>=.85?[lng('Ezici üstünlük','Overwhelming'),'var(--ok)']:p>=.6?[lng('Üstünüz','Favoured'),'#4f7d2a']:p>=.4?[lng('Başa baş','Even'),'var(--brass)']:p>=.15?[lng('Riskli','Risky'),'#a0521a']:[lng('Umutsuz','Hopeless'),'var(--war2)'];}
+function armMoraleWord(m){return m>=1.1?lng('Coşkulu','Eager'):m>=.95?lng('İyi','Good'):m>=.75?lng('Yorgun','Weary'):lng('Dağınık','Shaken');}
 function armRow(a,on){const own=a.f===S.player,g=armGenName(a);
- const inner=`${shield(a.f)}<span class="an">${own?esc(armName(a)):esc(FAC[a.f].s+' ordusu')}${g?`<small>${esc(g)}</small>`:''}</span><span class="as"><b>${fmtK(a.n)}</b>${own?`<small>Yürüyüş ${a.mp}/${a.mpMax} · ${armMoraleWord(a.morale)}</small>`:''}</span>`;
+ const inner=`${shield(a.f)}<span class="an">${own?esc(armName(a)):esc(lng(FAC[a.f].s+' ordusu',FAC[a.f].s+' army'))}${g?`<small>${esc(g)}</small>`:''}</span><span class="as"><b>${fmtK(a.n)}</b>${own?`<small>${lng('Yürüyüş','March')} ${a.mp}/${a.mpMax} · ${armMoraleWord(a.morale)}</small>`:''}</span>`;
  return own?`<button class="arm${on?' on':''}" data-act="asel" data-id="${a.id}" aria-pressed="${on?'true':'false'}">${inner}</button>`:`<div class="arm foe">${inner}</div>`;}
 
 PANEL_SECTIONS.push({id:'armies',order:30,when:c=>armyAt(c.i).length>0||c.mine,html(c){
  const f=c.f,here=armyAt(c.i).sort((x,y)=>(y.f===f)-(x.f===f)||y.n-x.n),mineH=here.filter(a=>a.f===f),sa=armyById(selArmy);
  const on=sa&&sa.f===f&&sa.loc===c.i?sa:null,cnt=armyList(f).length,cap=armyCap(f);
- let h=`<div class="sec armsec"><h3>Ordular <span class="cap">${cnt}/${cap}</span></h3>`;
- if(!here.length)h+=`<div class="hint">Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.</div>`;
+ let h=`<div class="sec armsec"><h3>${lng('Ordular','Armies')} <span class="cap">${cnt}/${cap}</span></h3>`;
+ if(!here.length)h+=`<div class="hint">${lng('Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.','No field army here. Raise troops below and a new army is formed.')}</div>`;
  else h+=`<div class="arms">${here.map(a=>armRow(a,on&&on.id===a.id)).join('')}</div>`;
  if(on&&c.tgt<0){const others=mineH.filter(a=>a.id!==on.id).length,ck='dis:'+on.id;
-  h+=`<div class="hint">${on.mp>0?`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`:'Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.'}</div>
-  <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">Orduları birleştir</button>`:''}
-   <button class="btn" data-act="asplit" data-id="${on.id}" ${cnt>=cap||on.n<200?'disabled':''}>İkiye böl</button>
-   <button class="btn danger" data-act="adisband" data-id="${on.id}">${confirmKey===ck?'Emin misin? Dağıt':'Dağıt'}</button></div>`;}
- else if(mineH.length&&c.tgt<0)h+=`<div class="hint">Emir vermek için bir ordu seç.</div>`;
+  h+=`<div class="hint">${on.mp>0?lng(`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`,`Tap a province to march there. This army can march ${on.mp} more ${on.mp===1?'province':'provinces'} this season; an army that enters enemy land stops there.`):lng('Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.','This army has finished its march for the season. It can set out again after you end the turn.')}</div>
+  <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">${lng('Orduları birleştir','Merge armies')}</button>`:''}
+   <button class="btn" data-act="asplit" data-id="${on.id}" ${cnt>=cap||on.n<200?'disabled':''}>${lng('İkiye böl','Split in two')}</button>
+   <button class="btn danger" data-act="adisband" data-id="${on.id}">${confirmKey===ck?lng('Emin misin? Dağıt','Sure? Disband'):lng('Dağıt','Disband')}</button></div>`;}
+ else if(mineH.length&&c.tgt<0)h+=`<div class="hint">${lng('Emir vermek için bir ordu seç.','Select an army to give it orders.')}</div>`;
  return h+'</div>';}});
 
 PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0&&!!armyById(selArmy),html(c){
  const f=c.f,a=armyById(selArmy),mv=armyCanMove(a.id,tgt),td=PD[tgt],kind=mv.kind||'move';
- const title=kind==='battle'?'Meydan muharebesi':kind==='assault'?'Hücum':'Yürüyüş';
+ const title=kind==='battle'?lng('Meydan muharebesi','Field battle'):kind==='assault'?lng('Hücum','Assault'):lng('Yürüyüş','March');
  let h=`<div class="sec orders" data-sheet="action"><h3>${title} → ${esc(td.name)}</h3>
-  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>Yol <b>${mv.cost||0} eyalet</b></span>${kind==='battle'?`<span>Düşman ordusu <b>${fmtK(armFoesAt(tgt,f).reduce((s,x)=>s+x.n,0))}</b></span>`:''}${kind==='assault'?`<span>Garnizon <b>${fmtK(S.prov[tgt].t)}</b> + milis</span>`:''}</div>`;
+  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>${lng('Yol','Route')} <b>${mv.cost||0} ${lng('eyalet',(mv.cost||0)===1?'province':'provinces')}</b></span>${kind==='battle'?`<span>${lng('Düşman ordusu','Enemy army')} <b>${fmtK(armFoesAt(tgt,f).reduce((s,x)=>s+x.n,0))}</b></span>`:''}${kind==='assault'?`<span>${lng('Garnizon','Garrison')} <b>${fmtK(S.prov[tgt].t)}</b> + ${lng('milis','militia')}</span>`:''}</div>`;
  if(kind!=='move'){const od=battleOdds({att:f,to:tgt,army:a}),[w,cl]=armOddsWord(od.p),pc=Math.round(od.p*100);
-  h+=`<div class="odds armodds" data-tip="odds" data-army="${a.id}" data-to="${tgt}"><span>Zafer şansı</span><div class="obar" role="img" aria-label="Zafer şansı yüzde ${pc}"><i style="width:${pc}%;background:${cl}"></i></div><b style="color:${cl}">${w} · %${pc}</b></div>`;
-  const ms=od.mods.map(armModText);if(od.need>1)ms.push(`Güçlü kale: surları ancak savunmanın ${{1.5:'bir buçuk',2:'iki',2.5:'iki buçuk',3:'üç'}[od.need]||od.need} katı güçle aşabilirsin`);
+  h+=`<div class="odds armodds" data-tip="odds" data-army="${a.id}" data-to="${tgt}"><span>${lng('Zafer şansı','Chance of victory')}</span><div class="obar" role="img" aria-label="${lng(`Zafer şansı yüzde ${pc}`,`Chance of victory ${pc} percent`)}"><i style="width:${pc}%;background:${cl}"></i></div><b style="color:${cl}">${w} · ${lng('%'+pc,pc+'%')}</b></div>`;
+  const ms=od.mods.map(armModText);if(od.need>1)ms.push(lng(`Güçlü kale: surları ancak savunmanın ${{1.5:'bir buçuk',2:'iki',2.5:'iki buçuk',3:'üç'}[od.need]||od.need} katı güçle aşabilirsin`,`Strong fortress: you can only break the walls with ${{1.5:'one and a half times',2:'twice',2.5:'two and a half times',3:'three times'}[od.need]||od.need+' times'} the defenders' strength`));
   if(ms.length)h+=`<ul class="mods">${ms.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
-  h+=`<div class="hint">${kind==='battle'?'Kazanırsan düşman ordusu geri çekilir ya da kuşatılıp yok olur. Kaybedersen ordun geri döner.':'Kazanırsan eyalet senin olur, ordun içeri girer ve bir kısmı garnizon olarak kalır.'}</div>`;}
- else{h+=`<div class="hint">Ordu kendi ya da müttefik topraklarında mevsimde ${a.mpMax} eyalet yürür.${armyAt(tgt,f).length?' Oradaki orduya katılmak için yürüt, sonra orduları birleştir.':''}</div>`;
-  const there=armyAt(tgt,f);if(there.length)h+=`<div class="acts">${there.map(x=>`<button class="btn" data-act="asel" data-id="${x.id}">Oradaki orduyu seç: ${esc(armName(x))}</button>`).join('')}</div>`;}
- h+=`<div class="acts"><button class="btn ${kind==='move'?'primary':'danger'}" data-act="amove">${kind==='move'?'Yürü':'Saldır'}</button><button class="btn" data-act="cancel" style="justify-content:center">Vazgeç</button></div></div>`;
+  h+=`<div class="hint">${kind==='battle'?lng('Kazanırsan düşman ordusu geri çekilir ya da kuşatılıp yok olur. Kaybedersen ordun geri döner.','If you win, the enemy army falls back, or is surrounded and destroyed. If you lose, your army turns back.'):lng('Kazanırsan eyalet senin olur, ordun içeri girer ve bir kısmı garnizon olarak kalır.','If you win, the province is yours: your army marches in and part of it stays as the garrison.')}</div>`;}
+ else{h+=`<div class="hint">${lng(`Ordu kendi ya da müttefik topraklarında mevsimde ${a.mpMax} eyalet yürür.${armyAt(tgt,f).length?' Oradaki orduya katılmak için yürüt, sonra orduları birleştir.':''}`,`On your own or allied land an army marches ${a.mpMax} provinces a season.${armyAt(tgt,f).length?' To join the army there, march in and then merge the armies.':''}`)}</div>`;
+  const there=armyAt(tgt,f);if(there.length)h+=`<div class="acts">${there.map(x=>`<button class="btn" data-act="asel" data-id="${x.id}">${lng('Oradaki orduyu seç','Select the army there')}: ${esc(armName(x))}</button>`).join('')}</div>`;}
+ h+=`<div class="acts"><button class="btn ${kind==='move'?'primary':'danger'}" data-act="amove">${kind==='move'?lng('Yürü','March'):lng('Saldır','Attack')}</button><button class="btn" data-act="cancel" style="justify-content:center">${lng('Vazgeç','Cancel')}</button></div></div>`;
  return h;}});
 
 PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine,html(c){const {F,f,i}=c,p=c.p;
  const d=armRecruitDest(f,i,{army:selArmy}),cnt=armyList(f).length,cap=armyCap(f);
- const where=d.to==='army'?`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`:d.to==='new'?`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`:d.to==='gar'?`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`:esc(d.reason||'');
+ const where=d.to==='army'?lng(`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`,`New troops join the ranks of <b>${esc(armName(d.army))}</b>.`):d.to==='new'?lng(`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`,`A new field army is formed (${cnt+1}/${cap}).`):d.to==='gar'?lng(`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`,`You have reached the army limit (${cnt}/${cap}): troops join the garrison.`):esc(d.reason||'');
  const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i;
- return `<div class="sec"><h3>Asker topla</h3><div class="hint">${where}</div><div class="acts">
-   <button class="btn" data-act="rec1" ${!d.to||F.gold<RC||F.mp<1000?'disabled':''}>+1.000 <span class="c">${RC} altın</span></button>
-   <button class="btn" data-act="rec5" ${!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000?'disabled':''}>+5.000 <span class="c">${RC*5} altın</span></button></div></div>
-  <div class="sec garsec"><h3>Garnizon <span class="cap">${fmtK(p.t)} / ${fmtK(gm)}</span></h3>
-   <div class="hint">Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.</div><div class="acts">
-   <button class="btn" data-act="grec" ${room<100||F.gold<RC*gn/1000||F.mp<gn?'disabled':''}>Garnizonu güçlendir ${gn>=100?'+'+gn.toLocaleString('tr'):''} <span class="c">${room<100?'dolu':Math.ceil(RC*gn/1000)+' altın'}</span></button>
-   <button class="btn" data-act="gdisband" ${p.t<=garMin(i)?'disabled':''}>${confirmKey===ck?'Emin misin? Azalt':'Garnizonu azalt'}</button></div></div>`;}});
+ return `<div class="sec"><h3>${lng('Asker topla','Raise troops')}</h3><div class="hint">${where}</div><div class="acts">
+   <button class="btn" data-act="rec1" ${!d.to||F.gold<RC||F.mp<1000?'disabled':''}>${lng('+1.000','+1,000')} <span class="c">${RC} ${lng('altın','gold')}</span></button>
+   <button class="btn" data-act="rec5" ${!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000?'disabled':''}>${lng('+5.000','+5,000')} <span class="c">${RC*5} ${lng('altın','gold')}</span></button></div></div>
+  <div class="sec garsec"><h3>${lng('Garnizon','Garrison')} <span class="cap">${fmtK(p.t)} / ${fmtK(gm)}</span></h3>
+   <div class="hint">${lng('Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.','A garrison guards its province but cannot go on campaign. Its pay is half that of a field army.')}</div><div class="acts">
+   <button class="btn" data-act="grec" ${room<100||F.gold<RC*gn/1000||F.mp<gn?'disabled':''}>${lng('Garnizonu güçlendir','Reinforce')} ${gn>=100?'+'+gn.toLocaleString(lng('tr','en')):''} <span class="c">${room<100?lng('dolu','full'):Math.ceil(RC*gn/1000)+lng(' altın',' gold')}</span></button>
+   <button class="btn" data-act="gdisband" ${p.t<=garMin(i)?'disabled':''}>${confirmKey===ck?lng('Emin misin? Azalt','Sure? Reduce'):lng('Garnizonu azalt','Reduce')}</button></div></div>`;}});
 
 PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine,html(c){const {F,p}=c;
  return `
-  <div class="sec"><h3>İnşa et</h3><div class="acts">
-   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>İmar +1 <span class="c">${25*p.dev}</span></button>
-   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?'Pazar var':'Pazar'} <span class="c">${p.mkt?'✓':'60'}</span></button>
-   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>Kale ${p.fort+1} <span class="c">${p.fort>=5?'azami':40*(p.fort+1)}</span></button>
-   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?'Kışla var':'Kışla'} <span class="c">${p.brk?'✓':'50'}</span></button></div>
-   <div class="hint" style="margin-top:6px">Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır; kale ve gelişim garnizonun sığacağı asker sayısını da artırır.</div></div>`;}});
+  <div class="sec"><h3>${lng('İnşa et','Build')}</h3><div class="acts">
+   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>${lng('İmar','Develop')} +1 <span class="c">${25*p.dev}</span></button>
+   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?lng('Pazar var','Market built'):lng('Pazar','Market')} <span class="c">${p.mkt?'✓':'60'}</span></button>
+   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>${lng('Kale','Walls')} ${p.fort+1} <span class="c">${p.fort>=5?lng('azami','max'):40*(p.fort+1)}</span></button>
+   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?lng('Kışla var','Barracks built'):lng('Kışla','Barracks')} <span class="c">${p.brk?'✓':'50'}</span></button></div>
+   <div class="hint" style="margin-top:6px">${lng('Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır; kale ve gelişim garnizonun sığacağı asker sayısını da artırır.','A market raises income by 50%, barracks double manpower. Walls and the local militia join the defence; walls and development also let the province hold a larger garrison.')}</div></div>`;}});
 PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
  const f=c.f,o=c.p.o,dp=defPower(sel,f);
- let h=`<div class="meta"><span>Hükümdar <b>${esc(rulerName(o))}</b></span><span>İlişki <b>${getOp(f,o)}</b></span><span>Ordu <b>${fmtK(strength(o))}</b></span><span>Tahmini savunma <b>${fmtK(dp)}</b></span></div>`;
+ let h=`<div class="meta"><span>${lng('Hükümdar','Ruler')} <b>${esc(rulerName(o))}</b></span><span>${lng('İlişki','Relations')} <b>${getOp(f,o)}</b></span><span>${lng('Ordu','Army')} <b>${fmtK(strength(o))}</b></span><span>${lng('Tahmini savunma','Est. defence')} <b>${fmtK(dp)}</b></span></div>`;
  if(!atWar(f,o)){const ck='war:'+o;
-  if(isAlly(f,o))h+=`<div class="hint">${FAC[o].s} senin müttefikin. Orduların bu topraklardan geçebilir.</div>`;
-  else if(inTruce(f,o))h+=`<div class="hint">Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.</div>`;
-  else h+=`<div class="hint">Bu eyalete saldırmak için önce savaş ilan etmelisin.</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?'Emin misin? Savaş ilan et':'Savaş ilan et'}</button>`;}
- else h+=`<div class="hint">Savaştasın. Komşu eyaletteki ordunu seçip buraya dokunarak saldır. Garnizonlar sefere çıkmaz; saldırı için sahra ordusu gerekir.</div>`;
+  if(isAlly(f,o))h+=`<div class="hint">${lng(`${FAC[o].s} senin müttefikin. Orduların bu topraklardan geçebilir.`,`${FAC[o].s} is your ally. Your armies may cross these lands.`)}</div>`;
+  else if(inTruce(f,o))h+=`<div class="hint">${lng(`Ateşkes sürüyor, ${S.truce[key(f,o)]-S.turn} tur boyunca savaş ilan edemezsin.`,`A truce holds: you cannot declare war for ${S.truce[key(f,o)]-S.turn} more turns.`)}</div>`;
+  else h+=`<div class="hint">${lng('Bu eyalete saldırmak için önce savaş ilan etmelisin.','To attack this province you must first declare war.')}</div><button class="btn danger" data-act="dwar" data-f="${o}">${confirmKey===ck?lng('Emin misin? Savaş ilan et','Sure? Declare war'):lng('Savaş ilan et','Declare war')}</button>`;}
+ else h+=`<div class="hint">${lng('Savaştasın. Komşu eyaletteki ordunu seçip buraya dokunarak saldır. Garnizonlar sefere çıkmaz; saldırı için sahra ordusu gerekir.','You are at war. Select your army in a neighbouring province and tap here to attack. Garrisons do not march; an attack needs a field army.')}</div>`;
  return h;}});
 
 /* ---- actions ---- */
@@ -4240,37 +4243,37 @@ ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
 ACTS.asel=t=>{const a=armyById(+t.dataset.id);if(!a||a.f!==S.player)return;if(selArmy===a.id&&sel===a.loc&&tgt<0){selArmy=null;}else armSelect(a.loc,a.id);SND.play('select');renderPanel();req();};
 ACTS.amove=(t,f)=>{const a=armyById(selArmy);
- if(!a||!tgtOk()){tgt=-1;toast(a?armyCanMove(a.id,tgt).reason||'Bu emir artık geçerli değil.':'Önce bir ordu seç.');renderPanel();req();return;}
+ if(!a||!tgtOk()){tgt=-1;toast(a?armyCanMove(a.id,tgt).reason||lng('Bu emir artık geçerli değil.','This order is no longer valid.'):lng('Önce bir ordu seç.','Select an army first.'));renderPanel();req();return;}
  const a0=a.loc,to=tgt,n0=a.n,name=armName(a),r=armyMove(a.id,to);
  if(r.kind==='none'){toast(r.reason);tgt=-1;renderPanel();req();return;}
  addFx({type:'march',a:a0,b:to,dur:r.kind==='move'?520:460,col:FAC[f].c});SND.play('march');
  if(r.kind!=='move'&&r.rep){const rep=r.rep,w=rep.win,cn=!!S.fac[f].cannon;setTimeout(()=>SND.play('battle',{win:w,cannon:cn||S.prov[to].fort>=2}),420);
-  addFx({type:'boom',p:to,dur:1500,delay:440,seed:Math.random()*6,label:w?'Zafer!':'Püskürtüldü',good:w});
-  if(r.kind==='assault')toast(w?`Zafer! ${PD[to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`:`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,w?'good':'war');
-  else toast(w?`Meydan muharebesi kazanıldı! Düşman kaybı ${fmtK(rep.dLoss)}, kaybımız ${fmtK(rep.aLoss)}.${rep.surrounded?' Kuşatılan düşman ordusu yok edildi.':' Düşman geri çekildi.'}`:`Meydan muharebesi kaybedildi. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}.`,w?'good':'war');
-  if(!armyById(a.id))toast(`${name} dağıldı.`,'war');}
+  addFx({type:'boom',p:to,dur:1500,delay:440,seed:Math.random()*6,label:w?lng('Zafer!','Victory!'):lng('Püskürtüldü','Repulsed'),good:w});
+  if(r.kind==='assault')toast(w?lng(`Zafer! ${PD[to].name} alındı. Kayıp: ${fmtK(rep.aLoss)}`,`Victory! ${PD[to].name} taken. Losses: ${fmtK(rep.aLoss)}`):lng(`Hücum püskürtüldü. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}`,`Assault repulsed. Losses ${fmtK(rep.aLoss)}, enemy losses ${fmtK(rep.dLoss)}`),w?'good':'war');
+  else toast(w?lng(`Meydan muharebesi kazanıldı! Düşman kaybı ${fmtK(rep.dLoss)}, kaybımız ${fmtK(rep.aLoss)}.${rep.surrounded?' Kuşatılan düşman ordusu yok edildi.':' Düşman geri çekildi.'}`,`Field battle won! Enemy losses ${fmtK(rep.dLoss)}, ours ${fmtK(rep.aLoss)}.${rep.surrounded?' The surrounded enemy army was destroyed.':' The enemy fell back.'}`):lng(`Meydan muharebesi kaybedildi. Kayıp ${fmtK(rep.aLoss)}, düşman kaybı ${fmtK(rep.dLoss)}.`,`Field battle lost. Losses ${fmtK(rep.aLoss)}, enemy losses ${fmtK(rep.dLoss)}.`),w?'good':'war');
+  if(!armyById(a.id))toast(lng(`${name} dağıldı.`,`${name} has scattered.`),'war');}
  const still=armyById(a.id);if(still){sel=still.loc;selArmy=still.id;}else{sel=to;selArmy=null;}tgt=-1;
  if(r.kind!=='move'){checkMissions();if(S.over){save();renderAll();queueModal(showEnd);return;}}
  renderAll();};
 ACTS.go=ACTS.amove; // pre-army name of the confirm button
 ACTS.amerge=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;let k=0;for(const b of armyAt(a.loc,f))if(b.id!==a.id&&armyMerge(a,b))k++;
- if(k){SND.play('march');toast(`Ordular birleşti: ${armName(a)} artık ${fmtK(a.n)}.`,'good');}renderAll();};
+ if(k){SND.play('march');toast(lng(`Ordular birleşti: ${armName(a)} artık ${fmtK(a.n)}.`,`Armies merged: ${armName(a)} now ${fmtK(a.n)} strong.`),'good');}renderAll();};
 ACTS.asplit=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;const b=armySplit(a.id);
- if(!b){toast(armyList(f).length>=armyCap(f)?`Ordu sınırına ulaştın (${armyCap(f)}). Yeni ordu için daha çok eyalete hükmetmelisin.`:'Bu ordu bölünemeyecek kadar küçük.');return;}
- selArmy=b.id;SND.play('march');toast(`${armName(b)} kuruldu: ${fmtK(b.n)} asker.`,'good');renderAll();};
+ if(!b){toast(armyList(f).length>=armyCap(f)?lng(`Ordu sınırına ulaştın (${armyCap(f)}). Yeni ordu için daha çok eyalete hükmetmelisin.`,`You have reached the army limit (${armyCap(f)}). Rule more provinces to field another army.`):lng('Bu ordu bölünemeyecek kadar küçük.','This army is too small to split.'));return;}
+ selArmy=b.id;SND.play('march');toast(lng(`${armName(b)} kuruldu: ${fmtK(b.n)} asker.`,`${armName(b)} formed: ${fmtK(b.n)} troops.`),'good');renderAll();};
 ACTS.adisband=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;const ck='dis:'+a.id;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
- const name=armName(a),back=armyDisband(a.id);SND.play('coin');toast(`${name} dağıtıldı. ${fmtK(back)} kişi köyüne döndü ve yeniden askere yazılabilir.`,'good');renderAll();};
+ const name=armName(a),back=armyDisband(a.id);SND.play('coin');toast(lng(`${name} dağıtıldı. ${fmtK(back)} kişi köyüne döndü ve yeniden askere yazılabilir.`,`${name} disbanded. ${fmtK(back)} men went home to their villages and can be called up again.`),'good');renderAll();};
 ACTS.gdisband=(t,f)=>{const i=sel,p=S.prov[i];if(!p||p.o!==f)return;const ck='gdis:'+i;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
- const n=garDisband(i);if(n){SND.play('coin');toast(`${PD[i].name} garnizonundan ${fmtK(n)} asker terhis edildi.`,'good');}renderAll();};
+ const n=garDisband(i);if(n){SND.play('coin');toast(lng(`${PD[i].name} garnizonundan ${fmtK(n)} asker terhis edildi.`,`${fmtK(n)} troops released from the ${PD[i].name} garrison.`),'good');}renderAll();};
 ACTS.grec=(t,f,F)=>{if(sel<0||S.prov[sel].o!==f)return;const r=armRecruit(f,sel,1000,{gar:true});if(!r.to){toast(r.reason);return;}SND.play('recruit');renderAll();};
 ACTS.rec1=ACTS.rec5=(t,f,F)=>{if(sel<0)return;const n=t.dataset.act==='rec1'?1000:5000,r=armRecruit(f,sel,n,{army:selArmy});
  if(!r.to){toast(r.reason);return;}if(r.army)selArmy=r.army.id;SND.play('recruit');
- if(r.to==='new')toast(`${armName(r.army)} kuruldu. Yeni askerler bu mevsim eğitimde, gelecek mevsim yürüyebilir.`,'good');else if(r.to==='gar')toast(`${fmtK(r.n)} asker garnizona yazıldı.`);renderAll();};
+ if(r.to==='new')toast(lng(`${armName(r.army)} kuruldu. Yeni askerler bu mevsim eğitimde, gelecek mevsim yürüyebilir.`,`${armName(r.army)} formed. The new troops train this season and can march next season.`),'good');else if(r.to==='gar')toast(lng(`${fmtK(r.n)} asker garnizona yazıldı.`,`${fmtK(r.n)} troops joined the garrison.`));renderAll();};
 ACTS.bdev=(t,f,F)=>{const p=S.prov[sel],c=25*p.dev;if(F.gold<c||p.dev>=12)return;F.gold-=c;p.dev++;SND.play('build');renderAll();};
 ACTS.bmkt=(t,f,F)=>{const p=S.prov[sel];if(p.mkt||F.gold<60)return;F.gold-=60;p.mkt=1;SND.play('build');renderAll();};
 ACTS.bbrk=(t,f,F)=>{const p=S.prov[sel];if(p.brk||F.gold<50)return;F.gold-=50;p.brk=1;SND.play('build');renderAll();};
 ACTS.bfort=(t,f,F)=>{const p=S.prov[sel],c=40*(p.fort+1);if(p.fort>=5||F.gold<c)return;F.gold-=c;p.fort++;SND.play('build');renderAll();};
-ACTS.dwar=(t,f)=>{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';declareWar(f,o);SND.play('war');toast(`${FAC[o].s} devletine savaş ilan ettin.`,'war');renderAll();};
+ACTS.dwar=(t,f)=>{const o=t.dataset.f,ck='war:'+o;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';declareWar(f,o);SND.play('war');toast(lng(`${FAC[o].s} devletine savaş ilan ettin.`,`You declared war on ${FAC[o].s}.`),'war');renderAll();};
 /* =====================================================================
    TOOLTIPS (Track D): any element with data-tip="key" explains itself.
    TIPS[key](el) -> HTML (null/'' = nothing to say). Any track may add providers.
@@ -4492,26 +4495,26 @@ function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><d
 function closeModal(){$('#modal').hidden=true;confirmKey='';if(modalQ.length){const m=modalQ.shift();setTimeout(()=>{if($('#modal').hidden)m();else modalQ.unshift(m);},60);}}
 function queueModal(fn){if($('#modal').hidden)fn();else modalQ.push(fn);}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev')&&!$('#modal .endm'))closeModal();});
-function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;evPend=!!ev.pend;SND.play(/Fethedildi/.test(ev.t)?'fanfare':'event');
- {const y=START_YEAR+Math.floor(S.turn/4);ev={...ev,e:`${ev.e||''} · ${roman(y)} · ${hijri(y)} H`};}
+function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;evPend=!!ev.pend;SND.play(/Fethedildi|Fall of Constantinople|Constantinople Falls|Conquered/.test(ev.t)?'fanfare':'event');
+ {const y=START_YEAR+Math.floor(S.turn/4);ev={...ev,e:`${ev.e||''} · ${roman(y)} · ${hijri(y)} ${lng('H','AH')}`};}
  openModal(`${S.player?`<div class="seal">${shield(S.player)}</div>`:''}<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
  <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
 function showReport(){pruneOffers();
- let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>Mevsim Raporu</h2>`;
+ let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>${lng('Mevsim Raporu','Season Report')}</h2>`;
  for(const x of bySlot(REPORT_SECTIONS)){try{h+=x.html()||'';}catch(e){console.error('report '+x.id,e);}}
- h+=`<div class="foot"><button class="btn primary" data-act="mclose">Devam</button></div>`;openModal(h);
+ h+=`<div class="foot"><button class="btn primary" data-act="mclose">${lng('Devam','Continue')}</button></div>`;openModal(h);
 }
-REPORT_SECTIONS.push({id:'news',order:30,html:()=>S.news.length?`<div class="sec"><h3>Haberler</h3><div class="logl">${S.news.map(n=>`<div><time>${dateStr(S.turn)}</time><span class="${n.k}">${esc(n.m)}</span></div>`).join('')}</div></div>`:''});
+REPORT_SECTIONS.push({id:'news',order:30,html:()=>S.news.length?`<div class="sec"><h3>${lng('Haberler','News')}</h3><div class="logl">${S.news.map(n=>`<div><time>${dateStr(S.turn)}</time><span class="${n.k}">${esc(n.m)}</span></div>`).join('')}</div></div>`:''});
 function showChron(){const l=S.log.slice().reverse().slice(0,160);
- openModal(`<div class="eyebrow">Tarih kaydı</div><h2>Vakayiname</h2><div class="logl">${l.map(e=>`<div><time>${dateStr(e.t)}</time><span class="${e.k}">${esc(e.m)}</span></div>`).join('')||'<div>Henüz kayıt yok.</div>'}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+ openModal(`<div class="eyebrow">${lng('Tarih kaydı','Record of history')}</div><h2>${lng('Vakayiname','Chronicle')}</h2><div class="logl">${l.map(e=>`<div><time>${dateStr(e.t)}</time><span class="${e.k}">${esc(e.m)}</span></div>`).join('')||`<div>${lng('Henüz kayıt yok.','Nothing recorded yet.')}</div>`}</div><div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);}
 function showState(){const f=S.player,F=S.fac[f];
- openModal(`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · Başkent ${esc(PD[F.cap].name)}</div></div></div>
+ openModal(`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${lng('Başkent','Capital')} ${esc(PD[F.cap].name)}</div></div></div>
  ${bySlot(STATE_SECTIONS).map(x=>{try{return x.html(f)||'';}catch(e){console.error('state '+x.id,e);return '';}}).join('')}
- <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);}
+ <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);}
 STATE_SECTIONS.push({id:'ledger',order:10,html(f){const rows=econRows(f);let inc=0,up=0;for(const e of rows){if(e.k==='inc')inc+=e.v;else if(e.k==='exp')up+=e.v;}
- return `<div class="ledger">${rows.map(e=>e.k==='inc'?`<span>${esc(e.l)}</span><b class="pos">+${e.v.toFixed(1)}</b>`:`<span>${esc(e.l)}</span><b class="neg">−${e.v.toFixed(1)}</b>`).join('')}<span class="tot">Tur başına net</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>`;}});
+ return `<div class="ledger">${rows.map(e=>e.k==='inc'?`<span>${esc(e.l)}</span><b class="pos">+${e.v.toFixed(1)}</b>`:`<span>${esc(e.l)}</span><b class="neg">−${e.v.toFixed(1)}</b>`).join('')}<span class="tot">${lng('Tur başına net','Net per turn')}</span><b class="tot ${inc-up>=0?'pos':'neg'}">${(inc-up>=0?'+':'')+(inc-up).toFixed(1)}</b></div>`;}});
 STATE_SECTIONS.push({id:'meta',order:20,html(f){const F=S.fac[f],ps=facProvs(f),mk=ps.filter(i=>S.prov[i].mkt).length,un=ps.filter(i=>S.prov[i].un>0).length,ds=devSum(f);
- return `<div class="meta"><span>Eyalet <b>${ps.length}</b></span><span>Pazar <b>${mk}</b></span><span>Huzursuz <b>${un}</b></span><span>İnsan gücü <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>Topçu <b>${F.cannon?'var':'yok'}</b></span><span>Puan <b>${score(f)}</b></span><span>Zafer/yenilgi <b>${S.stats.won}/${S.stats.lost}</b></span></div>`;}});
+ return `<div class="meta"><span>${lng('Eyalet','Provinces')} <b>${ps.length}</b></span><span>${lng('Pazar','Markets')} <b>${mk}</b></span><span>${lng('Huzursuz','Unrest')} <b>${un}</b></span><span>${lng('İnsan gücü','Manpower')} <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>${lng('Topçu','Cannon')} <b>${F.cannon?lng('var','yes'):lng('yok','none')}</b></span><span>${lng('Puan','Score')} <b>${score(f)}</b></span><span>${lng('Zafer/yenilgi','Won/lost')} <b>${S.stats.won}/${S.stats.lost}</b></span></div>`;}});
 ACTS.ev=t=>{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();};
 ACTS.mclose=()=>closeModal();
 KE.showReport=()=>showReport();
@@ -4523,41 +4526,41 @@ ACTS.chron=()=>showChron();
    DIPLOMACY UI (Track B): Divan, peace offers, battle report rows
    ===================================================================== */
 function btlRow(r){const pl=S.player,mineAtk=r.att===pl;const won=mineAtk?r.win:!r.win,fld=r.kind==='field';
- const title=mineAtk?`${PD[r.to].name} ${fld?'meydan muharebesi':'seferi'}`:`${FAC[r.att].s} ${fld?'ordusuyla meydan muharebesi':'saldırısı'}: ${PD[r.to].name}`;
- const end=fld?(r.surrounded?'<span>Kuşatılan ordu yok edildi</span>':r.win&&r.retreat!=null?`<span>Yenilen ordu ${esc(PD[r.retreat].name)} yönüne çekildi</span>`:''):(r.win?'<span>Eyalet el değiştirdi</span>':'');
- return `<div class="btl" data-act="bcard" data-k="${S.report.indexOf(r)}" style="cursor:pointer"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?'Zafer':'Yenilgi'}</span>
-  <div class="meta"><span>Saldıran <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>${fld?'Savunan ordu':'Savunan garnizon'} <b>${fmtK(r.defT)}</b></span><span>Kayıplar <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?'<span>Kale hasar gördü</span>':''}${end}</div></div>`;}
-REPORT_SECTIONS.push({id:'offers',order:10,html:()=>S.offers.length?`<div class="sec"><h3>Elçiler</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>Barış teklif ediyor · savaş skoru ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-f="${o.f}" data-v="1">Kabul</button><button class="btn" data-act="off" data-k="${k}" data-f="${o.f}" data-v="0">Reddet</button></div></div>`).join('')}</div></div>`:''});
-REPORT_SECTIONS.push({id:'battles',order:20,html(){const rep=(S.report||[]).filter(r=>r.att!==S.player);return rep.length?`<div class="sec"><h3>Muharebeler</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`:'';}});
+ const title=mineAtk?lng(`${PD[r.to].name} ${fld?'meydan muharebesi':'seferi'}`,`${fld?'Field battle at':'Campaign against'} ${PD[r.to].name}`):lng(`${FAC[r.att].s} ${fld?'ordusuyla meydan muharebesi':'saldırısı'}: ${PD[r.to].name}`,`${fld?'Field battle with the army of':'Attack by'} ${FAC[r.att].s}: ${PD[r.to].name}`);
+ const end=fld?(r.surrounded?`<span>${lng('Kuşatılan ordu yok edildi','The surrounded army was destroyed')}</span>`:r.win&&r.retreat!=null?`<span>${lng(`Yenilen ordu ${esc(PD[r.retreat].name)} yönüne çekildi`,`The beaten army fell back towards ${esc(PD[r.retreat].name)}`)}</span>`:''):(r.win?`<span>${lng('Eyalet el değiştirdi','The province changed hands')}</span>`:'');
+ return `<div class="btl" data-act="bcard" data-k="${S.report.indexOf(r)}" style="cursor:pointer"><span>${esc(title)}</span><span class="res2" style="color:${won?'var(--ok)':'var(--war2)'}">${won?lng('Zafer','Victory'):lng('Yenilgi','Defeat')}</span>
+  <div class="meta"><span>${lng('Saldıran','Attacker')} <b>${fmtK(r.n)}</b> (${FAC[r.att].s})</span><span>${fld?lng('Savunan ordu','Defending army'):lng('Savunan garnizon','Defending garrison')} <b>${fmtK(r.defT)}</b></span><span>${lng('Kayıplar','Losses')} <b>${fmtK(r.aLoss)}</b> / <b>${fmtK(r.dLoss)}</b></span>${r.fortDmg?`<span>${lng('Kale hasar gördü','The walls were damaged')}</span>`:''}${end}</div></div>`;}
+REPORT_SECTIONS.push({id:'offers',order:10,html:()=>S.offers.length?`<div class="sec"><h3>${lng('Elçiler','Envoys')}</h3><div class="rows">${S.offers.map((o,k)=>`<div class="row offer">${shield(o.f)}<div class="nm">${esc(FAC[o.f].n)}<small>${lng('Barış teklif ediyor · savaş skoru','Offers peace · war score')} ${warScore(S.player,o.f)>=0?'+':''}${warScore(S.player,o.f)}</small></div><div class="ra"><button class="btn primary" data-act="off" data-k="${k}" data-f="${o.f}" data-v="1">${lng('Kabul','Accept')}</button><button class="btn" data-act="off" data-k="${k}" data-f="${o.f}" data-v="0">${lng('Reddet','Refuse')}</button></div></div>`).join('')}</div></div>`:''});
+REPORT_SECTIONS.push({id:'battles',order:20,html(){const rep=(S.report||[]).filter(r=>r.att!==S.player);return rep.length?`<div class="sec"><h3>${lng('Muharebeler','Battles')}</h3><div class="rows">${rep.map(btlRow).join('')}</div></div>`:'';}});
 function showDiplo(){
  const pl=S.player;const nb=new Set(nbrs(pl));
  const list=FK.filter(f=>f!==pl&&alive(f)).sort((a,b)=>(atWar(pl,b)-atWar(pl,a))||(nb.has(b)-nb.has(a))||(strength(b)-strength(a)));
  const parts=bySlot(DIPLO_ROW),cat=(f,k)=>parts.map(x=>{try{return x[k]?x[k](f)||'':'';}catch(e){console.error('diplo '+x.id,e);return '';}}).join('');
- const rows=list.map(f=>`<div class="row">${shield(f)}<div class="nm">${esc(FAC[f].n)}<small>${esc(rulerName(f))}${nb.has(f)?' · komşu':''}</small></div><div>${relChip(f)}</div></div>
+ const rows=list.map(f=>`<div class="row">${shield(f)}<div class="nm">${esc(FAC[f].n)}<small>${esc(rulerName(f))}${nb.has(f)?lng(' · komşu',' · neighbour'):''}</small></div><div>${relChip(f)}</div></div>
    <div class="row sub"><div class="meta">${cat(f,'meta')}</div><div class="ra" style="justify-content:flex-start;margin-top:6px">${cat(f,'buttons')}</div></div>`).join('');
- openModal(`<div class="eyebrow">Divan-ı Hümayun</div><h2>Diplomasi</h2><p class="lead" style="font-size:14px">Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+ openModal(`<div class="eyebrow">${lng('Divan-ı Hümayun','The Imperial Divan')}</div><h2>${lng('Diplomasi','Diplomacy')}</h2><p class="lead" style="font-size:14px">${lng('Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.','War score rises with battles and conquests. An enemy you are beating is more willing to make peace and pay tribute. Your allies fight at your side against any realm that attacks you.')}</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);
 }
 DIPLO_ROW.push({id:'core',order:10,
- meta(f){const pl=S.player,w=atWar(pl,f),op=getOp(pl,f);return `<span>Eyalet <b>${facProvs(f).length}</b></span><span>Ordu <b>${fmtK(strength(f))}</b></span><span>İlişki <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>Savaş skoru <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span>`;},
+ meta(f){const pl=S.player,w=atWar(pl,f),op=getOp(pl,f);return `<span>${lng('Eyalet','Provinces')} <b>${facProvs(f).length}</b></span><span>${lng('Ordu','Army')} <b>${fmtK(strength(f))}</b></span><span>${lng('İlişki','Relations')} <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>${lng('Savaş skoru','War score')} <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span>`;},
  buttons(f){const pl=S.player,F=S.fac[pl],w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f);let b='';
-  if(w){b+=`<button class="btn" data-act="dp-peace" data-f="${f}">Barış teklif et</button><button class="btn" data-act="dp-trib" data-f="${f}">Haraç iste</button>`;}
-  else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">İttifakı boz</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">İttifak öner</button>`;
-   b+=`<button class="btn" data-act="dp-gift" data-f="${f}" ${F.gold<50?'disabled':''}>Hediye (50)</button>`;
-   if(!al&&!tr)b+=`<button class="btn danger" data-act="dp-war" data-f="${f}">${confirmKey==='dw:'+f?'Emin misin?':'Savaş ilan et'}</button>`;}
+  if(w){b+=`<button class="btn" data-act="dp-peace" data-f="${f}">${lng('Barış teklif et','Offer peace')}</button><button class="btn" data-act="dp-trib" data-f="${f}">${lng('Haraç iste','Demand tribute')}</button>`;}
+  else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">${lng('İttifakı boz','Break alliance')}</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">${lng('İttifak öner','Propose alliance')}</button>`;
+   b+=`<button class="btn" data-act="dp-gift" data-f="${f}" ${F.gold<50?'disabled':''}>${lng('Hediye (50)','Gift (50)')}</button>`;
+   if(!al&&!tr)b+=`<button class="btn danger" data-act="dp-war" data-f="${f}">${confirmKey==='dw:'+f?lng('Emin misin?','Are you sure?'):lng('Savaş ilan et','Declare war')}</button>`;}
   return b;}});
 
 ACTS.diplo=()=>showDiplo();
 ACTS['dp-war']=(t,f)=>{const o=t.dataset.f,ck='dw:'+o;if(confirmKey!==ck){confirmKey=ck;showDiplo();return;}confirmKey='';declareWar(f,o);SND.play('war');renderAll();showDiplo();};
-ACTS['dp-peace']=(t,f)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(`${FAC[o].s} barışı kabul etti.`,'good');}else{toast(`${FAC[o].s} barışı reddetti.`,'war');addOp(f,o,-5);}renderAll();showDiplo();};
-ACTS['dp-trib']=(t,f,F)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o);SND.play('coin');news(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,'good');toast(`${FAC[o].s} ${g} altın haraç ödedi.`,'good');}else toast(tributeAmt(o)<10?`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`:`${FAC[o].s} haraç vermeyi reddetti.`,'war');renderAll();showDiplo();};
-ACTS['dp-ally']=(t,f)=>{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(`${FAC[o].s} ile ittifak kuruldu.`,'good');toast(`${FAC[o].s} ittifakı kabul etti.`,'good');}else{toast(`${FAC[o].s} ittifak teklifini geri çevirdi.`);}renderAll();showDiplo();};
-ACTS['dp-gift']=(t,f,F)=>{const o=t.dataset.f;if(F.gold<50)return;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,'good');renderAll();showDiplo();};
-ACTS['dp-break']=(t,f)=>{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(`${FAC[o].s} ile ittifak bozuldu.`);renderAll();showDiplo();};
+ACTS['dp-peace']=(t,f)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptPeace(o,f)){makePeace(f,o);SND.play('peace');toast(lng(`${FAC[o].s} barışı kabul etti.`,`${FAC[o].s} accepted peace.`),'good');}else{toast(lng(`${FAC[o].s} barışı reddetti.`,`${FAC[o].s} refused peace.`),'war');addOp(f,o,-5);}renderAll();showDiplo();};
+ACTS['dp-trib']=(t,f,F)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o);SND.play('coin');news(lng(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,`${FAC[o].s} paid ${g} gold in tribute for peace.`),'good');toast(lng(`${FAC[o].s} ${g} altın haraç ödedi.`,`${FAC[o].s} paid ${g} gold in tribute.`),'good');}else toast(tributeAmt(o)<10?lng(`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`,`The treasury of ${FAC[o].s} is empty: there is no tribute to pay.`):lng(`${FAC[o].s} haraç vermeyi reddetti.`,`${FAC[o].s} refused to pay tribute.`),'war');renderAll();showDiplo();};
+ACTS['dp-ally']=(t,f)=>{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(lng(`${FAC[o].s} ile ittifak kuruldu.`,`Alliance formed with ${FAC[o].s}.`),'good');toast(lng(`${FAC[o].s} ittifakı kabul etti.`,`${FAC[o].s} accepted the alliance.`),'good');}else{toast(lng(`${FAC[o].s} ittifak teklifini geri çevirdi.`,`${FAC[o].s} turned down the alliance.`));}renderAll();showDiplo();};
+ACTS['dp-gift']=(t,f,F)=>{const o=t.dataset.f;if(F.gold<50)return;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(lng(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,`${FAC[o].s} welcomed your gift (+20 relations).`),'good');renderAll();showDiplo();};
+ACTS['dp-break']=(t,f)=>{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(lng(`${FAC[o].s} ile ittifak bozuldu.`,`The alliance with ${FAC[o].s} was broken.`));renderAll();showDiplo();};
 ACTS.off=(t,f)=>{let k=+t.dataset.k;const ok=t.dataset.v==='1',fk=t.dataset.f;
  // the list can change while the report is open: match by envoy, and redraw when the offer is gone (no dead buttons)
  if(fk&&(!S.offers[k]||S.offers[k].f!==fk))k=S.offers.findIndex(o=>o.f===fk);
- const of=S.offers[k];if(!of){pruneOffers();renderAll();showReport();return;}S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast('Bu teklif artık geçerli değil.');renderAll();showReport();return;}
- if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(`${FAC[of.f].s} ile barış yapıldı.`,'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();};
+ const of=S.offers[k];if(!of){pruneOffers();renderAll();showReport();return;}S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast(lng('Bu teklif artık geçerli değil.','This offer is no longer valid.'));renderAll();showReport();return;}
+ if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(lng(`${FAC[of.f].s} ile barış yapıldı.`,`Peace made with ${FAC[of.f].s}.`),'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();};
 /* ---------------- guide ---------------- */
 const GUIDE_TABS=[['genel','Genel'],['para','Para'],['savas','Savaş'],['bina','Binalar'],['diplo','Diplomasi'],['olay','Olaylar']];
 function guideBody(t){
@@ -4656,7 +4659,18 @@ function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  <div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);
-function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
+function showHelp(){openModal(EN?`<div class="eyebrow">How to play</div><h2>The Art of War</h2>
+ <div class="logl">
+ <div><time>Select</time><span>Tap one of your provinces. Green neighbours are your own land, red ones belong to an enemy you are at war with.</span></div>
+ <div><time>March</time><span>From the selected province tap a neighbour, then <b>March</b> or <b>Attack</b>. Troops that have moved cannot move again that turn.</span></div>
+ <div><time>Battle</time><span>The garrison, the local militia (by development and walls) and the walls all join the defence. Mountain provinces defend 30% better. Attacks in winter are 15% weaker.</span></div>
+ <div><time>Cannon</time><span>The Ottomans gain siege cannon in 1453, everyone else in 1460. Cannon cancel most of the fortress bonus.</span></div>
+ <div><time>Treasury</time><span>Income comes from province development; every 1,000 soldiers cost 1 gold in pay each turn. If the treasury goes negative, soldiers desert.</span></div>
+ <div><time>Conquest</time><span>A newly taken province stays restless for 8 turns and gives half income. Losing your capital costs 30% of the treasury.</span></div>
+ <div><time>Diplomacy</time><span>Declare war, ask for peace or tribute, form alliances. Allies help in defensive wars. Peace is followed by a 12-turn truce.</span></div>
+ <div><time>Tips</time><span>Rest on a number or a button (press and hold on a phone): the vizier explains what it does. On a keyboard Space ends the turn, Esc closes, 1–4 open Diplomacy, Goals, Chronicle and the State book.</span></div>
+ <div><time>Victory</time><span>Rule half the provinces, or gather the highest score by 1531. Drag the map; zoom with the wheel or two fingers.</span></div>
+ </div><div class="foot"><button class="btn primary" data-act="mclose">Got it</button></div>`:`<div class="eyebrow">Nasıl oynanır</div><h2>Harp Usulü</h2>
  <div class="logl">
  <div><time>Seç</time><span>Kendi eyaletine dokun. Yeşil komşular kendi toprağın, kırmızılar savaşta olduğun düşmanın.</span></div>
  <div><time>Yürüt</time><span>Seçili eyaletten komşuya dokun, asker sayısını ayarla, <b>Yürüt</b> ya da <b>Saldır</b>. Hareket eden askerler o tur tekrar hareket edemez.</span></div>
@@ -4668,38 +4682,40 @@ function showHelp(){openModal(`<div class="eyebrow">Nasıl oynanır</div><h2>Har
  <div><time>İpuçları</time><span>Bir sayının ya da düğmenin üzerinde dur (telefonda basılı tut): vezir ne işe yaradığını anlatır. Klavyede Boşluk turu bitirir, Esc kapatır, 1–4 Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</span></div>
  <div><time>Zafer</time><span>Eyaletlerin yarısına hükmet ya da 1531'e kadar en yüksek puanı topla. Haritayı sürükle, tekerlek ya da iki parmakla yakınlaştır.</span></div>
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
-function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>Menü</h2>
- <p class="lead" style="font-size:14px">Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>
+function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>${lng('Menü','Menu')}</h2>
+ <p class="lead" style="font-size:14px">${lng('Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.','The game saves itself in this browser after every move. Even if the page closes, <b>Continue saved game</b> on the start screen takes you back to where you left off.')}</p>
  ${bySlot(MENU_SECTIONS).map(x=>{try{return x.html()||'';}catch(e){console.error('menu '+x.id,e);return '';}}).join('')}
- <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">Oyun rehberi</button>
- <button class="btn danger" data-act="newgame">Yeni oyun başlat</button>
- <button class="btn primary" data-act="mclose">Oyuna dön</button></div>`);
+ <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">${lng('Oyun rehberi','Game guide')}</button>
+ <button class="btn danger" data-act="newgame">${lng('Yeni oyun başlat','Start a new game')}</button>
+ <button class="btn primary" data-act="mclose">${lng('Oyuna dön','Back to the game')}</button></div>`);
  const root=$('#modal .card');for(const x of bySlot(MENU_SECTIONS))if(x.bind){try{x.bind(root);}catch(e){console.error('menu '+x.id,e);}}}
-MENU_SECTIONS.push({id:'sound',order:20,html:()=>`<div class="sec"><h3>Ses</h3><div class="acts"><button class="btn" data-act="snd-music">Müzik <span class="c">${SND.st.music?'Açık':'Kapalı'}</span></button><button class="btn" data-act="snd-sfx">Efektler <span class="c">${SND.st.sfx?'Açık':'Kapalı'}</span></button></div>
- <div class="amt" style="margin-top:10px"><label for="vol">Ses düzeyi</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>`,
+MENU_SECTIONS.push({id:'sound',order:20,html:()=>`<div class="sec"><h3>${lng('Ses','Sound')}</h3><div class="acts"><button class="btn" data-act="snd-music">${lng('Müzik','Music')} <span class="c">${SND.st.music?lng('Açık','On'):lng('Kapalı','Off')}</span></button><button class="btn" data-act="snd-sfx">${lng('Efektler','Effects')} <span class="c">${SND.st.sfx?lng('Açık','On'):lng('Kapalı','Off')}</span></button></div>
+ <div class="amt" style="margin-top:10px"><label for="vol">${lng('Ses düzeyi','Volume')}</label><b id="volv">${Math.round(SND.st.vol*100)}</b></div><input type="range" id="vol" min="0" max="100" step="5" value="${Math.round(SND.st.vol*100)}"></div>`,
  bind(){const v=$('#vol');v.addEventListener('input',()=>{$('#volv').textContent=v.value;SND.set('vol',v.value/100);if(!SND.st.on){SND.set('on',true);sndIcon();}});v.addEventListener('change',()=>SND.play('coin'));}});
 function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?'defeat':'fanfare');const sc=FK.filter(alive).map(f=>({f,s:score(f)})).sort((a,b)=>b.s-a.s);const rank=sc.findIndex(x=>x.f===pl)+1;
- const t=S.over==='win'?'Cihan Hâkimiyeti':S.over==='lose'?'Devletin Sonu':'1531: Bir Devrin Sonu';
- const d=S.over==='win'?`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`:S.over==='lose'?`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`:`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`;
+ const t=S.over==='win'?lng('Cihan Hâkimiyeti','Dominion of the World'):S.over==='lose'?lng('Devletin Sonu','The End of the Realm'):lng('1531: Bir Devrin Sonu','1531: The End of an Era');
+ const d=S.over==='win'?lng(`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`,`${FAC[pl].n} rules more than half the map. Your dynasty has written its name into history in letters of gold.`):S.over==='lose'?lng(`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`,`${FAC[pl].n} has lost its last land. The history books will remember you as a footnote.`):lng(`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`,`Eighty years of rule have come to an end. Your realm ranks ${ordEn(rank)} among the powers.`);
  openModal(`<div class="eyebrow endm">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
- <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} eyalet</small></div><b>${x.s}</b></div>`).join('')}</div>
- <p class="hint">Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.</p>
- <div class="foot"><button class="btn" data-act="mclose">Haritaya bak</button><button class="btn primary" data-act="newgame">Yeni oyun</button></div>`);}
+ <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} ${lng('eyalet',facProvs(x.f).length===1?'province':'provinces')}</small></div><b>${x.s}</b></div>`).join('')}</div>
+ <p class="hint">${lng('Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.','The game is over. You can still look at the map; the <b>Game over</b> button in the top bar opens this screen again.')}</p>
+ <div class="foot"><button class="btn" data-act="mclose">${lng('Haritaya bak','View the map')}</button><button class="btn primary" data-act="newgame">${lng('Yeni oyun','New game')}</button></div>`);}
+/** English ordinal: 1st, 2nd, 3rd, 11th … */
+function ordEn(n){const v=n%100;return n+(v>=11&&v<=13?'th':['th','st','nd','rd'][n%10]||'th');}
 
 /* ---------------- start screen ---------------- */
 /* start screen: group anchors (Güçlü / Dengeli / Zorlu) at the top of the list, a scroll hint while
    more cards are below, and the choice bar under the list (never over it). */
-const uiStartGroups=[[1,'Güçlü başlangıç','Güçlü'],[2,'Dengeli','Dengeli'],[3,'Zorlu','Zorlu']];
+const uiStartGroups=[[1,lng('Güçlü başlangıç','Strong start'),lng('Güçlü','Strong')],[2,lng('Dengeli','Balanced'),lng('Dengeli','Balanced')],[3,lng('Zorlu','Hard'),lng('Zorlu','Hard')]];
 function renderStart(){
  const fl=$('#flist'),top=fl.scrollTop;
- fl.innerHTML=`<div class="fjump" role="navigation" aria-label="Devlet grupları">${uiStartGroups.map(([g,,s])=>`<button class="fj" data-act="sgrp" data-g="${g}">${s}</button>`).join('')}</div>`
-  +uiStartGroups.map(([g,t])=>`<div class="fgroup" id="fg${g}"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} eyalet · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('')
-  +'<div class="fmore" aria-hidden="true">Aşağıda başka devletler de var ↓</div>';
+ fl.innerHTML=`<div class="fjump" role="navigation" aria-label="${lng('Devlet grupları','Realm groups')}">${uiStartGroups.map(([g,,s])=>`<button class="fj" data-act="sgrp" data-g="${g}">${s}</button>`).join('')}</div>`
+  +uiStartGroups.map(([g,t])=>`<div class="fgroup" id="fg${g}"><h4>${t}</h4><div class="fgrid">${FK.filter(f=>FAC[f].dif===g).sort((a,b)=>facProvs(b).length-facProvs(a).length).map(f=>`<button class="fcard ${startPick===f?'on':''}" data-act="pick" data-f="${f}">${shield(f)}<span class="nm">${esc(FAC[f].s)}<small>${facProvs(f).length} ${lng('eyalet',facProvs(f).length===1?'province':'provinces')} · ${fmtK(strength(f))}</small></span></button>`).join('')}</div></div>`).join('')
+  +`<div class="fmore" aria-hidden="true">${lng('Aşağıda başka devletler de var ↓','More realms below ↓')}</div>`;
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
- $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · başkent ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
-  <div class="row2">${has?'<button class="btn" data-act="continue">Kayıtlı oyuna dön</button>':''}<button class="btn primary" data-act="begin">Sefere başla</button></div>`
-  :`<p>Soldan bir devlet seç. Haritada toprakları parlayacak.</p>${has?'<div class="row2"><button class="btn primary" data-act="continue">Kayıtlı oyuna dön</button></div>':''}`;
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+  <div class="row2">${has?`<button class="btn" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button>`:''}<button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
+  :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${has?`<div class="row2"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button></div>`:''}`;
 }
 function uiStartScroll(){const fl=$('#flist');fl.classList.toggle('more',fl.scrollTop+fl.clientHeight<fl.scrollHeight-24);}
 $('#flist').addEventListener('scroll',uiStartScroll,{passive:true});addEventListener('resize',()=>{if(!$('#start').hidden)uiStartScroll();});
@@ -4713,7 +4729,7 @@ function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);
  const smax=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1),fit=Math.min((vw-side-60)/(x1-x0+90),(vh-60)/(y1-y0+90))*(G3.on?.8:1);
  centerOn((x0+x1)/2,(y0+y1)/2,clamp(fit,fitS*.9,smax),side);}
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
- queueModal(()=>eventModal({t:FAC[f].n,e:'İlkbahar 1451',d:FAC[f].d+' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',ch:[{l:'Hükmetmeye başla'}]}));save();}
+ queueModal(()=>eventModal({t:FAC[f].n,e:lng('İlkbahar 1451','Spring 1451'),d:FAC[f].d+lng(' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',' Start by tapping one of your provinces; tap a neighbouring province to march troops there.'),ch:[{l:lng('Hükmetmeye başla','Begin your reign')}]}));save();}
 function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
  if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);
  runHooks('enterGame');}
@@ -4736,7 +4752,7 @@ KE.migrate=s=>migrate(s);
 function loadGame(){try{const raw=localStorage.getItem(SAVE),s=JSON.parse(raw);if(!s||!s.prov||s.prov.length!==NP)throw 0;
   if((s.v||1)<2){try{if(!localStorage.getItem(SAVE+'-backup'))localStorage.setItem(SAVE+'-backup',raw);}catch(e){}}
   S=migrate(s);pruneOffers();$('#start').hidden=true;enterGame();}
- catch(e){toast('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','war');}}
+ catch(e){toast(lng('Kayıtlı oyun okunamadı. Yeni bir oyun başlat.','The saved game could not be read. Start a new game.'),'war');}}
 ACTS.menu=()=>showMenu();
 ACTS['snd-music']=()=>{SND.set('music',!SND.st.music);showMenu();};
 ACTS['snd-sfx']=()=>{SND.set('sfx',!SND.st.sfx);showMenu();};
