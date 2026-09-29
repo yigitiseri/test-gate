@@ -75,7 +75,13 @@ function guideBody(t){
  <h3>Haritayı kullanmak</h3>
  <ul><li>Bir eyaletini seçmek için üstüne dokun. Komşularından <b>yeşil</b> parlayanlar senin toprağın, <b>kırmızı</b> parlayanlar savaştığın düşman.</li>
  <li>Haritayı parmağınla ya da fareyle sürükle; iki parmakla ya da fare tekerleğiyle yakınlaş.</li>
- <li>Sol alttaki düğmelerle 3D ve 2D görünüm arasında geçiş yapabilirsin.</li></ul>
+ <li>Sol alttaki düğmelerle 3D ve 2D görünüm arasında geçiş yapabilirsin.</li>
+ <li>Telefonda eyalet bilgileri alttan açılan bir çekmecede durur. Tutamağına dokunarak ya da yukarı çekerek büyüt, aşağı çekerek kapat.</li></ul>
+ <h3>Vezirin yardımı</h3>
+ <ul><li>Bir sayının üstünde dur ya da telefonda ona dokun: vezir o sayının nereden geldiğini anlatır. Hazine'ye bakarsan gelirini ve giderini kalem kalem görürsün.</li>
+ <li>Sol altta (telefonda sağ altta) vezirin öğüdü belirir: hazine eriyorsa, ordun boş bekliyorsa ya da barış vakti geldiyse haber verir. Dokun, ne yapman gerektiğini söylesin.</li>
+ <li>İlk oyununda vezir sana adım adım yol gösterir. Dersleri Menü'den yeniden başlatabilir ya da kapatabilirsin.</li>
+ <li>Klavyede <b>Boşluk</b> turu bitirir, <b>Esc</b> pencereyi kapatır, <b>1–4</b> Diplomasi, Hedefler, Vakayiname ve Devlet defterini açar.</li></ul>
  <p class="tip">Oyun her hamleden sonra kendiliğinden kaydedilir. Kapatsan bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.</p>`;
 }
 function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
