@@ -7,7 +7,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function shield(f,big){return `<span class="shield${big?' big':''}" title="${esc(FAC[f].n)}">${armsSVG(f)}</span>`;}
 function relChip(f){const pl=S.player;if(f===pl)return `<span class="chip ally">${lng('Senin','Yours')}</span>`;
  if(atWar(pl,f))return `<span class="chip war">${lng('Savaşta','At war')}</span>`;if(isAlly(pl,f))return `<span class="chip ally">${lng('Müttefik','Ally')}</span>`;
- if(inTruce(pl,f))return `<span class="chip truce">${lng('Ateşkes','Truce')} · ${S.truce[key(pl,f)]-S.turn} ${lng('tur','turns')}</span>`;return `<span class="chip">${lng('Barış','Peace')}</span>`;}
+ if(inTruce(pl,f))return `<span class="chip truce">${lng('Ateşkes','Truce')} · ${S.truce[key(pl,f)]-S.turn} ${lng('tur',S.truce[key(pl,f)]-S.turn===1?'turn':'turns')}</span>`;return `<span class="chip">${lng('Barış','Peace')}</span>`;}
 /** Short message at the top centre, under the top bar (never over the panel; never takes taps). */
 function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;t.setAttribute('role','status');$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3800);while($('#toasts').children.length>3)$('#toasts').firstChild.remove();}
 
@@ -58,7 +58,7 @@ function renderPanel(){
  const d=PD[sel],p=S.prov[sel],f=S.player,F=S.fac[f],mine=p.o===f,isCap=S.fac[p.o].cap===sel;
  const terr=d.mtn?lng('Dağlık · +30% savunma','Mountains · +30% defence'):d.des?lng('Çöl · +10% savunma','Desert · +10% defence'):lng('Ova','Plains');
  let h=`<div class="ph">${shield(p.o,true)}<div><h2>${isCap?'★ ':''}${esc(d.name)}</h2><div class="sub">${esc(FAC[p.o].n)}</div></div><button class="x" data-act="close" aria-label="${lng('Kapat','Close')}">×</button></div>
- <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">${lng('Huzursuz','Unrest')} · ${p.un} ${lng('tur','turns')}</span>`:''}${p.mkt?`<span class="chip">${lng('Pazar','Market')}</span>`:''}${p.brk?`<span class="chip">${lng('Kışla','Barracks')}</span>`:''}</div>
+ <div class="chips">${relChip(p.o)}<span class="chip" data-tip="terrain" data-i="${sel}">${terr}</span>${p.un>0?`<span class="chip un" data-tip="unrest" data-i="${sel}">${lng('Huzursuz','Unrest')} · ${p.un} ${lng('tur',p.un===1?'turn':'turns')}</span>`:''}${p.mkt?`<span class="chip">${lng('Pazar','Market')}</span>`:''}${p.brk?`<span class="chip">${lng('Kışla','Barracks')}</span>`:''}</div>
  <div class="grid4"><div data-tip="dev" data-i="${sel}"><label>${lng('Gelişim','Development')}</label><b>${p.dev}</b></div><div data-tip="fort" data-i="${sel}"><label>${lng('Kale','Fortress')}</label><b>${p.fort}</b></div><div data-tip="garrison" data-i="${sel}"><label>${lng('Garnizon','Garrison')}</label><b>${fmtK(p.t)}</b></div><div data-tip="pinc" data-i="${sel}"><label>${lng('Gelir','Income')}</label><b>${provIncome(sel).toFixed(1)}</b></div></div>`;
  const ctx={i:sel,d,p,f,F,mine,isCap,tgt};
  const secs=bySlot(PANEL_SECTIONS).filter(x=>{try{return x.when(ctx);}catch(e){console.error('panel '+x.id,e);return false;}});

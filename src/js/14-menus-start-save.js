@@ -68,7 +68,7 @@ function startCenter(f){const side=vw>760?Math.min(470,vw*.45):0,ps=facProvs(f);
  const smax=Math.max(fitS*1.25,Math.min(vw,vh)/700)*(G3.on?1.5:1),fit=Math.min((vw-side-60)/(x1-x0+90),(vh-60)/(y1-y0+90))*(G3.on?.8:1);
  centerOn((x0+x1)/2,(y0+y1)/2,clamp(fit,fitS*.9,smax),side);}
 function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGame();
- queueModal(()=>eventModal({t:FAC[f].n,e:lng('İlkbahar 1451','Spring 1451'),d:FAC[f].d+lng(' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',' Start by tapping one of your provinces; tap a neighbouring province to march troops there.'),ch:[{l:lng('Hükmetmeye başla','Begin your reign')}]}));save();}
+ queueModal(()=>eventModal({t:FAC[f].n,e:dateStr(0),d:FAC[f].d+lng(' Bir eyaletine dokunarak başla; komşu eyalete dokunarak asker yürüt.',' Start by tapping one of your provinces; tap a neighbouring province to march troops there.'),ch:[{l:lng('Hükmetmeye başla','Begin your reign')}]}));save();}
 function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
  if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);
  runHooks('enterGame');}
