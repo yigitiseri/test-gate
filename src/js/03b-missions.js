@@ -194,12 +194,105 @@ const MIS_BR={OSM:['Rumeli ve Batı','Anadolu ve Doğu'],BYZ:['Kuşatma ve Traky
  KKY:['Batı Seferleri','Kafkasya ve Ticaret'],TRB:['Evlilik ve Ticaret','Surlar ve Dostlar'],GEO:['Birlik ve Genişleme','Kafkas Kalkanı'],HAB:['Macar Mirası','Viyana ve Taç'],
  POL:['Karadeniz\'e İniş','Taçlar ve Dostlar'],GH:['Kırım Davası','Hazar ve Dostlar'],ARA:['Adriyatik','İtalya'],PAP:['Haçlı Seferi','Papalık Toprakları'],
  CYP:['Ada ve Dostlar','Şeker ve Kıyı'],RHO:['Ada Kalesi','Tarikatın Dostları'],HAF:['Doğu Kıyıları','Korsanlar ve Hazine'],SAF:['Kızılbaş Tahtı','Kafkasya ve Irak']};
+/* English mission texts, keyed by faction and mission id. The Turkish trees above stay the source of the goals;
+   the save keeps Turkish t/d copies, so the English is looked up by id whenever a mission is shown. */
+const MIS_EN={
+ OSM:{A1:['The Conquest of Constantinople','Take the city and join Rumelia to Anatolia.'],A2:['The Morea Campaign','Take the Despots\' fortresses of Mistra and Corinth.'],
+  A3:['Serbian Silver','Take the fortress of Smederevo and the mines of Novo Brdo.'],A4:['The Gate of Belgrade','Bring down the Hungarians\' fortress on the Danube.'],
+  A5:['On to Buda','Take the Hungarian capital.'],A6:['The Otranto Expedition','Win a bridgehead on the Italian coast.'],A7:['The Rome Campaign','The Red Apple: conquer Rome.'],
+  B1:['The Karaman Question','Annex Konya and Larende.'],B2:['The Trebizond Campaign','Take the last stronghold of the Komnenoi.'],
+  B3:['The Eastern Campaign','March on Tabriz and open the gate to Persia.'],B4:['The Key to Egypt','Conquer Aleppo and Cairo.']},
+ BYZ:{A1:['Hold the Walls','Keep Constantinople for 8 turns while the Ottoman siege goes on.'],A2:['Free Thessalonica','Win back Thessalonica.'],
+  A3:['Win Back Adrianople','Let Adrianople belong to Rome once more.'],B1:['Unite the Morea','End the quarrel of Thomas and Demetrios: raise Mistra to development 4 and Corinth to 3.'],
+  B2:['Free Athens','Take Athens from the Ottomans.'],B3:['Return to Anatolia','Take Bursa and Nicomedia.']},
+ VEN:{A1:['Queen of the Aegean','Take Chios and Lesbos.'],A2:['Cyprus','Take Nicosia and Famagusta.'],A3:['The Levant Trade','Build markets in 8 provinces.'],
+  B1:['The Fortress of Negroponte','Hold Negroponte for 8 turns while the Ottomans attack.'],B2:['The Port of Thessalonica','Take Thessalonica.'],B3:['The Albanian Coast','Take Valona.']},
+ HUN:{A1:['The Defence of Belgrade','Hold Belgrade for 6 turns while the Ottomans attack.'],A2:['The Smederevo Line','Take Smederevo.'],
+  A3:['Revenge for Varna','Take Sofia and Vidin.'],B1:['The Black Army','Save enough gold to pay the mercenaries.'],
+  B2:['The Danube Line','Take Nicopolis and Silistra.'],B3:['The Crown of Austria','Take Vienna.']},
+ SRB:{A1:['The Fortress of Smederevo','Hold Smederevo for 8 turns while the Ottomans attack.'],A2:['The Silver of Novo Brdo','Raise Novo Brdo to development 4.'],
+  A3:['Vengeance for Kosovo','Take Skopje and Kyustendil.'],B1:['Friendship with Hungary','Form an alliance with the Kingdom of Hungary.'],
+  B2:['Union with Bosnia','Form an alliance with Bosnia.'],B3:['From Nish to Sofia','Take Sofia.']},
+ BOS:{A1:['The Fortress of Jajce','Hold Jajce for 8 turns while the Ottomans attack.'],A2:['Bind Herzegovina','Raise Herzegovina to development 4.'],
+  A3:['The Dalmatian Coast','Take Split and Zadar.'],B1:['The Mines of Srebrenica','Raise Srebrenica to development 3.'],
+  B2:['The Pope\'s Crown','Form an alliance with the Papacy.'],B3:['The Serbian Inheritance','Take Smederevo.']},
+ WAL:{A1:['The Danube Campaign','Take Nicopolis.'],A2:['Silistra and Dobruja','Take Silistra and Dobruja.'],A3:['Varna','Take Varna.'],
+  B1:['The Court of Targoviste','Raise Targoviste to development 5.'],B2:['Friendship with Hungary','Form an alliance with the Kingdom of Hungary.'],
+  B3:['Union with Moldavia','Form an alliance with Moldavia.']},
+ MOL:{A1:['Cetatea Alba and Kiliya','Hold Cetatea Alba for 8 turns while the Ottomans attack.'],A2:['The Throne of Wallachia','Take Targoviste.'],
+  A3:['The Market of Braila','Take Braila.'],B1:['The Fortress of Suceava','Raise Suceava to development 5.'],
+  B2:['Peace with Poland','Form an alliance with Poland.'],B3:['Putna Monastery','Save gold for monasteries and churches.']},
+ ALB:{A1:['The Resistance of Kruja','Hold Kruja for 10 turns while the Ottomans attack.'],A2:['Unite the Coast','Take Scutari and Durazzo.'],
+  A3:['Skopje','Take Skopje.'],B1:['The Venetian Alliance','Form an alliance with Venice.'],
+  B2:['Help from Naples','Form an alliance with the Kingdom of Naples (the Treaty of Gaeta).'],B3:['The Port of Valona','Take Valona.']},
+ KRM:{A1:['Break the Great Horde','Take Azov.'],A2:['The Kuban Steppe','Take Kuban and Circassia.'],A3:['The Kipchak Steppe','Take the Kipchak lands and the Don.'],
+  B1:['The Gates of Caffa','Take Caffa.'],B2:['Friendship with the Ottomans','Form an alliance with the Ottomans.'],B3:['The Fortress of Ochakiv','Take Ochakiv.']},
+ GEN:{A1:['Defend Caffa','Hold Caffa for 8 turns while the Ottomans attack.'],A2:['The Black Sea Trade','Build markets in 4 provinces.'],
+  A3:['The Port of Sinope','Take Sinope.'],B1:['The Mastic of Chios','Raise Chios to development 3.'],
+  B2:['The Wealth of Lesbos','Raise Lesbos to development 3.'],B3:['Nicosia','Take Nicosia.']},
+ KAR:{A1:['The Seljuk Inheritance','Take Ankara and Kirsehir.'],A2:['The March on Bursa','Take the old Ottoman capital.'],
+  A3:['Germiyan and Hamid','Take Kutahya and Hamid.'],B1:['The Mediterranean Coast','Take Teke and Adana.'],
+  B2:['The Dulkadir Plain','Take Marash.'],B3:['Karaman Silver','Save gold in the treasury.']},
+ CAN:{A1:['The Port of Sinope','Raise Sinope to development 4.'],A2:['The Copper Mines','Fill the treasury with copper from Kure.'],
+  A3:['Amasra','Take Amasra.'],B1:['Friendship with Karaman','Form an alliance with Karaman.'],
+  B2:['Cankiri and Bolu','Take Cankiri and Bolu.'],B3:['The Beylik of Canik','Take Canik.']},
+ DUL:{A1:['The Elbistan Uplands','Raise Elbistan to development 3.'],A2:['Kayseri','Take Kayseri.'],A3:['Sivas and Bozok','Take Sivas and Bozok.'],
+  B1:['The Fortress of Divrigi','Raise Divrigi to development 2.'],B2:['Harput','Take Harput.'],
+  B3:['Kinship with the Ottomans','Form an alliance with the Ottomans (the wedding of Sitti Mukrime Hatun).']},
+ MAM:{A1:['The Cilician Coast','Take Icel and Alanya.'],A2:['The Lands of Rum','Take Konya.'],A3:['Bring Down Rhodes','Take the Knights\' island.'],
+  B1:['The Euphrates Line','Take Edessa.'],B2:['Baghdad','Take the old seat of the Abbasid caliphate.'],B3:['The Tribute of Cyprus','Take Nicosia.']},
+ AKK:{A1:['Destroy the Qara Qoyunlu','Take Tabriz.'],A2:['Baghdad','Take Baghdad.'],A3:['Master of Azerbaijan','Take Erivan and Nakhchivan.'],
+  B1:['The Erzurum Uplands','Take Erzurum and Kars.'],B2:['The Trebizond Marriage','Form an alliance with Trebizond (the wedding of Despina Hatun).'],
+  B3:['The Venetian Alliance','Form an alliance with Venice, and let cannon and muskets come against the Ottomans.']},
+ KKY:{A1:['Crush the Aq Qoyunlu','Take Diyarbakir.'],A2:['Aleppo','Take Aleppo.'],A3:['The Road to Anatolia','Take Harput and Erzincan.'],
+  B1:['The Georgian Campaign','Take Tiflis.'],B2:['The Caucasus Gates','Take Kakheti and Akhaltsikhe.'],B3:['Tabriz, City of Trade','Build markets in 5 provinces.']},
+ TRB:{A1:['The Aq Qoyunlu Marriage','Form an alliance with the Aq Qoyunlu (the wedding of Despina Hatun).'],A2:['The Pontic Coast','Take Canik.'],
+  A3:['The Caucasus Trade','Build markets in 3 provinces.'],B1:['The Walls of Trebizond','Hold Trebizond for 8 turns while the Ottomans attack.'],
+  B2:['Develop Kerasous','Raise Kerasous to development 3.'],B3:['Friendship with Georgia','Form an alliance with Georgia.']},
+ GEO:{A1:['The Union of Georgia','Raise Tiflis to development 5.'],A2:['The Road to Shirvan','Take Shirvan.'],A3:['The Armenian Highlands','Take Erivan and Kars.'],
+  B1:['Friendship with Trebizond','Form an alliance with Trebizond.'],B2:['The Caucasus Shield','Hold Tiflis for 8 turns while the Qara Qoyunlu attack.'],
+  B3:['The Gate of Derbent','Take Derbent.']},
+ HAB:{A1:['The Crown of Hungary','Take Pressburg and Raab.'],A2:['Buda','Take the Hungarian capital.'],A3:['The Croatian Coast','Take Zagreb.'],
+  B1:['The Walls of Vienna','Raise Vienna to development 7.'],B2:['Friuli','Take Friuli.'],B3:['The Imperial Crown','Save gold for the coronation.']},
+ POL:{A1:['The Port of Ochakiv','Raise Ochakiv to development 2.'],A2:['Kiliya and Cetatea Alba','Take Kiliya and Cetatea Alba.'],
+  A3:['The Gate of Crimea','Take Perekop.'],B1:['The Voivodeship of Halych','Raise Halych to development 3.'],
+  B2:['The Throne of Hungary','Take Buda.'],B3:['Friendship with Moldavia','Form an alliance with Moldavia.']},
+ GH:{A1:['Win Back Crimea','Take Bakhchysarai.'],A2:['The Treasure of Caffa','Take Caffa.'],A3:['Perekop','Take Perekop.'],
+  B1:['The Caspian Shore','Raise Terek to development 2.'],B2:['The Caucasus Gates','Take Derbent.'],B3:['The Polish Alliance','Form an alliance with Poland.']},
+ ARA:{A1:['The Fortress of Otranto','Raise Otranto to development 4.'],A2:['The Albanian Coast','Take Valona.'],
+  A3:['The Alliance with Skanderbeg','Form an alliance with Albania (the Treaty of Gaeta).'],B1:['The Abruzzo Frontier','Raise Abruzzo to development 3.'],
+  B2:['Pressure on Rome','Take Ancona.'],B3:['Sicilian Wheat','Raise Palermo to development 5.']},
+ PAP:{A1:['The Call to Crusade','Form an alliance with the Kingdom of Hungary.'],A2:['The Crusader Fleet','Form an alliance with Venice.'],
+  A3:['The Crusade','Win 10 battles.'],B1:['The Alum Mines of Tolfa','Fill the treasury with the alum revenue.'],
+  B2:['Bind the Romagna','Take Ravenna.'],B3:['The Port of Ancona','Raise Ancona to development 4.']},
+ CYP:{A1:['Win Back Famagusta','Take Famagusta from the Genoese.'],A2:['Friendship with Rhodes','Form an alliance with the Knights of Rhodes.'],
+  A3:['Venetian Protection','Form an alliance with Venice.'],B1:['Peace with Cairo','Form an alliance with the Mamluk Sultanate.'],
+  B2:['Sugar Cane','Raise Nicosia to development 4.'],B3:['Win Back Korykos','Take Icel.']},
+ RHO:{A1:['The Siege of Rhodes','Hold Rhodes for 8 turns while the Ottomans attack.'],A2:['The Castle of Bodrum','Raise Bodrum to development 2.'],
+  A3:['The Mentese Coast','Take Mentese.'],B1:['The Hospitaller Treasury','Save gold for the Order.'],
+  B2:['Friendship with Cyprus','Form an alliance with Cyprus.'],B3:['The Venetian Alliance','Form an alliance with Venice.']},
+ HAF:{A1:['The Port of Tripoli','Raise Tripoli to development 4.'],A2:['Benghazi','Take Benghazi.'],A3:['Derna and Tobruk','Take Derna and Tobruk.'],
+  B1:['The Corsair Ports','Build markets in 2 provinces.'],B2:['The Treasure of Kairouan','Save gold in the treasury.'],B3:['The Sirte Desert','Raise Sirte to development 2.']},
+ SAF:{A1:['The Throne of Tabriz','Take Tabriz.'],A2:['Baghdad','Take Baghdad.'],A3:['The Qizilbash of Anatolia','Take Erzincan and Sivas.'],
+  B1:['The Shirvan Campaign','Take Shirvan.'],B2:['Diyarbakir','Take Diyarbakir.'],B3:['The Georgian Tribute','Take Tiflis.']}
+};
+const MIS_BR_EN={OSM:['Rumelia and the West','Anatolia and the East'],BYZ:['The Siege and Thrace','The Morea and Anatolia'],VEN:['The Aegean and the Levant','The Sea Republic'],HUN:['The Danube Wars','The Kingdom of Corvinus'],
+ SRB:['Defence of the Despotate','Friends and Vengeance'],BOS:['Fortresses and Coasts','Mines and Crown'],WAL:['The Danube Campaigns','The Voivodeship'],MOL:['The Black Sea Fortresses','The Legacy of Stephen'],
+ ALB:['The Mountain Resistance','Latin Friends'],KRM:['Lord of the Steppe','Caffa and Friends'],GEN:['Caffa and the Black Sea','The Aegean Islands'],KAR:['The Seljuk Inheritance','Coasts and Treasury'],
+ CAN:['Sinope and the Mines','The Beylik\'s Lands'],DUL:['Uplands and City','Fortress and Kinship'],MAM:['The Northern Frontier','The Euphrates and the Sea'],AKK:['The Qara Qoyunlu War','Friends and Marriages'],
+ KKY:['The Western Campaigns','The Caucasus and Trade'],TRB:['Marriage and Trade','Walls and Friends'],GEO:['Union and Growth','The Caucasus Shield'],HAB:['The Hungarian Inheritance','Vienna and the Crown'],
+ POL:['Down to the Black Sea','Crowns and Friends'],GH:['The Crimean Claim','The Caspian and Friends'],ARA:['The Adriatic','Italy'],PAP:['The Crusade','The Papal States'],
+ CYP:['The Island and Friends','Sugar and Coast'],RHO:['The Island Fortress','Friends of the Order'],HAF:['The Eastern Shores','Corsairs and Treasury'],SAF:['The Qizilbash Throne','The Caucasus and Iraq']};
+/** Title and description of mission m of faction f in the current language. English comes from MIS_EN by id,
+ but only when m is that tree's own mission (same Turkish title), so a generic fallback is never mislabelled. */
+function misTxt(m,f){f=f||(S&&S.player);const e=EN&&MIS_EN[f]&&MIS_EN[f][m.id],src=MIS[f]&&MIS[f].find(y=>y.id===m.id);
+ return e&&src&&src.t===m.t?{t:e[0],d:e[1]}:{t:m.t,d:m.d};}
 /** Fallback missions for a faction without a tree (never used for the 28 factions, kept for safety). */
 function genericMissions(f){const n=facProvs(f).length;
  const nb=nbrs(f).filter(g=>g!=='SAF'&&!isAlly(f,g)).sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
- const r=[{id:'A1',br:'A',t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{id:'B1',br:'B',t:'Dolu Hazine',d:'Hazinende para biriktir.',gold:'auto',g:0,dev:['cap',1]}];
- if(tgt)r.push({id:'A2',br:'A',req:['A1'],t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
- r.push({id:'A3',br:'A',req:['A1'],t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
+ const r=[{id:'A1',br:'A',t:lng('Genişleme','Expansion'),d:lng(`${n+4} eyalete ulaş.`,`Rule ${n+4} provinces.`),count:n+4,g:60},{id:'B1',br:'B',t:lng('Dolu Hazine','A Full Treasury'),d:lng('Hazinende para biriktir.','Save gold in your treasury.'),gold:'auto',g:0,dev:['cap',1]}];
+ if(tgt)r.push({id:'A2',br:'A',req:['A1'],t:lng(`${FAC[tgt].s} Seferi`,`The ${FAC[tgt].s} Campaign`),d:lng(`${PD[S.fac[tgt].cap].name} şehrini al.`,`Take the city of ${PD[S.fac[tgt].cap].name}.`),own:[PD[S.fac[tgt].cap].key],g:100});
+ r.push({id:'A3',br:'A',req:['A1'],t:lng('Bölgesel Güç','Regional Power'),d:lng(`${n+12} eyalete ulaş.`,`Rule ${n+12} provinces.`),count:n+12,g:150});return r;}
 /** Gold target scaled to what the realm can actually save (bug B8: Trebizond's 400 at +0 a turn). */
 function misGoldTarget(f){const net=income(f)-upkeep(f);return Math.max(120,Math.round(net*12));}
 function misInstantiate(f){const ms=MIS[f]||genericMissions(f);return ms.map(m=>{const c={...m};if(c.gold==='auto')c.gold=misGoldTarget(f);if(c.hold)c.prog=0;return c;});}
@@ -214,8 +307,8 @@ function misProgress(m,pl){
  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;return {ok:n===m.own.length,p:`${n}/${m.own.length}`};}
  if(m.hold){const i=PK[m.hold],mine=S.prov[i].o===pl;if(m.vs&&!alive(m.vs)&&mine)return {ok:true,p:''};
   if(m.turns==null)return {ok:mine&&S.turn>=(m.until||0),p:''};          // pre-W1 format
-  return {ok:mine&&(m.prog||0)>=m.turns,p:`${m.prog||0}/${m.turns} tur`};}
- if(m.ally){return {ok:alive(m.ally)&&isAlly(pl,m.ally),p:alive(m.ally)?'':'devlet yok oldu'};}
+  return {ok:mine&&(m.prog||0)>=m.turns,p:lng(`${m.prog||0}/${m.turns} tur`,`${m.prog||0}/${m.turns} turns`)};}
+ if(m.ally){return {ok:alive(m.ally)&&isAlly(pl,m.ally),p:alive(m.ally)?'':lng('devlet yok oldu','the realm is gone')};}
  if(m.devAt){const ks=Object.keys(m.devAt),n=ks.filter(k=>S.prov[PK[k]].o===pl&&S.prov[PK[k]].dev>=m.devAt[k]).length;return {ok:n===ks.length,p:`${n}/${ks.length}`};}
  if(m.mkt){const n=facProvs(pl).filter(i=>S.prov[i].mkt).length;return {ok:n>=m.mkt,p:`${n}/${m.mkt}`};}
  if(m.count){const n=facProvs(pl).length;return {ok:n>=m.count,p:`${n}/${m.count}`};}
@@ -229,18 +322,18 @@ function checkMissions(){
   if(!misProgress(m,pl).ok)return;
   S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
-  news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');});
+  const mt=misTxt(m,pl).t;news(lng(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,`Goal achieved: ${mt}${m.g?` (+${m.g} gold)`:''}`),'good');toast(lng(`✦ ${m.t} tamamlandı`,`✦ ${mt} achieved`),'good');SND.play('fanfare');});
 }
 function showMissions(){
- const pl=S.player,br=MIS_BR[pl]||['Birinci yol','İkinci yol'];
+ const pl=S.player,br=(EN&&MIS_BR_EN[pl])||MIS_BR[pl]||lng(['Birinci yol','İkinci yol'],['First path','Second path']);
  const row=(m,k)=>{const done=S.misDone[k]!=null,open=misOpen(m),pr=done?{p:''}:misProgress(m,pl);
-  const lock=!done&&!open,need=lock?m.req.map(id=>(S.mis.find(x=>x.id===id)||{}).t).filter(Boolean).join(', '):'';
-  return `<div class="mis ${done?'done':''} ${lock?'locked':''}"><span class="ck">${done?'✓':lock?'🔒':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&!lock&&pr.p?` · ${esc(pr.p)}`:''}${lock?` · Önce: ${esc(need)}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;};
+  const lock=!done&&!open,need=lock?m.req.map(id=>{const x=S.mis.find(y=>y.id===id);return x&&misTxt(x,pl).t;}).filter(Boolean).join(', '):'',mx=misTxt(m,pl);
+  return `<div class="mis ${done?'done':''} ${lock?'locked':''}"><span class="ck">${done?'✓':lock?'🔒':''}</span><div><div class="t">${esc(mx.t)}</div><div class="d">${esc(mx.d)}${!done&&!lock&&pr.p?` · ${esc(pr.p)}`:''}${lock?` · ${lng('Önce','Requires')}: ${esc(need)}`:''}</div></div><span class="r">${m.g?lng(`+${m.g} altın`,`+${m.g} gold`):''}${m.dev?lng(' · imar',' · develop'):''}</span></div>`;};
  const grp=b=>S.mis.map((m,k)=>[m,k]).filter(([m])=>(m.br||'A')===b);
  const sec=(b,name)=>{const L=grp(b);return L.length?`<div class="sec mis-br"><h3>${esc(name)}</h3><div class="rows">${L.map(([m,k])=>row(m,k)).join('')}</div></div>`:'';};
- openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2>${sec('A',br[0])}${sec('B',br[1])}
-  <p class="hint">Kilitli hedefler, öncesindeki hedef tamamlanınca açılır. "Elinde tut" hedeflerinde süre yalnızca düşman gerçekten tehdit ederken (savaşta ya da ordusu yakındayken) işler.</p>
-  <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+ openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>${lng('Tarihî Hedefler','Historic Goals')}</h2>${sec('A',br[0])}${sec('B',br[1])}
+  <p class="hint">${lng('Kilitli hedefler, öncesindeki hedef tamamlanınca açılır. "Elinde tut" hedeflerinde süre yalnızca düşman gerçekten tehdit ederken (savaşta ya da ordusu yakındayken) işler.','Locked goals open once the goal before them is achieved. For "hold" goals the clock only runs while an enemy truly threatens you (at war, or with an army nearby).')}</p>
+  <p class="hint">${lng(`Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.`,`Victory: survive until 1531 and grow your score, or rule half of the provinces on the map (${Math.ceil(NP*.5)}).`)}</p><div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);
 }
 hook('newGame',(S,player)=>{if(player)S.mis=misInstantiate(player);},10);
 hook('afterRound',()=>checkMissions(),10);

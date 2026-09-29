@@ -1,7 +1,7 @@
 /* =====================================================================
    GAME STATE
    ===================================================================== */
-const SEASONS=['İlkbahar','Yaz','Sonbahar','Kış'];
+const SEASONS=EN?['Spring','Summer','Autumn','Winter']:['İlkbahar','Yaz','Sonbahar','Kış'];
 const START_YEAR=1451,END_TURN=(1531-1451)*4;
 const RC=12,UPK=1,SAVE='kizil-elma-1451-v1';
 /* Track B balance constants (armies, garrisons, economy). Tune here only. */
@@ -59,11 +59,11 @@ function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
 function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;return s;}
-ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:'Eyalet vergileri',v:s,k:'inc'}];});
+ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:lng('Eyalet vergileri','Provincial taxes'),v:s,k:'inc'}];});
 ECON_ROWS.push(f=>{const n=facProvs(f).length,v=n<BAL_B.smallAid.length?BAL_B.smallAid[n]:0;
- return v>0?[{id:'small',l:'Küçük devlet desteği',v,k:'inc',tip:'Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.'}]:null;});
-ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:`Ordu maaşları (${fmtK(a)})`,v:a/1000*UPK,k:'exp',tip:'Sahra orduları: her 1.000 asker için tur başına 1 altın.'}];});
-ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:`Garnizon maaşları (${fmtK(g)})`,v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:'Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.'}];});
+ return v>0?[{id:'small',l:lng('Küçük devlet desteği','Small realm support'),v,k:'inc',tip:lng('Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.','Small realms receive help from neighbouring dynasties, merchants and the Church. The help shrinks as the realm grows and stops once it holds nine provinces.')}]:null;});
+ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:lng(`Ordu maaşları (${fmtK(a)})`,`Army pay (${fmtK(a)})`),v:a/1000*UPK,k:'exp',tip:lng('Sahra orduları: her 1.000 asker için tur başına 1 altın.','Field armies: 1 gold per turn for every 1,000 troops.')}];});
+ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:lng(`Garnizon maaşları (${fmtK(g)})`,`Garrison pay (${fmtK(g)})`),v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:lng('Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.','Fortress and city guards: half a gold per turn for every 1,000 troops.')}];});
 function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
 function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
 function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
@@ -84,7 +84,7 @@ function newGame(player){
  for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++)S.op[key(FK[a],FK[b])]=baseOp(FK[a],FK[b]);
  [['AKK','KKY'],['OSM','ALB'],['KRM','GH']].forEach(([a,b])=>S.war[key(a,b)]=newWar(a,b));
  [['MAM','DUL'],['AKK','KAR'],['HUN','BOS'],['VEN','BYZ']].forEach(([a,b])=>S.ally[key(a,b)]=true);
- if(player)addLog(`${FAC[player].n} tahtında: ${rulerName(player)}. Tarihin yeni bir sayfası açılıyor.`,'cap');
+ if(player)addLog(lng(`${FAC[player].n} tahtında: ${rulerName(player)}. Tarihin yeni bir sayfası açılıyor.`,`${rulerName(player)} sits on the throne of the ${FAC[player].n}. A new page of history begins.`),'cap');
  runHooks('newGame',S,player);
 }
 function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
@@ -95,7 +95,7 @@ hook('roundEnd',()=>{
   const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
   if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}
    for(const a of armyList(f))a.n=Math.round(a.n*.9/100)*100;F.gold=0;
-   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordular ve garnizonlar −10%).','war');}});
+   if(f===S.player)news(lng('Hazine boş: maaşını alamayan askerler firar ediyor (ordular ve garnizonlar −10%).','The treasury is empty: unpaid soldiers are deserting (armies and garrisons −10%).'),'war');}});
  for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
  for(const a of S.armies){a.mp=a.mpMax;if(a.morale<1)a.morale=Math.min(1,+(a.morale+BAL_B.moraleRegen).toFixed(2));else if(a.morale>1)a.morale=Math.max(1,+(a.morale-BAL_B.moraleRegen/2).toFixed(2));}
  armTidy();

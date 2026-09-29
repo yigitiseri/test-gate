@@ -24,15 +24,15 @@ function armPathFrom(R0,to){if(R0.dist[to]<=0)return null;const p=[];for(let v=t
 function armyPath(id,to){const a=armyById(id);if(!a||to==null||to<0||to>=NP)return null;return armPathFrom(armReach(a),to);}
 /** Can army `id` reach `to` THIS turn? -> {ok, reason (Turkish, for the player), cost (steps), path, kind:'move'|'battle'|'assault'} */
 function armyCanMove(id,to){const a=armyById(id);
- if(!a)return {ok:false,reason:'Ordu bulunamadı.',cost:0,path:null,kind:null};
- if(to===a.loc)return {ok:false,reason:'Ordu zaten orada.',cost:0,path:null,kind:null};
+ if(!a)return {ok:false,reason:lng('Ordu bulunamadı.','Army not found.'),cost:0,path:null,kind:null};
+ if(to===a.loc)return {ok:false,reason:lng('Ordu zaten orada.','The army is already there.'),cost:0,path:null,kind:null};
  const path=armyPath(id,to),o=S.prov[to].o;
- if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`:'Oraya giden bir yol yok.';
+ if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?lng(`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`,`You are not at war with ${FAC[o].s}; you cannot enter its lands.`):lng('Oraya giden bir yol yok.','There is no road there.');
   return {ok:false,reason:why,cost:0,path:null,kind:null};}
  const foes=armFoesAt(to,a.f).length>0,kind=foes?'battle':o!==a.f&&atWar(a.f,o)?'assault':'move',cost=path.length;
- if(a.st==='siege')return {ok:false,reason:'Ordu kuşatmada.',cost,path,kind};
- if(a.mp<=0)return {ok:false,reason:'Bu ordu bu mevsim yürüyüşünü tamamladı.',cost,path,kind};
- if(cost>a.mp)return {ok:false,reason:`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,cost,path,kind};
+ if(a.st==='siege')return {ok:false,reason:lng('Ordu kuşatmada.','The army is besieging.'),cost,path,kind};
+ if(a.mp<=0)return {ok:false,reason:lng('Bu ordu bu mevsim yürüyüşünü tamamladı.','This army has finished its march for the season.'),cost,path,kind};
+ if(cost>a.mp)return {ok:false,reason:lng(`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,`Too far: this army can march at most ${a.mp} ${a.mp===1?'province':'provinces'} this season (the road is ${cost}).`),cost,path,kind};
  return {ok:true,reason:'',cost,path,kind};}
 /** Move army `id` to `to` under the rules (player and AI alike). Entering an enemy province or a province with
  an enemy army ends the move with a field battle ('battle') or an assault ('assault').
@@ -98,18 +98,18 @@ function garDisband(i){const p=S.prov[i],m=garMin(i);if(p.t<=m)return 0;const n=
 function garRoom(i){return Math.max(0,Math.floor((garrisonMax(i)-S.prov[i].t)/100)*100);}
 /** Where a recruit of faction f in province i goes: {to:'army',army}|{to:'new'}|{to:'gar'}|{to:null,reason}. o={army?,gar?} */
 function armRecruitDest(f,i,o={}){
- if(S.prov[i].o!==f)return {to:null,reason:'Sadece kendi eyaletinde asker toplayabilirsin.'};
- if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Garnizon dolu.'};
+ if(S.prov[i].o!==f)return {to:null,reason:lng('Sadece kendi eyaletinde asker toplayabilirsin.','You can only raise troops in your own provinces.')};
+ if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
  const sa=o.army!=null&&armyById(o.army),here=sa&&sa.f===f&&sa.loc===i?sa:armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
  if(here)return {to:'army',army:here};
  if(armyList(f).length<armyCap(f))return {to:'new'};
- return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Ordu sınırına ulaştın ve garnizon dolu.'};}
+ return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Ordu sınırına ulaştın ve garnizon dolu.','You have reached the army limit and the garrison is full.')};}
 /** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?}.
  -> {to:'army'|'new'|'gar', army?, n} or {to:null, reason} */
 function armRecruit(f,i,n,o={}){const F=S.fac[f],d=armRecruitDest(f,i,o);if(!d.to)return d;
  if(d.to==='gar')n=Math.min(n,garRoom(i));n=Math.floor(n/100)*100;
- const cost=RC*n/1000;if(n<100)return {to:null,reason:'Garnizon dolu.'};
- if(F.gold<cost)return {to:null,reason:'Hazinede yeterli altın yok.'};if(F.mp<n)return {to:null,reason:'Yeterli insan gücü yok.'};
+ const cost=RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
+ if(F.gold<cost)return {to:null,reason:lng('Hazinede yeterli altın yok.','Not enough gold in the treasury.')};if(F.mp<n)return {to:null,reason:lng('Yeterli insan gücü yok.','Not enough manpower.')};
  F.gold-=cost;F.mp-=n;
  if(d.to==='gar'){S.prov[i].t+=n;return {to:'gar',n};}
  if(d.to==='army'){d.army.n+=n;return {to:'army',army:d.army,n};}
@@ -133,7 +133,7 @@ function armTidy(){if(!S||!S.armies)return false;let ch=false;
   while(L.length>cap){L.sort((x,y)=>x.n-y.n);const s=L[0],mate=L.slice(1).find(x=>x.loc===s.loc);
    if(mate)armyMerge(mate,s);else{const p=S.prov[s.loc];let n=s.n;if(p.o===f){const g=Math.min(n,garRoom(s.loc));p.t+=g;n-=g;}
     const F=S.fac[f];F.mp=Math.max(F.mp,Math.min(armMpCap(f),F.mp+Math.round(n*BAL_B.disbandMp)));
-    if(f===S.player)news(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,'war');armyRemove(s.id,'disbanded');}
+    if(f===S.player)news(lng(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,`The ${armName(s)} was disbanded: your realm cannot feed so many armies.`),'war');armyRemove(s.id,'disbanded');}
    L=armyList(f);ch=true;}}
  for(let i=0;i<NP;i++){const p=S.prov[i],m=garrisonMax(i);if(p.t<=m+BAL_B.garSlack)continue;
   const f=p.o,ex=p.t-m;p.t=m;ch=true;const here=armyAt(i,f).sort((x,y)=>y.n-x.n)[0];

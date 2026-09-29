@@ -1279,7 +1279,7 @@ function spaced(c,t,x,y,sp){const chars=[...t];const ws=chars.map(ch=>c.measureT
 /* =====================================================================
    GAME STATE
    ===================================================================== */
-const SEASONS=['İlkbahar','Yaz','Sonbahar','Kış'];
+const SEASONS=EN?['Spring','Summer','Autumn','Winter']:['İlkbahar','Yaz','Sonbahar','Kış'];
 const START_YEAR=1451,END_TURN=(1531-1451)*4;
 const RC=12,UPK=1,SAVE='kizil-elma-1451-v1';
 /* Track B balance constants (armies, garrisons, economy). Tune here only. */
@@ -1337,11 +1337,11 @@ function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
 function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;return s;}
-ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:'Eyalet vergileri',v:s,k:'inc'}];});
+ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:lng('Eyalet vergileri','Provincial taxes'),v:s,k:'inc'}];});
 ECON_ROWS.push(f=>{const n=facProvs(f).length,v=n<BAL_B.smallAid.length?BAL_B.smallAid[n]:0;
- return v>0?[{id:'small',l:'Küçük devlet desteği',v,k:'inc',tip:'Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.'}]:null;});
-ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:`Ordu maaşları (${fmtK(a)})`,v:a/1000*UPK,k:'exp',tip:'Sahra orduları: her 1.000 asker için tur başına 1 altın.'}];});
-ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:`Garnizon maaşları (${fmtK(g)})`,v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:'Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.'}];});
+ return v>0?[{id:'small',l:lng('Küçük devlet desteği','Small realm support'),v,k:'inc',tip:lng('Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.','Small realms receive help from neighbouring dynasties, merchants and the Church. The help shrinks as the realm grows and stops once it holds nine provinces.')}]:null;});
+ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:lng(`Ordu maaşları (${fmtK(a)})`,`Army pay (${fmtK(a)})`),v:a/1000*UPK,k:'exp',tip:lng('Sahra orduları: her 1.000 asker için tur başına 1 altın.','Field armies: 1 gold per turn for every 1,000 troops.')}];});
+ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:lng(`Garnizon maaşları (${fmtK(g)})`,`Garrison pay (${fmtK(g)})`),v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:lng('Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.','Fortress and city guards: half a gold per turn for every 1,000 troops.')}];});
 function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
 function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
 function nbrs(f){const s=new Set();for(let i=0;i<NP;i++)if(S.prov[i].o===f)for(const j of PD[i].adj){const o=S.prov[j].o;if(o!==f)s.add(o);}return [...s].filter(alive);}
@@ -1362,7 +1362,7 @@ function newGame(player){
  for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++)S.op[key(FK[a],FK[b])]=baseOp(FK[a],FK[b]);
  [['AKK','KKY'],['OSM','ALB'],['KRM','GH']].forEach(([a,b])=>S.war[key(a,b)]=newWar(a,b));
  [['MAM','DUL'],['AKK','KAR'],['HUN','BOS'],['VEN','BYZ']].forEach(([a,b])=>S.ally[key(a,b)]=true);
- if(player)addLog(`${FAC[player].n} tahtında: ${rulerName(player)}. Tarihin yeni bir sayfası açılıyor.`,'cap');
+ if(player)addLog(lng(`${FAC[player].n} tahtında: ${rulerName(player)}. Tarihin yeni bir sayfası açılıyor.`,`${rulerName(player)} sits on the throne of the ${FAC[player].n}. A new page of history begins.`),'cap');
  runHooks('newGame',S,player);
 }
 function score(f){const ps=facProvs(f);return ps.length*10+ps.reduce((a,i)=>a+S.prov[i].dev*3,0)+Object.keys(S.misDone).length*(f===S.player?60:0)+Math.floor(S.fac[f].gold/10);}
@@ -1373,7 +1373,7 @@ hook('roundEnd',()=>{
   const ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110);
   if(F.gold<0){for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f)p.t=Math.round(p.t*.9/100)*100;}
    for(const a of armyList(f))a.n=Math.round(a.n*.9/100)*100;F.gold=0;
-   if(f===S.player)news('Hazine boş: maaşını alamayan askerler firar ediyor (ordular ve garnizonlar −10%).','war');}});
+   if(f===S.player)news(lng('Hazine boş: maaşını alamayan askerler firar ediyor (ordular ve garnizonlar −10%).','The treasury is empty: unpaid soldiers are deserting (armies and garrisons −10%).'),'war');}});
  for(let i=0;i<NP;i++){const p=S.prov[i];if(p.un>0)p.un--;p.mv=0;}
  for(const a of S.armies){a.mp=a.mpMax;if(a.morale<1)a.morale=Math.min(1,+(a.morale+BAL_B.moraleRegen).toFixed(2));else if(a.morale>1)a.morale=Math.max(1,+(a.morale-BAL_B.moraleRegen/2).toFixed(2));}
  armTidy();
@@ -1578,12 +1578,105 @@ const MIS_BR={OSM:['Rumeli ve Batı','Anadolu ve Doğu'],BYZ:['Kuşatma ve Traky
  KKY:['Batı Seferleri','Kafkasya ve Ticaret'],TRB:['Evlilik ve Ticaret','Surlar ve Dostlar'],GEO:['Birlik ve Genişleme','Kafkas Kalkanı'],HAB:['Macar Mirası','Viyana ve Taç'],
  POL:['Karadeniz\'e İniş','Taçlar ve Dostlar'],GH:['Kırım Davası','Hazar ve Dostlar'],ARA:['Adriyatik','İtalya'],PAP:['Haçlı Seferi','Papalık Toprakları'],
  CYP:['Ada ve Dostlar','Şeker ve Kıyı'],RHO:['Ada Kalesi','Tarikatın Dostları'],HAF:['Doğu Kıyıları','Korsanlar ve Hazine'],SAF:['Kızılbaş Tahtı','Kafkasya ve Irak']};
+/* English mission texts, keyed by faction and mission id. The Turkish trees above stay the source of the goals;
+   the save keeps Turkish t/d copies, so the English is looked up by id whenever a mission is shown. */
+const MIS_EN={
+ OSM:{A1:['The Conquest of Constantinople','Take the city and join Rumelia to Anatolia.'],A2:['The Morea Campaign','Take the Despots\' fortresses of Mistra and Corinth.'],
+  A3:['Serbian Silver','Take the fortress of Smederevo and the mines of Novo Brdo.'],A4:['The Gate of Belgrade','Bring down the Hungarians\' fortress on the Danube.'],
+  A5:['On to Buda','Take the Hungarian capital.'],A6:['The Otranto Expedition','Win a bridgehead on the Italian coast.'],A7:['The Rome Campaign','The Red Apple: conquer Rome.'],
+  B1:['The Karaman Question','Annex Konya and Larende.'],B2:['The Trebizond Campaign','Take the last stronghold of the Komnenoi.'],
+  B3:['The Eastern Campaign','March on Tabriz and open the gate to Persia.'],B4:['The Key to Egypt','Conquer Aleppo and Cairo.']},
+ BYZ:{A1:['Hold the Walls','Keep Constantinople for 8 turns while the Ottoman siege goes on.'],A2:['Free Thessalonica','Win back Thessalonica.'],
+  A3:['Win Back Adrianople','Let Adrianople belong to Rome once more.'],B1:['Unite the Morea','End the quarrel of Thomas and Demetrios: raise Mistra to development 4 and Corinth to 3.'],
+  B2:['Free Athens','Take Athens from the Ottomans.'],B3:['Return to Anatolia','Take Bursa and Nicomedia.']},
+ VEN:{A1:['Queen of the Aegean','Take Chios and Lesbos.'],A2:['Cyprus','Take Nicosia and Famagusta.'],A3:['The Levant Trade','Build markets in 8 provinces.'],
+  B1:['The Fortress of Negroponte','Hold Negroponte for 8 turns while the Ottomans attack.'],B2:['The Port of Thessalonica','Take Thessalonica.'],B3:['The Albanian Coast','Take Valona.']},
+ HUN:{A1:['The Defence of Belgrade','Hold Belgrade for 6 turns while the Ottomans attack.'],A2:['The Smederevo Line','Take Smederevo.'],
+  A3:['Revenge for Varna','Take Sofia and Vidin.'],B1:['The Black Army','Save enough gold to pay the mercenaries.'],
+  B2:['The Danube Line','Take Nicopolis and Silistra.'],B3:['The Crown of Austria','Take Vienna.']},
+ SRB:{A1:['The Fortress of Smederevo','Hold Smederevo for 8 turns while the Ottomans attack.'],A2:['The Silver of Novo Brdo','Raise Novo Brdo to development 4.'],
+  A3:['Vengeance for Kosovo','Take Skopje and Kyustendil.'],B1:['Friendship with Hungary','Form an alliance with the Kingdom of Hungary.'],
+  B2:['Union with Bosnia','Form an alliance with Bosnia.'],B3:['From Nish to Sofia','Take Sofia.']},
+ BOS:{A1:['The Fortress of Jajce','Hold Jajce for 8 turns while the Ottomans attack.'],A2:['Bind Herzegovina','Raise Herzegovina to development 4.'],
+  A3:['The Dalmatian Coast','Take Split and Zadar.'],B1:['The Mines of Srebrenica','Raise Srebrenica to development 3.'],
+  B2:['The Pope\'s Crown','Form an alliance with the Papacy.'],B3:['The Serbian Inheritance','Take Smederevo.']},
+ WAL:{A1:['The Danube Campaign','Take Nicopolis.'],A2:['Silistra and Dobruja','Take Silistra and Dobruja.'],A3:['Varna','Take Varna.'],
+  B1:['The Court of Targoviste','Raise Targoviste to development 5.'],B2:['Friendship with Hungary','Form an alliance with the Kingdom of Hungary.'],
+  B3:['Union with Moldavia','Form an alliance with Moldavia.']},
+ MOL:{A1:['Cetatea Alba and Kiliya','Hold Cetatea Alba for 8 turns while the Ottomans attack.'],A2:['The Throne of Wallachia','Take Targoviste.'],
+  A3:['The Market of Braila','Take Braila.'],B1:['The Fortress of Suceava','Raise Suceava to development 5.'],
+  B2:['Peace with Poland','Form an alliance with Poland.'],B3:['Putna Monastery','Save gold for monasteries and churches.']},
+ ALB:{A1:['The Resistance of Kruja','Hold Kruja for 10 turns while the Ottomans attack.'],A2:['Unite the Coast','Take Scutari and Durazzo.'],
+  A3:['Skopje','Take Skopje.'],B1:['The Venetian Alliance','Form an alliance with Venice.'],
+  B2:['Help from Naples','Form an alliance with the Kingdom of Naples (the Treaty of Gaeta).'],B3:['The Port of Valona','Take Valona.']},
+ KRM:{A1:['Break the Great Horde','Take Azov.'],A2:['The Kuban Steppe','Take Kuban and Circassia.'],A3:['The Kipchak Steppe','Take the Kipchak lands and the Don.'],
+  B1:['The Gates of Caffa','Take Caffa.'],B2:['Friendship with the Ottomans','Form an alliance with the Ottomans.'],B3:['The Fortress of Ochakiv','Take Ochakiv.']},
+ GEN:{A1:['Defend Caffa','Hold Caffa for 8 turns while the Ottomans attack.'],A2:['The Black Sea Trade','Build markets in 4 provinces.'],
+  A3:['The Port of Sinope','Take Sinope.'],B1:['The Mastic of Chios','Raise Chios to development 3.'],
+  B2:['The Wealth of Lesbos','Raise Lesbos to development 3.'],B3:['Nicosia','Take Nicosia.']},
+ KAR:{A1:['The Seljuk Inheritance','Take Ankara and Kirsehir.'],A2:['The March on Bursa','Take the old Ottoman capital.'],
+  A3:['Germiyan and Hamid','Take Kutahya and Hamid.'],B1:['The Mediterranean Coast','Take Teke and Adana.'],
+  B2:['The Dulkadir Plain','Take Marash.'],B3:['Karaman Silver','Save gold in the treasury.']},
+ CAN:{A1:['The Port of Sinope','Raise Sinope to development 4.'],A2:['The Copper Mines','Fill the treasury with copper from Kure.'],
+  A3:['Amasra','Take Amasra.'],B1:['Friendship with Karaman','Form an alliance with Karaman.'],
+  B2:['Cankiri and Bolu','Take Cankiri and Bolu.'],B3:['The Beylik of Canik','Take Canik.']},
+ DUL:{A1:['The Elbistan Uplands','Raise Elbistan to development 3.'],A2:['Kayseri','Take Kayseri.'],A3:['Sivas and Bozok','Take Sivas and Bozok.'],
+  B1:['The Fortress of Divrigi','Raise Divrigi to development 2.'],B2:['Harput','Take Harput.'],
+  B3:['Kinship with the Ottomans','Form an alliance with the Ottomans (the wedding of Sitti Mukrime Hatun).']},
+ MAM:{A1:['The Cilician Coast','Take Icel and Alanya.'],A2:['The Lands of Rum','Take Konya.'],A3:['Bring Down Rhodes','Take the Knights\' island.'],
+  B1:['The Euphrates Line','Take Edessa.'],B2:['Baghdad','Take the old seat of the Abbasid caliphate.'],B3:['The Tribute of Cyprus','Take Nicosia.']},
+ AKK:{A1:['Destroy the Qara Qoyunlu','Take Tabriz.'],A2:['Baghdad','Take Baghdad.'],A3:['Master of Azerbaijan','Take Erivan and Nakhchivan.'],
+  B1:['The Erzurum Uplands','Take Erzurum and Kars.'],B2:['The Trebizond Marriage','Form an alliance with Trebizond (the wedding of Despina Hatun).'],
+  B3:['The Venetian Alliance','Form an alliance with Venice, and let cannon and muskets come against the Ottomans.']},
+ KKY:{A1:['Crush the Aq Qoyunlu','Take Diyarbakir.'],A2:['Aleppo','Take Aleppo.'],A3:['The Road to Anatolia','Take Harput and Erzincan.'],
+  B1:['The Georgian Campaign','Take Tiflis.'],B2:['The Caucasus Gates','Take Kakheti and Akhaltsikhe.'],B3:['Tabriz, City of Trade','Build markets in 5 provinces.']},
+ TRB:{A1:['The Aq Qoyunlu Marriage','Form an alliance with the Aq Qoyunlu (the wedding of Despina Hatun).'],A2:['The Pontic Coast','Take Canik.'],
+  A3:['The Caucasus Trade','Build markets in 3 provinces.'],B1:['The Walls of Trebizond','Hold Trebizond for 8 turns while the Ottomans attack.'],
+  B2:['Develop Kerasous','Raise Kerasous to development 3.'],B3:['Friendship with Georgia','Form an alliance with Georgia.']},
+ GEO:{A1:['The Union of Georgia','Raise Tiflis to development 5.'],A2:['The Road to Shirvan','Take Shirvan.'],A3:['The Armenian Highlands','Take Erivan and Kars.'],
+  B1:['Friendship with Trebizond','Form an alliance with Trebizond.'],B2:['The Caucasus Shield','Hold Tiflis for 8 turns while the Qara Qoyunlu attack.'],
+  B3:['The Gate of Derbent','Take Derbent.']},
+ HAB:{A1:['The Crown of Hungary','Take Pressburg and Raab.'],A2:['Buda','Take the Hungarian capital.'],A3:['The Croatian Coast','Take Zagreb.'],
+  B1:['The Walls of Vienna','Raise Vienna to development 7.'],B2:['Friuli','Take Friuli.'],B3:['The Imperial Crown','Save gold for the coronation.']},
+ POL:{A1:['The Port of Ochakiv','Raise Ochakiv to development 2.'],A2:['Kiliya and Cetatea Alba','Take Kiliya and Cetatea Alba.'],
+  A3:['The Gate of Crimea','Take Perekop.'],B1:['The Voivodeship of Halych','Raise Halych to development 3.'],
+  B2:['The Throne of Hungary','Take Buda.'],B3:['Friendship with Moldavia','Form an alliance with Moldavia.']},
+ GH:{A1:['Win Back Crimea','Take Bakhchysarai.'],A2:['The Treasure of Caffa','Take Caffa.'],A3:['Perekop','Take Perekop.'],
+  B1:['The Caspian Shore','Raise Terek to development 2.'],B2:['The Caucasus Gates','Take Derbent.'],B3:['The Polish Alliance','Form an alliance with Poland.']},
+ ARA:{A1:['The Fortress of Otranto','Raise Otranto to development 4.'],A2:['The Albanian Coast','Take Valona.'],
+  A3:['The Alliance with Skanderbeg','Form an alliance with Albania (the Treaty of Gaeta).'],B1:['The Abruzzo Frontier','Raise Abruzzo to development 3.'],
+  B2:['Pressure on Rome','Take Ancona.'],B3:['Sicilian Wheat','Raise Palermo to development 5.']},
+ PAP:{A1:['The Call to Crusade','Form an alliance with the Kingdom of Hungary.'],A2:['The Crusader Fleet','Form an alliance with Venice.'],
+  A3:['The Crusade','Win 10 battles.'],B1:['The Alum Mines of Tolfa','Fill the treasury with the alum revenue.'],
+  B2:['Bind the Romagna','Take Ravenna.'],B3:['The Port of Ancona','Raise Ancona to development 4.']},
+ CYP:{A1:['Win Back Famagusta','Take Famagusta from the Genoese.'],A2:['Friendship with Rhodes','Form an alliance with the Knights of Rhodes.'],
+  A3:['Venetian Protection','Form an alliance with Venice.'],B1:['Peace with Cairo','Form an alliance with the Mamluk Sultanate.'],
+  B2:['Sugar Cane','Raise Nicosia to development 4.'],B3:['Win Back Korykos','Take Icel.']},
+ RHO:{A1:['The Siege of Rhodes','Hold Rhodes for 8 turns while the Ottomans attack.'],A2:['The Castle of Bodrum','Raise Bodrum to development 2.'],
+  A3:['The Mentese Coast','Take Mentese.'],B1:['The Hospitaller Treasury','Save gold for the Order.'],
+  B2:['Friendship with Cyprus','Form an alliance with Cyprus.'],B3:['The Venetian Alliance','Form an alliance with Venice.']},
+ HAF:{A1:['The Port of Tripoli','Raise Tripoli to development 4.'],A2:['Benghazi','Take Benghazi.'],A3:['Derna and Tobruk','Take Derna and Tobruk.'],
+  B1:['The Corsair Ports','Build markets in 2 provinces.'],B2:['The Treasure of Kairouan','Save gold in the treasury.'],B3:['The Sirte Desert','Raise Sirte to development 2.']},
+ SAF:{A1:['The Throne of Tabriz','Take Tabriz.'],A2:['Baghdad','Take Baghdad.'],A3:['The Qizilbash of Anatolia','Take Erzincan and Sivas.'],
+  B1:['The Shirvan Campaign','Take Shirvan.'],B2:['Diyarbakir','Take Diyarbakir.'],B3:['The Georgian Tribute','Take Tiflis.']}
+};
+const MIS_BR_EN={OSM:['Rumelia and the West','Anatolia and the East'],BYZ:['The Siege and Thrace','The Morea and Anatolia'],VEN:['The Aegean and the Levant','The Sea Republic'],HUN:['The Danube Wars','The Kingdom of Corvinus'],
+ SRB:['Defence of the Despotate','Friends and Vengeance'],BOS:['Fortresses and Coasts','Mines and Crown'],WAL:['The Danube Campaigns','The Voivodeship'],MOL:['The Black Sea Fortresses','The Legacy of Stephen'],
+ ALB:['The Mountain Resistance','Latin Friends'],KRM:['Lord of the Steppe','Caffa and Friends'],GEN:['Caffa and the Black Sea','The Aegean Islands'],KAR:['The Seljuk Inheritance','Coasts and Treasury'],
+ CAN:['Sinope and the Mines','The Beylik\'s Lands'],DUL:['Uplands and City','Fortress and Kinship'],MAM:['The Northern Frontier','The Euphrates and the Sea'],AKK:['The Qara Qoyunlu War','Friends and Marriages'],
+ KKY:['The Western Campaigns','The Caucasus and Trade'],TRB:['Marriage and Trade','Walls and Friends'],GEO:['Union and Growth','The Caucasus Shield'],HAB:['The Hungarian Inheritance','Vienna and the Crown'],
+ POL:['Down to the Black Sea','Crowns and Friends'],GH:['The Crimean Claim','The Caspian and Friends'],ARA:['The Adriatic','Italy'],PAP:['The Crusade','The Papal States'],
+ CYP:['The Island and Friends','Sugar and Coast'],RHO:['The Island Fortress','Friends of the Order'],HAF:['The Eastern Shores','Corsairs and Treasury'],SAF:['The Qizilbash Throne','The Caucasus and Iraq']};
+/** Title and description of mission m of faction f in the current language. English comes from MIS_EN by id,
+ but only when m is that tree's own mission (same Turkish title), so a generic fallback is never mislabelled. */
+function misTxt(m,f){f=f||(S&&S.player);const e=EN&&MIS_EN[f]&&MIS_EN[f][m.id],src=MIS[f]&&MIS[f].find(y=>y.id===m.id);
+ return e&&src&&src.t===m.t?{t:e[0],d:e[1]}:{t:m.t,d:m.d};}
 /** Fallback missions for a faction without a tree (never used for the 28 factions, kept for safety). */
 function genericMissions(f){const n=facProvs(f).length;
  const nb=nbrs(f).filter(g=>g!=='SAF'&&!isAlly(f,g)).sort((a,b)=>strength(a)-strength(b));const tgt=nb[0];
- const r=[{id:'A1',br:'A',t:'Genişleme',d:`${n+4} eyalete ulaş.`,count:n+4,g:60},{id:'B1',br:'B',t:'Dolu Hazine',d:'Hazinende para biriktir.',gold:'auto',g:0,dev:['cap',1]}];
- if(tgt)r.push({id:'A2',br:'A',req:['A1'],t:`${FAC[tgt].s} Seferi`,d:`${PD[S.fac[tgt].cap].name} şehrini al.`,own:[PD[S.fac[tgt].cap].key],g:100});
- r.push({id:'A3',br:'A',req:['A1'],t:'Bölgesel Güç',d:`${n+12} eyalete ulaş.`,count:n+12,g:150});return r;}
+ const r=[{id:'A1',br:'A',t:lng('Genişleme','Expansion'),d:lng(`${n+4} eyalete ulaş.`,`Rule ${n+4} provinces.`),count:n+4,g:60},{id:'B1',br:'B',t:lng('Dolu Hazine','A Full Treasury'),d:lng('Hazinende para biriktir.','Save gold in your treasury.'),gold:'auto',g:0,dev:['cap',1]}];
+ if(tgt)r.push({id:'A2',br:'A',req:['A1'],t:lng(`${FAC[tgt].s} Seferi`,`The ${FAC[tgt].s} Campaign`),d:lng(`${PD[S.fac[tgt].cap].name} şehrini al.`,`Take the city of ${PD[S.fac[tgt].cap].name}.`),own:[PD[S.fac[tgt].cap].key],g:100});
+ r.push({id:'A3',br:'A',req:['A1'],t:lng('Bölgesel Güç','Regional Power'),d:lng(`${n+12} eyalete ulaş.`,`Rule ${n+12} provinces.`),count:n+12,g:150});return r;}
 /** Gold target scaled to what the realm can actually save (bug B8: Trebizond's 400 at +0 a turn). */
 function misGoldTarget(f){const net=income(f)-upkeep(f);return Math.max(120,Math.round(net*12));}
 function misInstantiate(f){const ms=MIS[f]||genericMissions(f);return ms.map(m=>{const c={...m};if(c.gold==='auto')c.gold=misGoldTarget(f);if(c.hold)c.prog=0;return c;});}
@@ -1598,8 +1691,8 @@ function misProgress(m,pl){
  if(m.own){const n=m.own.filter(x=>S.prov[PK[x]].o===pl).length;return {ok:n===m.own.length,p:`${n}/${m.own.length}`};}
  if(m.hold){const i=PK[m.hold],mine=S.prov[i].o===pl;if(m.vs&&!alive(m.vs)&&mine)return {ok:true,p:''};
   if(m.turns==null)return {ok:mine&&S.turn>=(m.until||0),p:''};          // pre-W1 format
-  return {ok:mine&&(m.prog||0)>=m.turns,p:`${m.prog||0}/${m.turns} tur`};}
- if(m.ally){return {ok:alive(m.ally)&&isAlly(pl,m.ally),p:alive(m.ally)?'':'devlet yok oldu'};}
+  return {ok:mine&&(m.prog||0)>=m.turns,p:lng(`${m.prog||0}/${m.turns} tur`,`${m.prog||0}/${m.turns} turns`)};}
+ if(m.ally){return {ok:alive(m.ally)&&isAlly(pl,m.ally),p:alive(m.ally)?'':lng('devlet yok oldu','the realm is gone')};}
  if(m.devAt){const ks=Object.keys(m.devAt),n=ks.filter(k=>S.prov[PK[k]].o===pl&&S.prov[PK[k]].dev>=m.devAt[k]).length;return {ok:n===ks.length,p:`${n}/${ks.length}`};}
  if(m.mkt){const n=facProvs(pl).filter(i=>S.prov[i].mkt).length;return {ok:n>=m.mkt,p:`${n}/${m.mkt}`};}
  if(m.count){const n=facProvs(pl).length;return {ok:n>=m.count,p:`${n}/${m.count}`};}
@@ -1613,18 +1706,18 @@ function checkMissions(){
   if(!misProgress(m,pl).ok)return;
   S.misDone[k]=S.turn;S.fac[pl].gold+=m.g||0;
   if(m.dev){const pi=m.dev[0]==='cap'?S.fac[pl].cap:PK[m.dev[0]];if(S.prov[pi].o===pl)S.prov[pi].dev+=m.dev[1];}
-  news(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,'good');toast(`✦ ${m.t} tamamlandı`,'good');SND.play('fanfare');});
+  const mt=misTxt(m,pl).t;news(lng(`Hedef tamamlandı: ${m.t}${m.g?` (+${m.g} altın)`:''}`,`Goal achieved: ${mt}${m.g?` (+${m.g} gold)`:''}`),'good');toast(lng(`✦ ${m.t} tamamlandı`,`✦ ${mt} achieved`),'good');SND.play('fanfare');});
 }
 function showMissions(){
- const pl=S.player,br=MIS_BR[pl]||['Birinci yol','İkinci yol'];
+ const pl=S.player,br=(EN&&MIS_BR_EN[pl])||MIS_BR[pl]||lng(['Birinci yol','İkinci yol'],['First path','Second path']);
  const row=(m,k)=>{const done=S.misDone[k]!=null,open=misOpen(m),pr=done?{p:''}:misProgress(m,pl);
-  const lock=!done&&!open,need=lock?m.req.map(id=>(S.mis.find(x=>x.id===id)||{}).t).filter(Boolean).join(', '):'';
-  return `<div class="mis ${done?'done':''} ${lock?'locked':''}"><span class="ck">${done?'✓':lock?'🔒':''}</span><div><div class="t">${esc(m.t)}</div><div class="d">${esc(m.d)}${!done&&!lock&&pr.p?` · ${esc(pr.p)}`:''}${lock?` · Önce: ${esc(need)}`:''}</div></div><span class="r">${m.g?`+${m.g} altın`:''}${m.dev?' · imar':''}</span></div>`;};
+  const lock=!done&&!open,need=lock?m.req.map(id=>{const x=S.mis.find(y=>y.id===id);return x&&misTxt(x,pl).t;}).filter(Boolean).join(', '):'',mx=misTxt(m,pl);
+  return `<div class="mis ${done?'done':''} ${lock?'locked':''}"><span class="ck">${done?'✓':lock?'🔒':''}</span><div><div class="t">${esc(mx.t)}</div><div class="d">${esc(mx.d)}${!done&&!lock&&pr.p?` · ${esc(pr.p)}`:''}${lock?` · ${lng('Önce','Requires')}: ${esc(need)}`:''}</div></div><span class="r">${m.g?lng(`+${m.g} altın`,`+${m.g} gold`):''}${m.dev?lng(' · imar',' · develop'):''}</span></div>`;};
  const grp=b=>S.mis.map((m,k)=>[m,k]).filter(([m])=>(m.br||'A')===b);
  const sec=(b,name)=>{const L=grp(b);return L.length?`<div class="sec mis-br"><h3>${esc(name)}</h3><div class="rows">${L.map(([m,k])=>row(m,k)).join('')}</div></div>`:'';};
- openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>Tarihî Hedefler</h2>${sec('A',br[0])}${sec('B',br[1])}
-  <p class="hint">Kilitli hedefler, öncesindeki hedef tamamlanınca açılır. "Elinde tut" hedeflerinde süre yalnızca düşman gerçekten tehdit ederken (savaşta ya da ordusu yakındayken) işler.</p>
-  <p class="hint">Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.</p><div class="foot"><button class="btn primary" data-act="mclose">Kapat</button></div>`);
+ openModal(`<div class="eyebrow">${esc(FAC[pl].n)}</div><h2>${lng('Tarihî Hedefler','Historic Goals')}</h2>${sec('A',br[0])}${sec('B',br[1])}
+  <p class="hint">${lng('Kilitli hedefler, öncesindeki hedef tamamlanınca açılır. "Elinde tut" hedeflerinde süre yalnızca düşman gerçekten tehdit ederken (savaşta ya da ordusu yakındayken) işler.','Locked goals open once the goal before them is achieved. For "hold" goals the clock only runs while an enemy truly threatens you (at war, or with an army nearby).')}</p>
+  <p class="hint">${lng(`Zafer: 1531 yılına kadar hayatta kal ve puanını büyüt ya da haritadaki eyaletlerin yarısına (${Math.ceil(NP*.5)}) hükmet.`,`Victory: survive until 1531 and grow your score, or rule half of the provinces on the map (${Math.ceil(NP*.5)}).`)}</p><div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);
 }
 hook('newGame',(S,player)=>{if(player)S.mis=misInstantiate(player);},10);
 hook('afterRound',()=>checkMissions(),10);
@@ -2192,15 +2285,15 @@ function declareWar(a,b){
  delete S.ally[key(a,b)];
  S.war[key(a,b)]=newWar(a,b);addOp(a,b,-60);
  alliesOf(b).forEach(c=>addOp(a,c,-25));
- const msg=`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`;
+ const msg=lng(`${fname(a)}, ${fname(b)} devletine savaş ilan etti.`,`${fname(a)} declared war on ${fname(b)}.`);
  if(a===S.player||b===S.player){news(msg,'war');if(b===S.player)toast(msg,'war');}else addLog(msg,'war');
  const joined=[];
  alliesOf(b).forEach(c=>{if(c===a||atWar(c,a)||isAlly(c,a)||inTruce(c,a))return;S.war[key(c,a)]=newWar(a,c);joined.push(c);
-  const m2=`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`;if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
+  const m2=lng(`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`,`${fname(c)} joined the war against ${fname(a)} to stand by its ally ${fname(b)}.`);if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
  runHooks('warDeclared',a,b);joined.forEach(c=>runHooks('warDeclared',c,a));
 }
 function makePeace(a,b,silent){delete S.war[key(a,b)];S.truce[key(a,b)]=S.turn+12;addOp(a,b,15);pruneOffers();
- const m=`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`;if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');
+ const m=lng(`${fname(a)} ile ${fname(b)} arasında barış imzalandı.`,`Peace was signed between ${fname(a)} and ${fname(b)}.`);if(a===S.player||b===S.player)news(m,'good');else if(!silent)addLog(m,'info');
  runHooks('peace',a,b,{silent:!!silent});}
 function offerOk(o){const w=alive(o.f)&&S.war[key(o.f,S.player)];return !!w&&(o.wt==null||o.wt===w.t);}
 function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
@@ -2222,15 +2315,15 @@ function battleMods(ctx){const out=[];for(const fn of BATTLE_MODS){const r=fn(ct
 function modMul(v,mods,side){for(const m of mods)if(m.side===side)v*=m.m;return v;}
 /** Casualty multiplier inflicted by `side` (product of its mods' `loss`, capped at mtnRes). */
 function modLoss(mods,side){let v=1;for(const m of mods)if(m.side===side&&m.loss)v*=m.loss;return Math.min(v,BAL_B.mtnRes);}
-BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:'Kış seferi',m:.85,side:'att',k:'winter'}]:null);
+BATTLE_MODS.push(ctx=>S.turn%4===3?[{l:lng('Kış seferi','Winter campaign'),m:.85,side:'att',k:'winter'}]:null);
 BATTLE_MODS.push(ctx=>{if(ctx.to==null)return null;const p=S.prov[ctx.to],d=PD[ctx.to],r=[];
- if(p.fort>0&&ctx.kind!=='field')r.push({l:`Kale ${p.fort}`,m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?BAL_B.cannonFort:1),side:'def',k:'fort'});
- if(armMtn(ctx.to))r.push({l:'Dağlık arazi',m:1.3,side:'def',k:'mtn'});
- if(d.des)r.push({l:'Çöl',m:1.1,side:'def',k:'des'});
+ if(p.fort>0&&ctx.kind!=='field')r.push({l:lng(`Kale ${p.fort}`,`Walls ${p.fort}`),m:1+.15*p.fort*(ctx.att&&S.fac[ctx.att].cannon?BAL_B.cannonFort:1),side:'def',k:'fort'});
+ if(armMtn(ctx.to))r.push({l:lng('Dağlık arazi','Mountain terrain'),m:1.3,side:'def',k:'mtn'});
+ if(d.des)r.push({l:lng('Çöl','Desert'),m:1.1,side:'def',k:'des'});
  return r;});
 /* B10 "Dağ direnişi": a defender fighting in its own mountain province bleeds the attacker (+50% losses). */
 BATTLE_MODS.push(ctx=>{if(ctx.to==null||!armMtn(ctx.to)||!ctx.def||S.prov[ctx.to].o!==ctx.def)return null;
- return [{l:'Dağ direnişi',m:BAL_B.mtnResDef,side:'def',k:'mtnres',loss:BAL_B.mtnRes}];});
+ return [{l:lng('Dağ direnişi','Mountain resistance'),m:BAL_B.mtnResDef,side:'def',k:'mtnres',loss:BAL_B.mtnRes}];});
 /** Garrison plus local militia defending province i, before modifiers. */
 function defBase(i){const p=S.prov[i];return p.t+p.dev*150+p.fort*700;}
 function atkMul(f,ctx){return modMul(1,battleMods(ctx||{kind:'assault',att:f}),'att');}
@@ -2310,14 +2403,14 @@ function capture(i,f){
  const d=PD[i];
  if(S.fac[old].cap===i){const rest=facProvs(old);if(rest.length){rest.sort((a,b)=>S.prov[b].dev-S.prov[a].dev);S.fac[old].cap=rest[0];}
   S.fac[old].gold=Math.round(S.fac[old].gold*.7);
-  const m=`${fname(old)} başkenti ${d.name}, ${fname(f)} eline geçti!`;(old===S.player||f===S.player)?news(m,'cap'):addLog(m,'cap');}
- if(old===S.player&&f!==S.player)addLog(`${d.name} eyaletini ${fname(f)} kuvvetlerine kaptırdık.`,'war');
+  const m=lng(`${fname(old)} başkenti ${d.name}, ${fname(f)} eline geçti!`,`${d.name}, capital of ${fname(old)}, has fallen to ${fname(f)}!`);(old===S.player||f===S.player)?news(m,'cap'):addLog(m,'cap');}
+ if(old===S.player&&f!==S.player)addLog(lng(`${d.name} eyaletini ${fname(f)} kuvvetlerine kaptırdık.`,`We lost ${d.name} to the forces of ${fname(f)}.`),'war');
  if(!facProvs(old).length)eliminate(old,f);
  if(d.key==='istanbul'){
   if(f==='OSM'&&!S.flags.fetih){S.flags.fetih=1;S.fac.OSM.cap=i;p.dev+=1;p.un=2;
-   news('Konstantiniyye fethedildi! Osmanlı başkenti İstanbul\'a taşındı.','cap');
-   queueModal(()=>eventModal({t:'Konstantiniyye Fethedildi',e:`${dateStr(S.turn)}`,d:'Theodosius surları aşıldı. Bin yıllık Doğu Roma başkenti artık Osmanlı\'nın. Genç sultana "Fatih" unvanı veriliyor ve devlet merkezi İstanbul\'a taşınıyor.',ch:[{l:'Devam et'}]}));}
-  else if(old!==f){news(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,'cap');}
+   news(lng('Konstantiniyye fethedildi! Osmanlı başkenti İstanbul\'a taşındı.','Constantinople has fallen! The Ottoman capital moves to Istanbul.'),'cap');
+   queueModal(()=>eventModal({t:lng('Konstantiniyye Fethedildi','The Fall of Constantinople'),e:`${dateStr(S.turn)}`,d:lng('Theodosius surları aşıldı. Bin yıllık Doğu Roma başkenti artık Osmanlı\'nın. Genç sultana "Fatih" unvanı veriliyor ve devlet merkezi İstanbul\'a taşınıyor.','The Theodosian Walls have been breached. The thousand-year capital of the Eastern Romans now belongs to the Ottomans. The young sultan is hailed as "the Conqueror", and the seat of the state moves to Istanbul.'),ch:[{l:lng('Devam et','Continue')}]}));}
+  else if(old!==f){news(lng(`Konstantiniyye el değiştirdi: şehir artık ${fname(f)} elinde.`,`Constantinople has changed hands: the city is now held by ${fname(f)}.`),'cap');}
  }
  polDirty=true;
  runHooks('capture',i,f,old);
@@ -2327,7 +2420,7 @@ function eliminate(f,by){const F=S.fac[f];F.alive=false;
  Object.keys(S.ally).forEach(k=>{if(k.split('|').includes(f))delete S.ally[k];});
  S.offers=S.offers.filter(o=>o.f!==f);
  if(S.armies)armyList(f).forEach(a=>armyRemove(a.id,'eliminated'));
- news(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,'cap');
+ news(lng(`${FAC[f].n} tarih sahnesinden silindi. Son topraklarını ${fname(by)} aldı.`,`The ${FAC[f].n} has passed from the stage of history. ${fname(by)} took its last lands.`),'cap');
  if(f===S.player){S.over='lose';}
  runHooks('eliminate',f,by);
 }
@@ -2356,10 +2449,11 @@ function garrisonMax(i){const p=S.prov[i];return Math.round((BAL_B.garBase+p.dev
 /** Smallest garrison "Garnizonu azalt" leaves behind. */
 function garMin(i){return Math.min(garrisonMax(i),Math.max(100,Math.round(S.prov[i].dev*BAL_B.garMinDev/100)*100));}
 /** Player-facing army name: "Birinci Ordu", ... (a.no is the faction-wide ordinal given at creation). */
-function armName(a){const k=(a.no||1)-1;return `${ARM_ORD[k]||a.no+'.'} Ordu`;}
+function armName(a){const k=(a.no||1)-1;return EN?`${ARM_ORD_EN[k]||a.no+'th'} Army`:`${ARM_ORD[k]||a.no+'.'} Ordu`;}
 /** Name of the army's general (Track C character), or ''. */
 function armGenName(a){const c=a&&a.gen!=null&&S.chars&&S.chars[a.gen];return c&&c.n?c.n:'';}
 const ARM_ORD=['Birinci','İkinci','Üçüncü','Dördüncü','Beşinci','Altıncı'];
+const ARM_ORD_EN=['First','Second','Third','Fourth','Fifth','Sixth'];
 KE.armyCreate=(f,loc,n,o)=>armyCreate(f,loc,n,o);
 KE.armyList=f=>armyList(f);
 /* =====================================================================
@@ -2388,15 +2482,15 @@ function armPathFrom(R0,to){if(R0.dist[to]<=0)return null;const p=[];for(let v=t
 function armyPath(id,to){const a=armyById(id);if(!a||to==null||to<0||to>=NP)return null;return armPathFrom(armReach(a),to);}
 /** Can army `id` reach `to` THIS turn? -> {ok, reason (Turkish, for the player), cost (steps), path, kind:'move'|'battle'|'assault'} */
 function armyCanMove(id,to){const a=armyById(id);
- if(!a)return {ok:false,reason:'Ordu bulunamadı.',cost:0,path:null,kind:null};
- if(to===a.loc)return {ok:false,reason:'Ordu zaten orada.',cost:0,path:null,kind:null};
+ if(!a)return {ok:false,reason:lng('Ordu bulunamadı.','Army not found.'),cost:0,path:null,kind:null};
+ if(to===a.loc)return {ok:false,reason:lng('Ordu zaten orada.','The army is already there.'),cost:0,path:null,kind:null};
  const path=armyPath(id,to),o=S.prov[to].o;
- if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`:'Oraya giden bir yol yok.';
+ if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?lng(`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`,`You are not at war with ${FAC[o].s}; you cannot enter its lands.`):lng('Oraya giden bir yol yok.','There is no road there.');
   return {ok:false,reason:why,cost:0,path:null,kind:null};}
  const foes=armFoesAt(to,a.f).length>0,kind=foes?'battle':o!==a.f&&atWar(a.f,o)?'assault':'move',cost=path.length;
- if(a.st==='siege')return {ok:false,reason:'Ordu kuşatmada.',cost,path,kind};
- if(a.mp<=0)return {ok:false,reason:'Bu ordu bu mevsim yürüyüşünü tamamladı.',cost,path,kind};
- if(cost>a.mp)return {ok:false,reason:`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,cost,path,kind};
+ if(a.st==='siege')return {ok:false,reason:lng('Ordu kuşatmada.','The army is besieging.'),cost,path,kind};
+ if(a.mp<=0)return {ok:false,reason:lng('Bu ordu bu mevsim yürüyüşünü tamamladı.','This army has finished its march for the season.'),cost,path,kind};
+ if(cost>a.mp)return {ok:false,reason:lng(`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,`Too far: this army can march at most ${a.mp} ${a.mp===1?'province':'provinces'} this season (the road is ${cost}).`),cost,path,kind};
  return {ok:true,reason:'',cost,path,kind};}
 /** Move army `id` to `to` under the rules (player and AI alike). Entering an enemy province or a province with
  an enemy army ends the move with a field battle ('battle') or an assault ('assault').
@@ -2462,18 +2556,18 @@ function garDisband(i){const p=S.prov[i],m=garMin(i);if(p.t<=m)return 0;const n=
 function garRoom(i){return Math.max(0,Math.floor((garrisonMax(i)-S.prov[i].t)/100)*100);}
 /** Where a recruit of faction f in province i goes: {to:'army',army}|{to:'new'}|{to:'gar'}|{to:null,reason}. o={army?,gar?} */
 function armRecruitDest(f,i,o={}){
- if(S.prov[i].o!==f)return {to:null,reason:'Sadece kendi eyaletinde asker toplayabilirsin.'};
- if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Garnizon dolu.'};
+ if(S.prov[i].o!==f)return {to:null,reason:lng('Sadece kendi eyaletinde asker toplayabilirsin.','You can only raise troops in your own provinces.')};
+ if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
  const sa=o.army!=null&&armyById(o.army),here=sa&&sa.f===f&&sa.loc===i?sa:armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
  if(here)return {to:'army',army:here};
  if(armyList(f).length<armyCap(f))return {to:'new'};
- return garRoom(i)>=100?{to:'gar'}:{to:null,reason:'Ordu sınırına ulaştın ve garnizon dolu.'};}
+ return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Ordu sınırına ulaştın ve garnizon dolu.','You have reached the army limit and the garrison is full.')};}
 /** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?}.
  -> {to:'army'|'new'|'gar', army?, n} or {to:null, reason} */
 function armRecruit(f,i,n,o={}){const F=S.fac[f],d=armRecruitDest(f,i,o);if(!d.to)return d;
  if(d.to==='gar')n=Math.min(n,garRoom(i));n=Math.floor(n/100)*100;
- const cost=RC*n/1000;if(n<100)return {to:null,reason:'Garnizon dolu.'};
- if(F.gold<cost)return {to:null,reason:'Hazinede yeterli altın yok.'};if(F.mp<n)return {to:null,reason:'Yeterli insan gücü yok.'};
+ const cost=RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
+ if(F.gold<cost)return {to:null,reason:lng('Hazinede yeterli altın yok.','Not enough gold in the treasury.')};if(F.mp<n)return {to:null,reason:lng('Yeterli insan gücü yok.','Not enough manpower.')};
  F.gold-=cost;F.mp-=n;
  if(d.to==='gar'){S.prov[i].t+=n;return {to:'gar',n};}
  if(d.to==='army'){d.army.n+=n;return {to:'army',army:d.army,n};}
@@ -2497,7 +2591,7 @@ function armTidy(){if(!S||!S.armies)return false;let ch=false;
   while(L.length>cap){L.sort((x,y)=>x.n-y.n);const s=L[0],mate=L.slice(1).find(x=>x.loc===s.loc);
    if(mate)armyMerge(mate,s);else{const p=S.prov[s.loc];let n=s.n;if(p.o===f){const g=Math.min(n,garRoom(s.loc));p.t+=g;n-=g;}
     const F=S.fac[f];F.mp=Math.max(F.mp,Math.min(armMpCap(f),F.mp+Math.round(n*BAL_B.disbandMp)));
-    if(f===S.player)news(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,'war');armyRemove(s.id,'disbanded');}
+    if(f===S.player)news(lng(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,`The ${armName(s)} was disbanded: your realm cannot feed so many armies.`),'war');armyRemove(s.id,'disbanded');}
    L=armyList(f);ch=true;}}
  for(let i=0;i<NP;i++){const p=S.prov[i],m=garrisonMax(i);if(p.t<=m+BAL_B.garSlack)continue;
   const f=p.o,ex=p.t-m;p.t=m;ch=true;const here=armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
@@ -2717,7 +2811,7 @@ function aiDiplo(f){
   const r=aiReach(f,g,nudged?BAL_D.reachPNudge:BAL_D.reachP);if(!r.ok){KE.aiWhy.reach++;continue;}KE.aiWhy.decl++;
   KE.aiDecl.push({t:S.turn,f,g,p:+r.p.toFixed(2),j:r.j,nudged});if(KE.aiDecl.length>200)KE.aiDecl.shift();
   declareWar(f,g);D[g]=0;break;}
- if(R()<BAL_D.allyP){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
+ if(R()<BAL_D.allyP){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(lng(`${fname(f)} ile ${fname(c)} ittifak kurdu.`,`${fname(f)} and ${fname(c)} formed an alliance.`));}}
 }
 
 /** Strategic targets of AI faction f: [{i:province,prio}] (higher prio = more attractive).
@@ -2895,82 +2989,82 @@ hook('newTurn',()=>chnTick(),21);
 
 /* ---------- 1453: Konstantiniyye ---------- */
 CHAINS.push({id:'fetih',abort:S=>!alive('OSM')||!alive('BYZ')||!chnOwn('istanbul','BYZ'),stages:[
- {when:S=>S.turn>=BAL_CHN.fetihFrom,who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.hisar?0:1,fire:st=>({t:'Boğazkesen Hisarı',
-   d:'Sultan, Boğaz\'ın Avrupa yakasında, Anadolu Hisarı\'nın karşısına bir hisar yaptırmak istiyor. Hisar bitince Karadeniz\'den Konstantiniyye\'ye gelecek yardım kesilecek.',
-   ch:[{l:`Hisarı yaptır (−${BAL_CHN.hisar} altın; Konstantiniyye\'ye saldırıda +10%)`,dis:S.fac.OSM.gold<BAL_CHN.hisar,next:{stage:1,delay:2},f:st=>{S.fac.OSM.gold-=BAL_CHN.hisar;st.data.hisar=1;chnNudge('OSM',{war:'BYZ',target:PK.istanbul});
-      news('Osmanlı, Boğaz\'ın Avrupa yakasında Boğazkesen Hisarı\'nı yükseltiyor. Konstantiniyye\'nin Karadeniz yolu kesildi.',S.player==='BYZ'?'war':'info');}},
-    {l:'Acele etme (kuşatma bir yıl gecikir)',next:{stage:0,delay:6},f:()=>{}}]})},
- {when:S=>S.turn>=BAL_CHN.fetihWar&&!inTruce('OSM','BYZ'),who:()=>'OSM',fire:st=>({t:'Konstantiniyye Seferi',
-   d:'Urban\'ın dev topları Edirne\'den yola çıkmaya hazır. Divan, bin yıllık şehrin surlarına yürümek için sultanın emrini bekliyor.',
-   ch:[{l:'Savaş ilan et ve surlara yürü',next:{stage:2,delay:0},f:st=>{if(!atWar('OSM','BYZ'))declareWar('OSM','BYZ');st.data.war=S.turn;chnNudge('OSM',{war:'BYZ',target:PK.istanbul,prio:5});}},
-    {l:'Bir yıl daha bekle',next:{stage:1,delay:4},f:()=>{}}]})},
- {when:S=>atWar('OSM','BYZ'),who:()=>'BYZ',ai:S=>S.fac.BYZ.gold>=BAL_CHN.giust?0:S.fac.BYZ.gold>=BAL_CHN.zincir?1:2,fire:st=>({t:'Cenevizli Giustiniani',
-   d:'Cenevizli kumandan Giovanni Giustiniani Longo, 700 askerle Haliç\'e geldi. Surların savunmasını üstlenmeye hazır, ama ücret istiyor. Haliç\'in ağzına demir bir zincir germek de mümkün.',
-   ch:[{l:`Giustiniani\'yi tut (−${BAL_CHN.giust} altın; o yaşadıkça surlarda savunma +20%)`,dis:S.fac.BYZ.gold<BAL_CHN.giust,f:st=>{S.fac.BYZ.gold-=BAL_CHN.giust;
-      const g=chCreate({n:'Giovanni Giustiniani',f:'BYZ',role:'gen',born:1418,hd:1453,skill:3,dyn:'Giustiniani'});S.fac.BYZ.gens.push(g.id);st.data.giust=g.id;news('Giustiniani, Theodosius surlarının savunmasını üstlendi.',S.player==='OSM'?'war':'info');}},
-    {l:`Haliç\'e zincir ger (−${BAL_CHN.zincir} altın; surlarda savunma +10%)`,dis:S.fac.BYZ.gold<BAL_CHN.zincir,f:st=>{S.fac.BYZ.gold-=BAL_CHN.zincir;st.data.zincir=1;news('Haliç\'in ağzına demir zincir gerildi.',S.player==='OSM'?'war':'info');}},
-    {l:'Hazineyi koru, surlara güven',f:()=>{}}]})},
- {when:S=>atWar('OSM','BYZ'),who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.gemi?0:1,fire:st=>({t:'Gemiler Karadan Yürüdü',
-   d:st.data.zincir?'Zincir Haliç\'i kapatıyor. Mimarlar, gemileri yağlanmış kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.':'Haliç\'in surları zayıf. Mimarlar, gemileri kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.',
-   ch:[{l:`Gemileri karadan yürüt (−${BAL_CHN.gemi} altın; Konstantiniyye\'ye saldırıda +15%, zincir işe yaramaz)`,dis:S.fac.OSM.gold<BAL_CHN.gemi,f:st=>{S.fac.OSM.gold-=BAL_CHN.gemi;st.data.gemi=1;
-      news('Osmanlı gemileri bir gecede karadan yürüyerek Haliç\'e indi!',S.player==='BYZ'?'war':'cap');}},
-    {l:'Kara surlarına yüklen',f:()=>{}}]})},
+ {when:S=>S.turn>=BAL_CHN.fetihFrom,who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.hisar?0:1,fire:st=>({t:lng('Boğazkesen Hisarı','The Strait-Cutter Fortress'),
+   d:lng('Sultan, Boğaz\'ın Avrupa yakasında, Anadolu Hisarı\'nın karşısına bir hisar yaptırmak istiyor. Hisar bitince Karadeniz\'den Konstantiniyye\'ye gelecek yardım kesilecek.','The Sultan wants a fortress built on the European shore of the Bosphorus, facing the old Anatolian castle. Once it stands, no help can reach Constantinople from the Black Sea.'),
+   ch:[{l:lng(`Hisarı yaptır (−${BAL_CHN.hisar} altın; Konstantiniyye\'ye saldırıda +10%)`,`Build the fortress (−${BAL_CHN.hisar} gold; +10% when attacking Constantinople)`),dis:S.fac.OSM.gold<BAL_CHN.hisar,next:{stage:1,delay:2},f:st=>{S.fac.OSM.gold-=BAL_CHN.hisar;st.data.hisar=1;chnNudge('OSM',{war:'BYZ',target:PK.istanbul});
+      news(lng('Osmanlı, Boğaz\'ın Avrupa yakasında Boğazkesen Hisarı\'nı yükseltiyor. Konstantiniyye\'nin Karadeniz yolu kesildi.','The Ottomans are raising the Strait-Cutter fortress on the European shore of the Bosphorus. Constantinople\'s road to the Black Sea is cut.'),S.player==='BYZ'?'war':'info');}},
+    {l:lng('Acele etme (kuşatma bir yıl gecikir)','Do not hurry (the siege is delayed by a year)'),next:{stage:0,delay:6},f:()=>{}}]})},
+ {when:S=>S.turn>=BAL_CHN.fetihWar&&!inTruce('OSM','BYZ'),who:()=>'OSM',fire:st=>({t:lng('Konstantiniyye Seferi','The Constantinople Campaign'),
+   d:lng('Urban\'ın dev topları Edirne\'den yola çıkmaya hazır. Divan, bin yıllık şehrin surlarına yürümek için sultanın emrini bekliyor.','Urban\'s great guns are ready to roll out of Adrianople. The Divan awaits the Sultan\'s order to march on the walls of the thousand-year city.'),
+   ch:[{l:lng('Savaş ilan et ve surlara yürü','Declare war and march on the walls'),next:{stage:2,delay:0},f:st=>{if(!atWar('OSM','BYZ'))declareWar('OSM','BYZ');st.data.war=S.turn;chnNudge('OSM',{war:'BYZ',target:PK.istanbul,prio:5});}},
+    {l:lng('Bir yıl daha bekle','Wait another year'),next:{stage:1,delay:4},f:()=>{}}]})},
+ {when:S=>atWar('OSM','BYZ'),who:()=>'BYZ',ai:S=>S.fac.BYZ.gold>=BAL_CHN.giust?0:S.fac.BYZ.gold>=BAL_CHN.zincir?1:2,fire:st=>({t:lng('Cenevizli Giustiniani','Giustiniani the Genoese'),
+   d:lng('Cenevizli kumandan Giovanni Giustiniani Longo, 700 askerle Haliç\'e geldi. Surların savunmasını üstlenmeye hazır, ama ücret istiyor. Haliç\'in ağzına demir bir zincir germek de mümkün.','The Genoese captain Giovanni Giustiniani Longo has reached the Golden Horn with 700 men. He is ready to take charge of the walls, but he wants to be paid. An iron chain could also be stretched across the mouth of the Golden Horn.'),
+   ch:[{l:lng(`Giustiniani\'yi tut (−${BAL_CHN.giust} altın; o yaşadıkça surlarda savunma +20%)`,`Hire Giustiniani (−${BAL_CHN.giust} gold; +20% defence on the walls while he lives)`),dis:S.fac.BYZ.gold<BAL_CHN.giust,f:st=>{S.fac.BYZ.gold-=BAL_CHN.giust;
+      const g=chCreate({n:'Giovanni Giustiniani',f:'BYZ',role:'gen',born:1418,hd:1453,skill:3,dyn:'Giustiniani'});S.fac.BYZ.gens.push(g.id);st.data.giust=g.id;news(lng('Giustiniani, Theodosius surlarının savunmasını üstlendi.','Giustiniani has taken command of the Theodosian Walls.'),S.player==='OSM'?'war':'info');}},
+    {l:lng(`Haliç\'e zincir ger (−${BAL_CHN.zincir} altın; surlarda savunma +10%)`,`Chain the Golden Horn (−${BAL_CHN.zincir} gold; +10% defence on the walls)`),dis:S.fac.BYZ.gold<BAL_CHN.zincir,f:st=>{S.fac.BYZ.gold-=BAL_CHN.zincir;st.data.zincir=1;news(lng('Haliç\'in ağzına demir zincir gerildi.','An iron chain now closes the mouth of the Golden Horn.'),S.player==='OSM'?'war':'info');}},
+    {l:lng('Hazineyi koru, surlara güven','Save the treasury and trust the walls'),f:()=>{}}]})},
+ {when:S=>atWar('OSM','BYZ'),who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.gemi?0:1,fire:st=>({t:lng('Gemiler Karadan Yürüdü','Ships over Land'),
+   d:st.data.zincir?lng('Zincir Haliç\'i kapatıyor. Mimarlar, gemileri yağlanmış kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.','The chain closes the Golden Horn. The engineers propose hauling the ships on greased slipways over the hills of Galata and down into the Horn.'):lng('Haliç\'in surları zayıf. Mimarlar, gemileri kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.','The walls along the Golden Horn are weak. The engineers propose hauling the ships on slipways over the hills of Galata and down into the Horn.'),
+   ch:[{l:lng(`Gemileri karadan yürüt (−${BAL_CHN.gemi} altın; Konstantiniyye\'ye saldırıda +15%, zincir işe yaramaz)`,`Haul the ships over land (−${BAL_CHN.gemi} gold; +15% when attacking Constantinople, the chain is useless)`),dis:S.fac.OSM.gold<BAL_CHN.gemi,f:st=>{S.fac.OSM.gold-=BAL_CHN.gemi;st.data.gemi=1;
+      news(lng('Osmanlı gemileri bir gecede karadan yürüyerek Haliç\'e indi!','In a single night the Ottoman ships crossed over land and slid into the Golden Horn!'),S.player==='BYZ'?'war':'cap');}},
+    {l:lng('Kara surlarına yüklen','Press the land walls'),f:()=>{}}]})},
  {when:S=>!atWar('OSM','BYZ'),fire:st=>({t:'',d:'',ch:[{l:'',next:{stage:1,delay:12},f:st=>{st.data.tries=(st.data.tries||0)+1;if(st.data.tries>=3)st.done=true;
-   news('Osmanlı kuşatması kaldırıldı; Konstantiniyye bir kez daha ayakta kaldı.',S.player==='BYZ'||S.player==='OSM'?'good':'info');}}]})}]});
+   news(lng('Osmanlı kuşatması kaldırıldı; Konstantiniyye bir kez daha ayakta kaldı.','The Ottoman siege is lifted; Constantinople still stands once more.'),S.player==='BYZ'||S.player==='OSM'?'good':'info');}}]})}]});
 
 /* ---------- 1456: Belgrad ---------- */
 CHAINS.push({id:'belgrad',abort:S=>!alive('OSM')||!alive('HUN')||!chnOwn('belgrad','HUN'),stages:[
- {when:S=>S.turn>=BAL_CHN.belgradFrom&&!inTruce('OSM','HUN')&&!atWar('OSM','BYZ'),who:()=>'OSM',ai:S=>strength('OSM')>strength('HUN')*1.2?0:1,fire:st=>({t:'Belgrad Seferi',
-   d:'Sultan, Macarların Tuna\'daki kilidi Belgrad\'a yürümek istiyor. Kale düşerse Macar ovası açılacak.',
-   ch:[{l:'Belgrad\'a yürü (Macarlara savaş ilan et)',next:{stage:1,delay:0},f:()=>{if(!atWar('OSM','HUN'))declareWar('OSM','HUN');chnNudge('OSM',{war:'HUN',target:PK.belgrad});}},
-    {l:'Tuna\'yı şimdilik rahat bırak',next:{stage:0,delay:8},f:()=>{}}]})},
- {when:S=>atWar('OSM','HUN'),who:()=>'HUN',fire:st=>({t:'Kapistran\'ın Haçlıları',
-   d:'Yaşlı rahip Giovanni da Capistrano, vaazlarıyla binlerce köylüyü Belgrad\'ı savunmak için topladı. Kaleye alınabilirler; ama silahsız ve disiplinsizler. Ya da paralı askerler tutulabilir.',
-   ch:[{l:'Haçlıları kaleye al (Belgrad\'a +3.000 asker; 2 eyalet 4 tur huzursuz)',next:{stage:2,delay:3},f:st=>{evTroops('HUN',PK.belgrad,3000);chnUnrest('HUN',2,4);}},
-    {l:`Paralı asker tut (−${BAL_CHN.kapGold} altın; Belgrad\'da savunma +15%, 8 tur)`,dis:S.fac.HUN.gold<BAL_CHN.kapGold,next:{stage:2,delay:3},f:st=>{S.fac.HUN.gold-=BAL_CHN.kapGold;st.data.par=S.turn+8;}},
-    {l:'Kalenin surlarına güven',next:{stage:2,delay:3},f:()=>{}}]})},
+ {when:S=>S.turn>=BAL_CHN.belgradFrom&&!inTruce('OSM','HUN')&&!atWar('OSM','BYZ'),who:()=>'OSM',ai:S=>strength('OSM')>strength('HUN')*1.2?0:1,fire:st=>({t:lng('Belgrad Seferi','The Belgrade Campaign'),
+   d:lng('Sultan, Macarların Tuna\'daki kilidi Belgrad\'a yürümek istiyor. Kale düşerse Macar ovası açılacak.','The Sultan wants to march on Belgrade, the Hungarians\' lock on the Danube. If the fortress falls, the Hungarian plain lies open.'),
+   ch:[{l:lng('Belgrad\'a yürü (Macarlara savaş ilan et)','March on Belgrade (declare war on Hungary)'),next:{stage:1,delay:0},f:()=>{if(!atWar('OSM','HUN'))declareWar('OSM','HUN');chnNudge('OSM',{war:'HUN',target:PK.belgrad});}},
+    {l:lng('Tuna\'yı şimdilik rahat bırak','Leave the Danube in peace for now'),next:{stage:0,delay:8},f:()=>{}}]})},
+ {when:S=>atWar('OSM','HUN'),who:()=>'HUN',fire:st=>({t:lng('Kapistran\'ın Haçlıları','Capistrano\'s Crusaders'),
+   d:lng('Yaşlı rahip Giovanni da Capistrano, vaazlarıyla binlerce köylüyü Belgrad\'ı savunmak için topladı. Kaleye alınabilirler; ama silahsız ve disiplinsizler. Ya da paralı askerler tutulabilir.','The old friar Giovanni da Capistrano has preached thousands of peasants into coming to defend Belgrade. They can be taken into the fortress, but they are unarmed and undisciplined. Or mercenaries can be hired instead.'),
+   ch:[{l:lng('Haçlıları kaleye al (Belgrad\'a +3.000 asker; 2 eyalet 4 tur huzursuz)','Take the crusaders in (+3,000 troops at Belgrade; unrest in 2 provinces for 4 turns)'),next:{stage:2,delay:3},f:st=>{evTroops('HUN',PK.belgrad,3000);chnUnrest('HUN',2,4);}},
+    {l:lng(`Paralı asker tut (−${BAL_CHN.kapGold} altın; Belgrad\'da savunma +15%, 8 tur)`,`Hire mercenaries (−${BAL_CHN.kapGold} gold; +15% defence at Belgrade for 8 turns)`),dis:S.fac.HUN.gold<BAL_CHN.kapGold,next:{stage:2,delay:3},f:st=>{S.fac.HUN.gold-=BAL_CHN.kapGold;st.data.par=S.turn+8;}},
+    {l:lng('Kalenin surlarına güven','Trust the fortress walls'),next:{stage:2,delay:3},f:()=>{}}]})},
  {when:()=>true,fire:st=>({t:'',d:'',ch:[{l:'',next:'end',f:()=>{const h=chBySeed('HUN','hunyadi');
-   news('Papa\'nın emriyle öğle çanları Belgrad\'ın savunucuları için çalıyor.','info');if(chLive(h)&&R()<.6)chKill(h,'plague');}}]})}]});
+   news(lng('Papa\'nın emriyle öğle çanları Belgrad\'ın savunucuları için çalıyor.','By order of the Pope, the noon bells ring for the defenders of Belgrade.'),'info');if(chLive(h)&&R()<.6)chKill(h,'plague');}}]})}]});
 
 /* ---------- 1473: Otlukbeli ---------- */
 CHAINS.push({id:'otlukbeli',abort:S=>!alive('OSM')||!alive('AKK'),stages:[
- {when:S=>S.turn>=BAL_CHN.otlukFrom&&!inTruce('OSM','AKK')&&!atWar('OSM','AKK'),who:()=>'AKK',ai:S=>strength('AKK')>=strength('OSM')*.35?0:1,fire:st=>({t:'Venedik Elçileri',
-   d:`Venedik elçisi Caterino Zeno, ${rulerName('AKK')}\'ın sarayında: Cumhuriyet, Osmanlı\'ya karşı birlikte savaşmayı ve top göndermeyi teklif ediyor.`,
-   ch:[{l:'İttifakı kabul et, Osmanlı\'ya savaş aç (Venedik topları gelir)',next:{stage:1,delay:2},f:()=>{S.fac.AKK.cannon=1;
-      if(alive('VEN')&&!atWar('AKK','VEN')&&!isAlly('AKK','VEN')){S.ally[key('AKK','VEN')]=true;addLog('Akkoyunlu ile Venedik Osmanlı\'ya karşı ittifak kurdu.');}
+ {when:S=>S.turn>=BAL_CHN.otlukFrom&&!inTruce('OSM','AKK')&&!atWar('OSM','AKK'),who:()=>'AKK',ai:S=>strength('AKK')>=strength('OSM')*.35?0:1,fire:st=>({t:lng('Venedik Elçileri','The Venetian Envoys'),
+   d:lng(`Venedik elçisi Caterino Zeno, ${rulerName('AKK')}\'ın sarayında: Cumhuriyet, Osmanlı\'ya karşı birlikte savaşmayı ve top göndermeyi teklif ediyor.`,`The Venetian envoy Caterino Zeno is at the court of ${rulerName('AKK')}: the Republic offers to fight the Ottomans together and to send cannon.`),
+   ch:[{l:lng('İttifakı kabul et, Osmanlı\'ya savaş aç (Venedik topları gelir)','Accept the alliance and declare war on the Ottomans (Venetian cannon arrive)'),next:{stage:1,delay:2},f:()=>{S.fac.AKK.cannon=1;
+      if(alive('VEN')&&!atWar('AKK','VEN')&&!isAlly('AKK','VEN')){S.ally[key('AKK','VEN')]=true;addLog(lng('Akkoyunlu ile Venedik Osmanlı\'ya karşı ittifak kurdu.','The Aq Qoyunlu and Venice formed an alliance against the Ottomans.'));}
       declareWar('AKK','OSM');chnNudge('AKK',{war:'OSM'});}},
-    {l:'Osmanlı ile barışı koru (−20 altın hediye; ilişki +20)',dis:S.fac.AKK.gold<20,next:'end',f:()=>{S.fac.AKK.gold-=20;addOp('AKK','OSM',20);}}]})},
- {when:S=>atWar('OSM','AKK'),who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.otlukGold?0:1,fire:st=>({t:'Otlukbeli',
-   d:`${rulerName('AKK')}\'ın Türkmen süvarileri Fırat boyunda. Sultan ordusunu toplar ve tüfekli yeniçerilerle doğuya sürebilir ya da sınırı tutup düşmanı yıpratabilir.`,
-   ch:[{l:`Topları ve tüfekleri öne sür (−${BAL_CHN.otlukGold} altın; Akkoyunlu\'ya saldırıda +15%, 8 tur)`,dis:S.fac.OSM.gold<BAL_CHN.otlukGold,next:'end',f:st=>{S.fac.OSM.gold-=BAL_CHN.otlukGold;st.data.top=S.turn+8;chnNudge('OSM',{war:'AKK',target:S.fac.AKK.cap});}},
-    {l:'Sınırı tut, onları yıprat (Akkoyunlu\'ya karşı savunmada +15%, 8 tur)',next:'end',f:st=>{st.data.def=S.turn+8;}}]})}]});
+    {l:lng('Osmanlı ile barışı koru (−20 altın hediye; ilişki +20)','Keep the peace with the Ottomans (−20 gold in gifts; relations +20)'),dis:S.fac.AKK.gold<20,next:'end',f:()=>{S.fac.AKK.gold-=20;addOp('AKK','OSM',20);}}]})},
+ {when:S=>atWar('OSM','AKK'),who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.otlukGold?0:1,fire:st=>({t:lng('Otlukbeli','Otlukbeli'),
+   d:lng(`${rulerName('AKK')}\'ın Türkmen süvarileri Fırat boyunda. Sultan ordusunu toplar ve tüfekli yeniçerilerle doğuya sürebilir ya da sınırı tutup düşmanı yıpratabilir.`,`The Turkmen horsemen of ${rulerName('AKK')} are on the Euphrates. The Sultan can gather his army and drive east with his musket-armed Janissaries, or hold the border and wear the enemy down.`),
+   ch:[{l:lng(`Topları ve tüfekleri öne sür (−${BAL_CHN.otlukGold} altın; Akkoyunlu\'ya saldırıda +15%, 8 tur)`,`Bring the guns and muskets forward (−${BAL_CHN.otlukGold} gold; +15% when attacking the Aq Qoyunlu for 8 turns)`),dis:S.fac.OSM.gold<BAL_CHN.otlukGold,next:'end',f:st=>{S.fac.OSM.gold-=BAL_CHN.otlukGold;st.data.top=S.turn+8;chnNudge('OSM',{war:'AKK',target:S.fac.AKK.cap});}},
+    {l:lng('Sınırı tut, onları yıprat (Akkoyunlu\'ya karşı savunmada +15%, 8 tur)','Hold the border and wear them down (+15% defence against the Aq Qoyunlu for 8 turns)'),next:'end',f:st=>{st.data.def=S.turn+8;}}]})}]});
 
 /* ---------- 1481: Cem Sultan (armed by the Ottoman succession when two sons live) ---------- */
 function chnHost(){for(const g of ['RHO','PAP','MAM','VEN'])if(alive(g))return g;return null;}
 CHAINS.push({id:'cem',abort:S=>!alive('OSM'),stages:[
- {when:(S,st)=>st.data.cem!=null&&chLive(S.chars[st.data.cem])&&S.chars[st.data.cem].role!=='claimant',who:()=>'OSM',fire:st=>{const c=S.chars[st.data.cem]||{n:'Şehzade'},h=chnHost();
-   return {t:'Cem Sultan Meselesi',d:`Şehzade ${c.n}, kardeşi ${rulerName('OSM')}\'a karşı tahta göz dikti; Bursa\'da kendi adına hutbe okutuyor. Anadolu beyleri ikiye bölündü.`,
-    ch:[{l:`Kardeşini yen ve sürgüne gönder (${h?FAC[h].s+' onu rehin tutar, her tur nafaka ödersin; ':''}2 eyalet 4 tur huzursuz)`,next:'end',f:st=>{const x=S.chars[st.data.cem];if(x){x.role='claimant';x.host=h;}st.data.host=h;chnUnrest('OSM',2,4);
-       news(h?`Şehzade ${c.n} yenildi ve ${FAC[h].s} elinde rehin kaldı.`:`Şehzade ${c.n} yenildi ve sürgüne gitti.`,S.player==='OSM'?'war':'info');}},
-     {l:'Taht için kardeşini feda et (3 eyalet 8 tur huzursuz)',next:'end',f:st=>{const x=S.chars[st.data.cem];chnUnrest('OSM',3,8);if(x)chKill(x,'executed');}}]};}}]});
+ {when:(S,st)=>st.data.cem!=null&&chLive(S.chars[st.data.cem])&&S.chars[st.data.cem].role!=='claimant',who:()=>'OSM',fire:st=>{const c=S.chars[st.data.cem]||{n:lng('Şehzade','Prince')},h=chnHost();
+   return {t:lng('Cem Sultan Meselesi','The Question of Prince Cem'),d:lng(`Şehzade ${c.n}, kardeşi ${rulerName('OSM')}\'a karşı tahta göz dikti; Bursa\'da kendi adına hutbe okutuyor. Anadolu beyleri ikiye bölündü.`,`Prince ${c.n} has set his eyes on the throne against his brother ${rulerName('OSM')}; in Bursa the Friday sermon is read in his name. The beys of Anatolia are split in two.`),
+    ch:[{l:lng(`Kardeşini yen ve sürgüne gönder (${h?FAC[h].s+' onu rehin tutar, her tur nafaka ödersin; ':''}2 eyalet 4 tur huzursuz)`,`Defeat your brother and send him into exile (${h?FAC[h].s+' keeps him hostage and you pay for his upkeep every turn; ':''}unrest in 2 provinces for 4 turns)`),next:'end',f:st=>{const x=S.chars[st.data.cem];if(x){x.role='claimant';x.host=h;}st.data.host=h;chnUnrest('OSM',2,4);
+       news(h?lng(`Şehzade ${c.n} yenildi ve ${FAC[h].s} elinde rehin kaldı.`,`Prince ${c.n} was defeated and is now a hostage of ${FAC[h].s}.`):lng(`Şehzade ${c.n} yenildi ve sürgüne gitti.`,`Prince ${c.n} was defeated and went into exile.`),S.player==='OSM'?'war':'info');}},
+     {l:lng('Taht için kardeşini feda et (3 eyalet 8 tur huzursuz)','Sacrifice your brother for the throne (unrest in 3 provinces for 8 turns)'),next:'end',f:st=>{const x=S.chars[st.data.cem];chnUnrest('OSM',3,8);if(x)chKill(x,'executed');}}]};}}]});
 hook('succession',(f,old,neu)=>{if(f!=='OSM'||!old||!S.chains)return;const st=chnState('cem');if(st.done||st.data.cem!=null)return;
  const L=Object.values(S.chars).filter(c=>c.f==='OSM'&&chLive(c)&&c.par===old.id&&c.id!==neu.id&&chAge(c)>=16&&(c.role==='kin'||c.role==='heir'));
  if(!L.length)return;L.sort((a,b)=>((b.sk==='cem')-(a.sk==='cem'))||(a.born-b.born));st.data.cem=L[0].id;st.t=S.turn;},60);
 ECON_ROWS.push(f=>{if(!S.chains||!S.chains.cem)return null;const d=S.chains.cem.data,c=d&&S.chars[d.cem];
  if(!d.host||!chLive(c)||c.role!=='claimant'||!alive(d.host)||!alive('OSM'))return null;
- if(f==='OSM')return [{id:'ch-cem',l:`Cem Sultan\'ın nafakası (${FAC[d.host].s})`,v:BAL_CHN.cemPay,k:'exp'}];
- if(f===d.host)return [{id:'ch-cem',l:'Rehin şehzadenin nafakası',v:BAL_CHN.cemPay,k:'inc'}];return null;});
+ if(f==='OSM')return [{id:'ch-cem',l:lng(`Cem Sultan\'ın nafakası (${FAC[d.host].s})`,`Upkeep of Prince Cem (${FAC[d.host].s})`),v:BAL_CHN.cemPay,k:'exp'}];
+ if(f===d.host)return [{id:'ch-cem',l:lng('Rehin şehzadenin nafakası','Upkeep of the hostage prince'),v:BAL_CHN.cemPay,k:'inc'}];return null;});
 
 /* ---------- chain modifiers in battle ---------- */
 BATTLE_MODS.push(ctx=>{if(!S.chains||ctx.to==null)return null;const out=[];
  if(ctx.to===PK.istanbul&&S.chains.fetih){const d=S.chains.fetih.data;
-  if(ctx.att==='OSM'){if(d.hisar)out.push({l:'Boğazkesen Hisarı',m:BAL_CHN.hisarMul,side:'att',k:'chain'});if(d.gemi)out.push({l:'Gemiler Haliç\'te',m:BAL_CHN.gemiMul,side:'att',k:'chain'});}
-  if(S.prov[ctx.to].o==='BYZ'){const g=d.giust!=null&&S.chars[d.giust];if(chLive(g)&&g.cap==null)out.push({l:'Giustiniani surlarda',m:BAL_CHN.giustMul,side:'def',k:'chain'});
-   if(d.zincir&&!d.gemi)out.push({l:'Haliç zinciri',m:BAL_CHN.zincirMul,side:'def',k:'chain'});}}
- if(ctx.to===PK.belgrad&&S.chains.belgrad&&S.prov[ctx.to].o==='HUN'&&(S.chains.belgrad.data.par||0)>S.turn)out.push({l:'Paralı askerler',m:BAL_CHN.kapMul,side:'def',k:'chain'});
+  if(ctx.att==='OSM'){if(d.hisar)out.push({l:lng('Boğazkesen Hisarı','The Strait-Cutter Fortress'),m:BAL_CHN.hisarMul,side:'att',k:'chain'});if(d.gemi)out.push({l:lng('Gemiler Haliç\'te','Ships in the Golden Horn'),m:BAL_CHN.gemiMul,side:'att',k:'chain'});}
+  if(S.prov[ctx.to].o==='BYZ'){const g=d.giust!=null&&S.chars[d.giust];if(chLive(g)&&g.cap==null)out.push({l:lng('Giustiniani surlarda','Giustiniani on the walls'),m:BAL_CHN.giustMul,side:'def',k:'chain'});
+   if(d.zincir&&!d.gemi)out.push({l:lng('Haliç zinciri','Golden Horn chain'),m:BAL_CHN.zincirMul,side:'def',k:'chain'});}}
+ if(ctx.to===PK.belgrad&&S.chains.belgrad&&S.prov[ctx.to].o==='HUN'&&(S.chains.belgrad.data.par||0)>S.turn)out.push({l:lng('Paralı askerler','Mercenaries'),m:BAL_CHN.kapMul,side:'def',k:'chain'});
  const o=S.chains.otlukbeli;if(o){const def=S.prov[ctx.to].o;
-  if(ctx.att==='OSM'&&def==='AKK'&&(o.data.top||0)>S.turn)out.push({l:'Osmanlı topçusu',m:BAL_CHN.otlukMul,side:'att',k:'chain'});
-  if(ctx.att==='AKK'&&def==='OSM'&&(o.data.def||0)>S.turn)out.push({l:'Sınır boyu savunması',m:BAL_CHN.otlukMul,side:'def',k:'chain'});}
+  if(ctx.att==='OSM'&&def==='AKK'&&(o.data.top||0)>S.turn)out.push({l:lng('Osmanlı topçusu','Ottoman artillery'),m:BAL_CHN.otlukMul,side:'att',k:'chain'});
+  if(ctx.att==='AKK'&&def==='OSM'&&(o.data.def||0)>S.turn)out.push({l:lng('Sınır boyu savunması','Border defence'),m:BAL_CHN.otlukMul,side:'def',k:'chain'});}
  return out.length?out:null;});
 KE.CHAINS=CHAINS;
 /* =====================================================================
@@ -2991,102 +3085,104 @@ const evTurkish=['OSM','KAR','CAN','DUL','AKK','KKY','SAF'];
 
 EVENTS.push(
  {id:'kervan',w:3,cd:20,build:c=>{const a=c.mid,k=Math.round(a*.6),[o]=evOthers(c,1);
-  return {t:c.isM?'İpek Yolu Kervanı':'Levanten Tüccarlar',d:c.isM?`Doğudan gelen zengin bir kervan ${c.capn} pazarında konakladı. Gümrük emini ne kadar vergi alınacağını soruyor.`:`Venedikli ve Cenevizli tüccarlar ${c.capn} limanında ticaret izni istiyor.`,
-   ch:[{l:`Ağır gümrük koy (+${a} altın; tüccarlar küser, ${c.capn}${o!=null?' ve '+PD[o].name:''} 3 tur huzursuz)`,f:()=>{c.F.gold+=a;evUnrest(c.cap,3);if(o!=null)evUnrest(o,3);}},
-    {l:`Kervansaray yaptır (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}}]};}},
+  return {t:c.isM?lng('İpek Yolu Kervanı','A Silk Road Caravan'):lng('Levanten Tüccarlar','Levantine Merchants'),d:c.isM?lng(`Doğudan gelen zengin bir kervan ${c.capn} pazarında konakladı. Gümrük emini ne kadar vergi alınacağını soruyor.`,`A rich caravan from the East has stopped at the market of ${c.capn}. The customs officer asks how much duty to take.`):lng(`Venedikli ve Cenevizli tüccarlar ${c.capn} limanında ticaret izni istiyor.`,`Venetian and Genoese merchants ask leave to trade in the port of ${c.capn}.`),
+   ch:[{l:lng(`Ağır gümrük koy (+${a} altın; tüccarlar küser, ${c.capn}${o!=null?' ve '+PD[o].name:''} 3 tur huzursuz)`,`Impose heavy duties (+${a} gold; the merchants take offence, unrest in ${c.capn}${o!=null?' and '+PD[o].name:''} for 3 turns)`),f:()=>{c.F.gold+=a;evUnrest(c.cap,3);if(o!=null)evUnrest(o,3);}},
+    {l:lng(`Kervansaray yaptır (−${k} altın; ${c.capn} gelişimi +1)`,`Build a caravanserai (−${k} gold; ${c.capn} development +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}}]};}},
  {id:'veba',w:2,cd:24,build:c=>{const q=c.small+10;
-  return {t:'Veba Salgını',d:`${c.pn} eyaletinde kara ölüm baş gösterdi. Hekimler şehrin kapılarının kapatılmasını istiyor.`,
-   ch:[{l:`Karantina uygula (−${q} altın; ${c.pn} garnizonu −10%)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);evCut(c.p,.1);}},
-    {l:`Kaderine bırak (${c.pn} gelişimi −1, garnizonu −35%)`,f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);evCut(c.p,.35);}}]};}},
+  return {t:lng('Veba Salgını','Plague'),d:lng(`${c.pn} eyaletinde kara ölüm baş gösterdi. Hekimler şehrin kapılarının kapatılmasını istiyor.`,`The Black Death has broken out in ${c.pn}. The physicians want the city gates shut.`),
+   ch:[{l:lng(`Karantina uygula (−${q} altın; ${c.pn} garnizonu −10%)`,`Impose a quarantine (−${q} gold; ${c.pn} garrison −10%)`),dis:c.F.gold<q,f:()=>{evPay(c.F,q);evCut(c.p,.1);}},
+    {l:lng(`Kaderine bırak (${c.pn} gelişimi −1, garnizonu −35%)`,`Leave it to fate (${c.pn} development −1, garrison −35%)`),f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);evCut(c.p,.35);}}]};}},
  {id:'hasat',w:3,cd:20,build:c=>{const a=c.mid,m=Math.max(1000,Math.round(evDev(c.f)*80/100)*100),k=Math.round(a*.4);
-  return {t:'Bereketli Hasat',d:'Ambarlar doldu. Fazla buğday satılabilir ya da köylerden gelen gençler beslenip orduya yazılabilir.',
-   ch:[{l:`Fazlayı tüccarlara sat (+${a} altın; köyler kışa hazırlıksız, insan gücü −15%)`,f:()=>{c.F.gold+=a;c.F.mp=Math.round(c.F.mp*.85);}},
-    {l:`Gönüllüleri yaz (+${fmtK(m)} insan gücü; teçhizatları −${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
+  return {t:lng('Bereketli Hasat','A Bountiful Harvest'),d:lng('Ambarlar doldu. Fazla buğday satılabilir ya da köylerden gelen gençler beslenip orduya yazılabilir.','The granaries are full. The surplus wheat can be sold, or it can feed the village youths who come to join the army.'),
+   ch:[{l:lng(`Fazlayı tüccarlara sat (+${a} altın; köyler kışa hazırlıksız, insan gücü −15%)`,`Sell the surplus to merchants (+${a} gold; the villages face winter unprepared, manpower −15%)`),f:()=>{c.F.gold+=a;c.F.mp=Math.round(c.F.mp*.85);}},
+    {l:lng(`Gönüllüleri yaz (+${fmtK(m)} insan gücü; teçhizatları −${k} altın)`,`Enlist the volunteers (+${fmtK(m)} manpower; their gear costs −${k} gold)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
  {id:'alim',w:2,cd:24,build:c=>{const k=30+c.small;
-  return {t:c.isM?'Gezgin Âlim':'Hümanist Bilgin',d:c.isM?'Semerkant\'tan gelen ünlü bir âlim başkentinde medrese açmak istiyor.':'İtalya\'dan gelen bir bilgin başkentinde kütüphane kurmak istiyor.',
-   ch:[{l:`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
-    {l:'Nazikçe geri çevir (hazine korunur, bilgin başka bir saraya gider)'}]};}},
+  return {t:c.isM?lng('Gezgin Âlim','A Wandering Scholar'):lng('Hümanist Bilgin','A Humanist Scholar'),d:c.isM?lng('Semerkant\'tan gelen ünlü bir âlim başkentinde medrese açmak istiyor.','A famous scholar from Samarkand wishes to open a madrasa in your capital.'):lng('İtalya\'dan gelen bir bilgin başkentinde kütüphane kurmak istiyor.','A scholar from Italy wishes to found a library in your capital.'),
+   ch:[{l:lng(`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,`Become the patron (−${k} gold; ${c.capn} development +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
+    {l:lng('Nazikçe geri çevir (hazine korunur, bilgin başka bir saraya gider)','Politely decline (the treasury is spared, the scholar goes to another court)')}]};}},
  {id:'paralı',w:2,cd:20,build:c=>{const k=40+Math.round(evDev(c.f)*.2),n=3000;
-  return {t:c.isM?'Akıncı Beyleri':'Paralı Askerler',d:c.isM?'Sınır boylarından akıncı beyleri hizmet teklif ediyor.':'Bir condottiere bölüğü ücret karşılığı hizmet teklif ediyor.',
-   ch:[{l:`Kirala (−${k} altın; ${c.capn} yakınına +${fmtK(n)} asker)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);evTroops(c.f,c.cap,n);}},
-    {l:'Gerek yok (hazine korunur)'}]};}},
+  return {t:c.isM?lng('Akıncı Beyleri','Akinji Beys'):lng('Paralı Askerler','Mercenaries'),d:c.isM?lng('Sınır boylarından akıncı beyleri hizmet teklif ediyor.','Raider beys from the frontier march offer their service.'):lng('Bir condottiere bölüğü ücret karşılığı hizmet teklif ediyor.','A company of condottieri offers its service for pay.'),
+   ch:[{l:lng(`Kirala (−${k} altın; ${c.capn} yakınına +${fmtK(n)} asker)`,`Hire them (−${k} gold; +${fmtK(n)} troops near ${c.capn})`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);evTroops(c.f,c.cap,n);}},
+    {l:lng('Gerek yok (hazine korunur)','No need (the treasury is spared)')}]};}},
  {id:'deprem',w:1,cd:30,build:c=>{const q=20+c.small,p=S.prov[c.p];
-  return {t:'Deprem',d:`${c.pn} sarsıldı; ${p.fort>0?'kale burçlarında çatlaklar var':'evler ve çarşı yıkıldı'}.`,
-   ch:[{l:`Hemen onar (−${q} altın)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},
-    {l:p.fort>0?`Bekle (${c.pn} kalesi −1)`:`Bekle (${c.pn} gelişimi −1)`,f:()=>{const x=S.prov[c.p];if(x.fort>0)x.fort--;else x.dev=Math.max(1,x.dev-1);}}]};}},
+  return {t:lng('Deprem','Earthquake'),d:lng(`${c.pn} sarsıldı; ${p.fort>0?'kale burçlarında çatlaklar var':'evler ve çarşı yıkıldı'}.`,`${c.pn} has been shaken; ${p.fort>0?'the fortress towers are cracked':'houses and the bazaar lie in ruins'}.`),
+   ch:[{l:lng(`Hemen onar (−${q} altın)`,`Repair at once (−${q} gold)`),dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},
+    {l:p.fort>0?lng(`Bekle (${c.pn} kalesi −1)`,`Wait (${c.pn} walls −1)`):lng(`Bekle (${c.pn} gelişimi −1)`,`Wait (${c.pn} development −1)`),f:()=>{const x=S.prov[c.p];if(x.fort>0)x.fort--;else x.dev=Math.max(1,x.dev-1);}}]};}},
  {id:'kis',w:(S)=>S.turn%4===3?3:0,cd:20,build:c=>{const q=15+c.small;
-  return {t:'Sert Kış',d:'Yollar karla kapandı, köylerde kıtlık var.',
-   ch:[{l:`Ambarları aç (−${q} altın)`,dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},{l:'Dayanın (insan gücü −30%)',f:()=>{c.F.mp=Math.round(c.F.mp*.7);}}]};}},
+  return {t:lng('Sert Kış','A Harsh Winter'),d:lng('Yollar karla kapandı, köylerde kıtlık var.','Snow has closed the roads and the villages are going hungry.'),
+   ch:[{l:lng(`Ambarları aç (−${q} altın)`,`Open the granaries (−${q} gold)`),dis:c.F.gold<q,f:()=>{evPay(c.F,q);}},{l:lng('Dayanın (insan gücü −30%)','Endure it (manpower −30%)'),f:()=>{c.F.mp=Math.round(c.F.mp*.7);}}]};}},
  {id:'ayaklanma',w:4,cd:18,req:(S,f)=>facProvs(f).some(i=>S.prov[i].un>0),build:c=>{if(!c.un.length)return null;const q=c.pick(c.un),k=30+c.small;
-  return {t:'Ayaklanma',d:`${PD[q].name} halkı ağır vergilere karşı ayaklandı.`,
-   ch:[{l:`Bastır (${PD[q].name} garnizonu −25%, huzursuzluk kısalır)`,f:()=>{evCut(q,.25);S.prov[q].un=Math.max(0,S.prov[q].un-3);}},
-    {l:`Vergi affı ilan et (−${k} altın; huzursuzluk biter)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);S.prov[q].un=0;}}]};}},
+  return {t:lng('Ayaklanma','Revolt'),d:lng(`${PD[q].name} halkı ağır vergilere karşı ayaklandı.`,`The people of ${PD[q].name} have risen against heavy taxes.`),
+   ch:[{l:lng(`Bastır (${PD[q].name} garnizonu −25%, huzursuzluk kısalır)`,`Crush it (${PD[q].name} garrison −25%, the unrest is shortened)`),f:()=>{evCut(q,.25);S.prov[q].un=Math.max(0,S.prov[q].un-3);}},
+    {l:lng(`Vergi affı ilan et (−${k} altın; huzursuzluk biter)`,`Declare a tax pardon (−${k} gold; the unrest ends)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);S.prov[q].un=0;}}]};}},
  {id:'elci',w:2,cd:20,req:(S,f)=>FK.some(g=>g!==f&&alive(g)&&!atWar(f,g)),build:c=>{const L=FK.filter(g=>g!==c.f&&alive(g)&&!atWar(c.f,g));if(!L.length)return null;const g=c.pick(L),a=20+c.small,k=20;
-  return {t:`${FAC[g].s} Elçisi`,d:`${FAC[g].n} elçisi, ${rulerName(g)} adına hediyelerle sarayına geldi. Görgü kuralları karşılık vermeni gerektiriyor.`,
-   ch:[{l:`Hediyeleri al, karşılık verme (+${a} altın; ${FAC[g].s} ile ilişki −10)`,f:()=>{c.F.gold+=a;addOp(c.f,g,-10);}},
-    {l:`Cömertçe karşılık ver (−${k} altın; ${FAC[g].s} ile ilişki +25)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,25);}}]};}},
+  return {t:lng(`${FAC[g].s} Elçisi`,`An Envoy from ${FAC[g].s}`),d:lng(`${FAC[g].n} elçisi, ${rulerName(g)} adına hediyelerle sarayına geldi. Görgü kuralları karşılık vermeni gerektiriyor.`,`An envoy of the ${FAC[g].n} has come to your court with gifts in the name of ${rulerName(g)}. Custom demands that you give something in return.`),
+   ch:[{l:lng(`Hediyeleri al, karşılık verme (+${a} altın; ${FAC[g].s} ile ilişki −10)`,`Keep the gifts and give nothing back (+${a} gold; relations with ${FAC[g].s} −10)`),f:()=>{c.F.gold+=a;addOp(c.f,g,-10);}},
+    {l:lng(`Cömertçe karşılık ver (−${k} altın; ${FAC[g].s} ile ilişki +25)`,`Answer generously (−${k} gold; relations with ${FAC[g].s} +25)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,25);}}]};}},
  {id:'novobrdo',w:3,cd:30,req:(S,f)=>S.prov[PK.novobirda].o===f,build:c=>{const i=PK.novobirda,a=c.mid+20,k=25;
-  return {t:'Novobırda Gümüş Madenleri',d:'Sakson ustaların işlettiği Novobırda madenleri Balkanların en zengin gümüşünü çıkarıyor. Hazine madeni doğrudan işletmek istiyor.',
-   ch:[{l:`Madeni devlete bağla (+${a} altın; Novobırda 4 tur huzursuz)`,f:()=>{c.F.gold+=a;evUnrest(i,4);}},
-    {l:`Madencilere imtiyaz ver (−${k} altın; Novobırda gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].dev<12)S.prov[i].dev++;}}]};}},
+  return {t:lng('Novobırda Gümüş Madenleri','The Silver Mines of Novo Brdo'),d:lng('Sakson ustaların işlettiği Novobırda madenleri Balkanların en zengin gümüşünü çıkarıyor. Hazine madeni doğrudan işletmek istiyor.','Worked by Saxon miners, the mines of Novo Brdo yield the richest silver in the Balkans. The treasury wants to run the mines itself.'),
+   ch:[{l:lng(`Madeni devlete bağla (+${a} altın; Novobırda 4 tur huzursuz)`,`Take the mines for the state (+${a} gold; unrest in Novo Brdo for 4 turns)`),f:()=>{c.F.gold+=a;evUnrest(i,4);}},
+    {l:lng(`Madencilere imtiyaz ver (−${k} altın; Novobırda gelişimi +1)`,`Grant the miners privileges (−${k} gold; Novo Brdo development +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].dev<12)S.prov[i].dev++;}}]};}},
  {id:'tolfa',w:3,cd:30,req:(S,f)=>S.prov[PK.roma].o===f&&chYear()>=1462,build:c=>{const a=c.mid+30;
-  return {t:'Tolfa\'nın Şap Madeni',d:'Roma yakınındaki Tolfa\'da zengin bir şap yatağı bulundu. Kumaş boyacılığının vazgeçilmezi şap, şimdiye dek Türk topraklarından geliyordu.',
-   ch:[{l:`Tekel ilan et (+${a} altın; Venedik ve Ceneviz ile ilişki −15)`,f:()=>{c.F.gold+=a;['VEN','GEN'].forEach(g=>{if(g!==c.f&&alive(g))addOp(c.f,g,-15);});}},
-    {l:`Madeni bankerlere kirala (+${Math.round(a/2)} altın; ilişkiler bozulmaz)`,f:()=>{c.F.gold+=Math.round(a/2);}}]};}},
+  return {t:lng('Tolfa\'nın Şap Madeni','The Alum Mine of Tolfa'),d:lng('Roma yakınındaki Tolfa\'da zengin bir şap yatağı bulundu. Kumaş boyacılığının vazgeçilmezi şap, şimdiye dek Türk topraklarından geliyordu.','A rich bed of alum has been found at Tolfa near Rome. Alum, which cloth dyers cannot do without, has until now come from Turkish lands.'),
+   ch:[{l:lng(`Tekel ilan et (+${a} altın; Venedik ve Ceneviz ile ilişki −15)`,`Declare a monopoly (+${a} gold; relations with Venice and Genoa −15)`),f:()=>{c.F.gold+=a;['VEN','GEN'].forEach(g=>{if(g!==c.f&&alive(g))addOp(c.f,g,-15);});}},
+    {l:lng(`Madeni bankerlere kirala (+${Math.round(a/2)} altın; ilişkiler bozulmaz)`,`Lease the mine to bankers (+${Math.round(a/2)} gold; relations stay as they are)`),f:()=>{c.F.gold+=Math.round(a/2);}}]};}},
  {id:'sapboykot',w:2,cd:30,req:(S,f)=>FAC[f].rel==='Katolik'&&f!=='PAP'&&alive('PAP')&&chYear()>=1463,build:c=>{const a=c.small+10,k=c.small;
-  return {t:'Türk Şapı Yasağı',d:'Papa, Hıristiyan tüccarların Türk şapı almasını yasakladı ve Tolfa şapını öneriyor. Ama Türk şapı çok daha ucuz.',
-   ch:[{l:`Yasağa uy (−${k} altın; Papalık ile ilişki +20)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,'PAP',20);}},
-    {l:`Ucuz Türk şapını al (+${a} altın; Papalık ile ilişki −20)`,f:()=>{c.F.gold+=a;addOp(c.f,'PAP',-20);}}]};}},
+  return {t:lng('Türk Şapı Yasağı','The Ban on Turkish Alum'),d:lng('Papa, Hıristiyan tüccarların Türk şapı almasını yasakladı ve Tolfa şapını öneriyor. Ama Türk şapı çok daha ucuz.','The Pope has forbidden Christian merchants to buy Turkish alum and commends the alum of Tolfa instead. But Turkish alum is far cheaper.'),
+   ch:[{l:lng(`Yasağa uy (−${k} altın; Papalık ile ilişki +20)`,`Obey the ban (−${k} gold; relations with the Papacy +20)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,'PAP',20);}},
+    {l:lng(`Ucuz Türk şapını al (+${a} altın; Papalık ile ilişki −20)`,`Buy the cheap Turkish alum (+${a} gold; relations with the Papacy −20)`),f:()=>{c.F.gold+=a;addOp(c.f,'PAP',-20);}}]};}},
  {id:'bedreddin',w:2,cd:30,req:(S,f)=>evTurkish.includes(f),build:c=>{const k=20+c.small,m=Math.max(1000,Math.round(evDev(c.f)*40/100)*100);
-  return {t:'Bedreddin\'in Mirası',d:`${c.pn} köylerinde Şeyh Bedreddin\'in müritleri malın ortak olduğunu vaaz ediyor. Kadılar tedirgin, köylüler dervişlere akın ediyor.`,
-   ch:[{l:`Şeyhleri sürgün et (${c.pn} 4 tur huzursuz)`,f:()=>{evUnrest(c.p,4);}},
-    {l:`Tekkelere vakıf bağla (−${k} altın; dervişler gaziler arasına katılır, +${fmtK(m)} insan gücü)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
+  return {t:lng('Bedreddin\'in Mirası','The Legacy of Bedreddin'),d:lng(`${c.pn} köylerinde Şeyh Bedreddin\'in müritleri malın ortak olduğunu vaaz ediyor. Kadılar tedirgin, köylüler dervişlere akın ediyor.`,`In the villages of ${c.pn} the followers of Sheikh Bedreddin preach that all goods are held in common. The judges are uneasy, and the peasants flock to the dervishes.`),
+   ch:[{l:lng(`Şeyhleri sürgün et (${c.pn} 4 tur huzursuz)`,`Exile the sheikhs (unrest in ${c.pn} for 4 turns)`),f:()=>{evUnrest(c.p,4);}},
+    {l:lng(`Tekkelere vakıf bağla (−${k} altın; dervişler gaziler arasına katılır, +${fmtK(m)} insan gücü)`,`Endow the dervish lodges (−${k} gold; the dervishes join the ghazis, +${fmtK(m)} manpower)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp+=m;}}]};}},
  {id:'birlik',w:4,cd:40,once:1,req:(S,f)=>FAC[f].rel==='Ortodoks'&&chYear()<1461,build:c=>{const m=Math.max(1000,Math.round(evDev(c.f)*60/100)*100);
-  return {t:'Kilise Birliği Çekişmesi',d:'Floransa\'da imzalanan Kilise Birliği halkı ikiye böldü. Latinler yardım için Birliğin ilanını bekliyor; keşişler ve halk ise "Latin külahındansa Türk sarığı yeğdir" diyor.',
-   ch:[{l:`Birliği ilan et (Venedik ve Papalık ile ilişki +20; ${c.capn} 4 tur huzursuz)`,f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,20);});evUnrest(c.cap,4);}},
-    {l:`Ortodoks halkın yanında dur (Venedik ve Papalık ile ilişki −15; +${fmtK(m)} gönüllü insan gücü)`,f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,-15);});c.F.mp+=m;}}]};}},
+  return {t:lng('Kilise Birliği Çekişmesi','The Quarrel over Church Union'),d:lng('Floransa\'da imzalanan Kilise Birliği halkı ikiye böldü. Latinler yardım için Birliğin ilanını bekliyor; keşişler ve halk ise "Latin külahındansa Türk sarığı yeğdir" diyor.','The Church Union signed at Florence has split the people in two. The Latins will send help only once the Union is proclaimed, but the monks and the people say: "Better the Turkish turban than the Latin mitre."'),
+   ch:[{l:lng(`Birliği ilan et (Venedik ve Papalık ile ilişki +20; ${c.capn} 4 tur huzursuz)`,`Proclaim the Union (relations with Venice and the Papacy +20; unrest in ${c.capn} for 4 turns)`),f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,20);});evUnrest(c.cap,4);}},
+    {l:lng(`Ortodoks halkın yanında dur (Venedik ve Papalık ile ilişki −15; +${fmtK(m)} gönüllü insan gücü)`,`Stand with the Orthodox people (relations with Venice and the Papacy −15; +${fmtK(m)} volunteer manpower)`),f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,-15);});c.F.mp+=m;}}]};}},
  {id:'bahsis',w:0,cd:0,req:(S,f)=>f==='OSM',build:c=>{const k=Math.max(30,Math.round(evDev(c.f)*.4)),r=chRuler(c.f);
-  return {t:'Cülus Bahşişi',d:`Yeniçeriler, ${r?r.rn||r.n:'yeni padişah'} tahta çıkınca âdet olan cülus bahşişini istiyor. Vermezsen kışlalarda kazan kaldırabilirler.`,
-   ch:[{l:`Bahşişi dağıt (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
-    {l:`Reddet (${c.capn} garnizonu −25%, 4 tur huzursuz)`,f:()=>{evCut(c.cap,.25);evUnrest(c.cap,4);}}]};}},
- {id:'veba64',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1464&&y<=1467;},build:c=>evPlague(c,'Büyük Veba','Balkanlardan Anadolu\'ya yayılan büyük veba salgını şehirleri boşaltıyor. Saray ne yapacağını tartışıyor.')},
- {id:'veba90',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1490&&y<=1493;},build:c=>evPlague(c,'Veba Yeniden','Veba bir kez daha limanlardan içerilere yayıldı. Divan başkentte mi kalmalı, yoksa yaylaya mı çekilmeli?')},
+  return {t:lng('Cülus Bahşişi','The Accession Gift'),d:lng(`Yeniçeriler, ${r?r.rn||r.n:'yeni padişah'} tahta çıkınca âdet olan cülus bahşişini istiyor. Vermezsen kışlalarda kazan kaldırabilirler.`,`Now that ${r?r.rn||r.n:'the new sultan'} has taken the throne, the Janissaries demand the customary accession gift. Refuse, and they may overturn their cauldrons in the barracks.`),
+   ch:[{l:lng(`Bahşişi dağıt (−${k} altın)`,`Hand out the gift (−${k} gold)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:lng(`Reddet (${c.capn} garnizonu −25%, 4 tur huzursuz)`,`Refuse (${c.capn} garrison −25%, unrest for 4 turns)`),f:()=>{evCut(c.cap,.25);evUnrest(c.cap,4);}}]};}},
+ {id:'veba64',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1464&&y<=1467;},build:c=>evPlague(c,lng('Büyük Veba','The Great Plague'),lng('Balkanlardan Anadolu\'ya yayılan büyük veba salgını şehirleri boşaltıyor. Saray ne yapacağını tartışıyor.','A great plague spreading from the Balkans into Anatolia is emptying the cities. The court debates what to do.'))},
+ {id:'veba90',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1490&&y<=1493;},build:c=>evPlague(c,lng('Veba Yeniden','The Plague Returns'),lng('Veba bir kez daha limanlardan içerilere yayıldı. Divan başkentte mi kalmalı, yoksa yaylaya mı çekilmeli?','Once again the plague has spread inland from the ports. Should the Divan stay in the capital, or withdraw to the summer uplands?'))},
  {id:'entrika',w:2,cd:30,req:(S,f)=>{const r=chRuler(f),h=chHeir(f);return !!r&&!!h&&chAge(r)>=45&&chAge(h)>=18;},build:c=>{const r=chRuler(c.f),h=chHeir(c.f);if(!r||!h)return null;const k=20+c.small;
-  return {t:'Saray Entrikası',d:`Bazı vezirler ve beyler, yaşlanan ${r.rn||r.n} yerine ${chLabel(h)} etrafında toplanıyor. Saray fısıltılarla dolu.`,
-   ch:[{l:`Veliahtı uzak bir sancağa gönder (−${k} altın masraf)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
-    {l:`Hizbi dağıt, vezirleri azlet (${c.capn} 3 tur huzursuz)`,f:()=>{evUnrest(c.cap,3);}}]};}},
+  return {t:lng('Saray Entrikası','Palace Intrigue'),d:lng(`Bazı vezirler ve beyler, yaşlanan ${r.rn||r.n} yerine ${chLabel(h)} etrafında toplanıyor. Saray fısıltılarla dolu.`,`Some viziers and beys are gathering around ${chLabel(h)} instead of the ageing ${r.rn||r.n}. The palace is full of whispers.`),
+   ch:[{l:lng(`Veliahtı uzak bir sancağa gönder (−${k} altın masraf)`,`Send the heir to a distant province (−${k} gold in costs)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:lng(`Hizbi dağıt, vezirleri azlet (${c.capn} 3 tur huzursuz)`,`Break up the faction and dismiss the viziers (unrest in ${c.capn} for 3 turns)`),f:()=>{evUnrest(c.cap,3);}}]};}},
  {id:'komutan',w:2,cd:24,req:(S,f)=>chGenerals(f).some(g=>g.skill<5&&g.cap==null),build:c=>{const L=chGenerals(c.f).filter(g=>g.skill<5&&g.cap==null);if(!L.length)return null;const g=c.pick(L),k=25+c.small;
-  return {t:'Komutanın Dileği',d:`${g.n} sadakatinin karşılığında kendisine geniş bir dirlik verilmesini istiyor.`,
-   ch:[{l:`Dirliği ver (−${k} altın; ${g.n} kabiliyeti +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const x=S.chars[g.id];if(x)x.skill=Math.min(5,x.skill+1);}},
-    {l:`Reddet (${g.n} küser, kabiliyeti −1)`,f:()=>{const x=S.chars[g.id];if(x)x.skill=Math.max(1,x.skill-1);}}]};}},
+  return {t:lng('Komutanın Dileği','A Commander\'s Request'),d:lng(`${g.n} sadakatinin karşılığında kendisine geniş bir dirlik verilmesini istiyor.`,`${g.n} asks for a large fief in return for his loyalty.`),
+   ch:[{l:lng(`Dirliği ver (−${k} altın; ${g.n} kabiliyeti +1)`,`Grant the fief (−${k} gold; ${g.n} skill +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const x=S.chars[g.id];if(x)x.skill=Math.min(5,x.skill+1);}},
+    {l:lng(`Reddet (${g.n} küser, kabiliyeti −1)`,`Refuse (${g.n} is offended, skill −1)`),f:()=>{const x=S.chars[g.id];if(x)x.skill=Math.max(1,x.skill-1);}}]};}},
  {id:'evlilik',w:2,cd:30,req:(S,f)=>{const h=chHeir(f);return !!h&&chAge(h)>=14&&chAge(h)<=35&&FK.some(g=>g!==f&&alive(g)&&!atWar(f,g)&&getOp(f,g)>=0);},build:c=>{
   const h=chHeir(c.f);if(!h)return null;const L=FK.filter(g=>g!==c.f&&alive(g)&&!atWar(c.f,g)&&getOp(c.f,g)>=0);if(!L.length)return null;
   const same=L.filter(g=>FAC[g].rel===c.rel);const g=(c.f==='TRB'&&L.includes('AKK'))?'AKK':(c.f==='AKK'&&L.includes('TRB'))?'TRB':c.pick(same.length?same:L);const k=25+c.small;
-  return {t:'Evlilik Teklifi',d:(c.f==='AKK'&&g==='TRB')||(c.f==='TRB'&&g==='AKK')?'Trabzon sarayı ile Akkoyunlular arasında bir düğün konuşuluyor; tıpkı Despina Hatun ile Uzun Hasan\'ın evliliği gibi.':`${FAC[g].n}, ${chLabel(h)} için bir evlilik teklif ediyor. Düğün pahalı, ama iki saray arasında bağ kurar.`,
-   ch:[{l:`Düğünü yap (−${k} altın; ${FAC[g].s} ile ilişki +30)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,30);if(getOp(c.f,g)>=60&&!atWar(c.f,g)&&!isAlly(c.f,g)){S.ally[key(c.f,g)]=true;news(`${FAC[g].s} ile evlilik ittifakı kuruldu.`,'good');}}},
-    {l:`Teklifi geri çevir (${FAC[g].s} ile ilişki −15)`,f:()=>{addOp(c.f,g,-15);}}]};}},
+  return {t:lng('Evlilik Teklifi','A Marriage Offer'),d:(c.f==='AKK'&&g==='TRB')||(c.f==='TRB'&&g==='AKK')?lng('Trabzon sarayı ile Akkoyunlular arasında bir düğün konuşuluyor; tıpkı Despina Hatun ile Uzun Hasan\'ın evliliği gibi.','A wedding is being discussed between the court of Trebizond and the Aq Qoyunlu, just like the marriage of Despina Hatun and Uzun Hasan.'):lng(`${FAC[g].n}, ${chLabel(h)} için bir evlilik teklif ediyor. Düğün pahalı, ama iki saray arasında bağ kurar.`,`The ${FAC[g].n} proposes a marriage for ${chLabel(h)}. The wedding is costly, but it binds the two courts together.`),
+   ch:[{l:lng(`Düğünü yap (−${k} altın; ${FAC[g].s} ile ilişki +30)`,`Hold the wedding (−${k} gold; relations with ${FAC[g].s} +30)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);addOp(c.f,g,30);if(getOp(c.f,g)>=60&&!atWar(c.f,g)&&!isAlly(c.f,g)){S.ally[key(c.f,g)]=true;news(lng(`${FAC[g].s} ile evlilik ittifakı kuruldu.`,`A marriage alliance with ${FAC[g].s} has been sealed.`),'good');}}},
+    {l:lng(`Teklifi geri çevir (${FAC[g].s} ile ilişki −15)`,`Turn the offer down (relations with ${FAC[g].s} −15)`),f:()=>{addOp(c.f,g,-15);}}]};}},
  {id:'korsan',w:2,cd:24,req:(S,f)=>evNaval.includes(f),build:c=>{const k=20+c.small;
-  return {t:'Korsan Baskını',d:`Korsan gemileri ${c.pn} kıyılarını yağmalıyor; köyler boşalıyor.`,
-   ch:[{l:`Kadırga filosu gönder (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
-    {l:`Kıyıyı kendi hâline bırak (${c.pn} gelişimi −1)`,f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);}}]};}},
+  return {t:lng('Korsan Baskını','A Corsair Raid'),d:lng(`Korsan gemileri ${c.pn} kıyılarını yağmalıyor; köyler boşalıyor.`,`Corsair ships are plundering the coast of ${c.pn}; the villages are emptying.`),
+   ch:[{l:lng(`Kadırga filosu gönder (−${k} altın)`,`Send a galley squadron (−${k} gold)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
+    {l:lng(`Kıyıyı kendi hâline bırak (${c.pn} gelişimi −1)`,`Leave the coast to its fate (${c.pn} development −1)`),f:()=>{const p=S.prov[c.p];p.dev=Math.max(1,p.dev-1);}}]};}},
  {id:'sinir',w:2,cd:20,req:(S,f)=>warsOf(f).length>0,build:c=>{const front=c.mine.filter(i=>PD[i].adj.some(j=>atWar(c.f,S.prov[j].o)));if(!front.length)return null;const i=c.pick(front),a=c.small+10,k=20+c.small;
-  return {t:'Sınır Akını',d:`Düşman akıncıları ${PD[i].name} köylerine baskın yaptı. Beyler karşılık vermek için izin istiyor.`,
-   ch:[{l:`Karşı akın düzenle (+${a} altın ganimet; ${PD[i].name} garnizonu −10%)`,f:()=>{c.F.gold+=a;evCut(i,.1);}},
-    {l:S.prov[i].fort<4?`Kaleyi tahkim et (−${k} altın; ${PD[i].name} kalesi +1)`:`Surları onar (−${k} altın)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].fort<4)S.prov[i].fort++;}}]};}},
+  return {t:lng('Sınır Akını','A Border Raid'),d:lng(`Düşman akıncıları ${PD[i].name} köylerine baskın yaptı. Beyler karşılık vermek için izin istiyor.`,`Enemy raiders have struck the villages of ${PD[i].name}. Your beys ask leave to strike back.`),
+   ch:[{l:lng(`Karşı akın düzenle (+${a} altın ganimet; ${PD[i].name} garnizonu −10%)`,`Raid them in return (+${a} gold in plunder; ${PD[i].name} garrison −10%)`),f:()=>{c.F.gold+=a;evCut(i,.1);}},
+    {l:S.prov[i].fort<4?lng(`Kaleyi tahkim et (−${k} altın; ${PD[i].name} kalesi +1)`,`Strengthen the fortress (−${k} gold; ${PD[i].name} walls +1)`):lng(`Surları onar (−${k} altın)`,`Repair the walls (−${k} gold)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);if(S.prov[i].fort<4)S.prov[i].fort++;}}]};}},
  {id:'hac',w:2,cd:30,req:(S,f)=>f==='MAM'||f==='OSM'||f==='HAF',build:c=>{const k=20+c.small;
-  return {t:'Hac Kervanı',d:'Hac kervanı yola çıkıyor. Bedevi saldırılarına karşı muhafız ve su kuyuları için para gerekiyor.',
-   ch:[{l:`Kervanı koru (−${k} altın; Müslüman devletlerle ilişki +10)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);FK.forEach(g=>{if(g!==c.f&&alive(g)&&FAC[g].rel==='İslam')addOp(c.f,g,10);});}},
-    {l:`Kervanı kendi hâline bırak (${c.capn} 2 tur huzursuz)`,f:()=>{evUnrest(c.cap,2);}}]};}},
+  return {t:lng('Hac Kervanı','The Pilgrim Caravan'),d:lng('Hac kervanı yola çıkıyor. Bedevi saldırılarına karşı muhafız ve su kuyuları için para gerekiyor.','The pilgrim caravan to Mecca is setting out. Guards against Bedouin raids and wells along the road will cost money.'),
+   ch:[{l:lng(`Kervanı koru (−${k} altın; Müslüman devletlerle ilişki +10)`,`Protect the caravan (−${k} gold; relations with Muslim realms +10)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);FK.forEach(g=>{if(g!==c.f&&alive(g)&&FAC[g].rel==='İslam')addOp(c.f,g,10);});}},
+    {l:lng(`Kervanı kendi hâline bırak (${c.capn} 2 tur huzursuz)`,`Leave the caravan to itself (unrest in ${c.capn} for 2 turns)`),f:()=>{evUnrest(c.cap,2);}}]};}},
  {id:'matbaa',w:2,cd:0,once:1,req:(S,f)=>FAC[f].rel==='Katolik'&&chYear()>=1470,build:c=>{const k=30+c.small;
-  return {t:'Matbaacılar',d:'Alman ustalar hareketli harflerle kitap basan bir matbaa kurmak istiyor. Kâtipler loncası ise buna karşı.',
-   ch:[{l:`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
-    {l:'Loncayı dinle (hazine korunur, yenilik kaçar)'}]};}}
+  return {t:lng('Matbaacılar','The Printers'),d:lng('Alman ustalar hareketli harflerle kitap basan bir matbaa kurmak istiyor. Kâtipler loncası ise buna karşı.','German craftsmen want to set up a press that prints books with movable type. The scribes\' guild is against it.'),
+   ch:[{l:lng(`Himaye et (−${k} altın; ${c.capn} gelişimi +1)`,`Become the patron (−${k} gold; ${c.capn} development +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const p=S.prov[c.cap];if(p.dev<12)p.dev++;}},
+    {l:lng('Loncayı dinle (hazine korunur, yenilik kaçar)','Listen to the guild (the treasury is spared, the novelty is lost)')}]};}}
 );
 function evPlague(c,t,d){const k=25+c.small;
- return {t,d,ch:[{l:`Saray yaylaya çekilsin (−${k} altın; insan gücü −10%)`,dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp=Math.round(c.F.mp*.9);}},
-  {l:`Divan başkentte kalsın (${c.capn} gelişimi −1; hükümdar hastalanabilir)`,f:()=>{const p=S.prov[c.cap];p.dev=Math.max(1,p.dev-1);const r=chRuler(c.f);if(r&&R()<.35&&!r.traits.includes('hasta')){r.traits.push('hasta');news(`${r.rn||r.n} vebaya yakalandı; sağlığı bozuldu.`,'war');}}}]};}
+ return {t,d,ch:[{l:lng(`Saray yaylaya çekilsin (−${k} altın; insan gücü −10%)`,`Let the court withdraw to the uplands (−${k} gold; manpower −10%)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp=Math.round(c.F.mp*.9);}},
+  {l:lng(`Divan başkentte kalsın (${c.capn} gelişimi −1; hükümdar hastalanabilir)`,`Let the Divan stay in the capital (${c.capn} development −1; the ruler may fall ill)`),f:()=>{const p=S.prov[c.cap];p.dev=Math.max(1,p.dev-1);const r=chRuler(c.f);if(r&&R()<.35&&!r.traits.includes('hasta')){r.traits.push('hasta');news(lng(`${r.rn||r.n} vebaya yakalandı; sağlığı bozuldu.`,`${r.rn||r.n} has caught the plague; the ruler's health is broken.`),'war');}}}]};}
 /* The janissaries ask their accession gift whenever an Ottoman player's sultan comes to the throne. */
 hook('succession',(f,old,neu)=>{if(f===S.player&&f==='OSM'&&old)evFire('bahsis');});
+/* Debug handle for the English data check (tests/i18n-data.js): build any pool event for any realm. */
+KE.t2={MIS_EN,MIS_BR_EN,misTxt,FAC,FK,PK,armName,chLabel,evSpec:(f,id,seed)=>{const e=EVENTS.find(x=>x.id===id);return e?e.build(evCtx(f,seed)):null;}};
 /* =====================================================================
    RENDERING
    ===================================================================== */

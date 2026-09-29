@@ -97,7 +97,7 @@ function aiDiplo(f){
   const r=aiReach(f,g,nudged?BAL_D.reachPNudge:BAL_D.reachP);if(!r.ok){KE.aiWhy.reach++;continue;}KE.aiWhy.decl++;
   KE.aiDecl.push({t:S.turn,f,g,p:+r.p.toFixed(2),j:r.j,nudged});if(KE.aiDecl.length>200)KE.aiDecl.shift();
   declareWar(f,g);D[g]=0;break;}
- if(R()<BAL_D.allyP){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(`${fname(f)} ile ${fname(c)} ittifak kurdu.`);}}
+ if(R()<BAL_D.allyP){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(lng(`${fname(f)} ile ${fname(c)} ittifak kurdu.`,`${fname(f)} and ${fname(c)} formed an alliance.`));}}
 }
 
 /** Strategic targets of AI faction f: [{i:province,prio}] (higher prio = more attractive).

@@ -22,9 +22,10 @@ function garrisonMax(i){const p=S.prov[i];return Math.round((BAL_B.garBase+p.dev
 /** Smallest garrison "Garnizonu azalt" leaves behind. */
 function garMin(i){return Math.min(garrisonMax(i),Math.max(100,Math.round(S.prov[i].dev*BAL_B.garMinDev/100)*100));}
 /** Player-facing army name: "Birinci Ordu", ... (a.no is the faction-wide ordinal given at creation). */
-function armName(a){const k=(a.no||1)-1;return `${ARM_ORD[k]||a.no+'.'} Ordu`;}
+function armName(a){const k=(a.no||1)-1;return EN?`${ARM_ORD_EN[k]||a.no+'th'} Army`:`${ARM_ORD[k]||a.no+'.'} Ordu`;}
 /** Name of the army's general (Track C character), or ''. */
 function armGenName(a){const c=a&&a.gen!=null&&S.chars&&S.chars[a.gen];return c&&c.n?c.n:'';}
 const ARM_ORD=['Birinci','İkinci','Üçüncü','Dördüncü','Beşinci','Altıncı'];
+const ARM_ORD_EN=['First','Second','Third','Fourth','Fifth','Sixth'];
 KE.armyCreate=(f,loc,n,o)=>armyCreate(f,loc,n,o);
 KE.armyList=f=>armyList(f);
