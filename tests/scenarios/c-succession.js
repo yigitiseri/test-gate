@@ -22,7 +22,9 @@ module.exports = {
     const t1 = await E(() => document.querySelector('#modal h2').textContent);
     check('succession modal shown', t1 === 'Taht Değişti', t1);
     check('heir took the throne', (await E(() => window.__ke.rulerName('OSM'))) === 'II. Bayezid');
-    await page.click('#modal [data-act="ev"]'); await page.waitForTimeout(150);
+    await page.click('#modal [data-act="ev"]');
+    // the next queued modal opens 60 ms after the close: wait for it instead of a fixed sleep
+    await page.waitForFunction(() => { const m = document.getElementById('modal'), h = m.querySelector('h2'); return !m.hidden && h && h.textContent !== 'Taht Değişti'; }, null, { timeout: 5000 }).catch(() => {});
     const t2 = await E(() => !document.getElementById('modal').hidden && document.querySelector('#modal h2').textContent);
     check('accession gift question follows', t2 === 'Cülus Bahşişi', t2);
     await L.closeModals(page);
