@@ -4486,7 +4486,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
  function sgSync(){
   const M=M4(),Q=new THREE.Quaternion(),Pv=new THREE.Vector3(),Sc=new THREE.Vector3(),C=new THREE.Color(),UP=UPV();let t=0,k=0,gn=0,np=0;
   const put=(m,j,x,z,sx,sy,sz,ry,dy=0)=>{Pv.set(x-W/2,Math.max(surf(x,z),.5)-.06+dy,z-H/2);Q.setFromAxisAngle(UP,ry||0);Sc.set(sx,sy,sz);M.compose(Pv,Q,Sc);m.setMatrixAt(j,M);};
-  if(!puffTex&&G3.sgItems.length){const c=mk(64,64),g=c.getContext('2d');for(const [x,y,r] of [[32,34,24],[22,28,14],[42,26,15],[30,20,12]]){const gr=g.createRadialGradient(x,y,1,x,y,r);gr.addColorStop(0,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+  if(!puffTex&&G3.sgItems.length){const c=mk(64,64),g=c.getContext('2d');for(const [x,y,r] of [[32,34,24],[22,28,14],[42,26,15],[30,20,12]]){const gr=g.createRadialGradient(x,y,1,x,y,r);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.55,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
    puffTex=new THREE.CanvasTexture(c);}
   for(const it of G3.sgItems){if(!FAC[it.f])continue;const r=it.u*2.25+2.6;C.copy(lin(FAC[it.f].c));
    for(let q=0;q<28&&k<SGCAP*28;q++){const a=q/28*Math.PI*2;put(SG.stake,k++,it.lx+Math.cos(a)*r,it.ly+Math.sin(a)*r,1.5,1.7+(q%2)*.5,1.5,a);}
@@ -4495,7 +4495,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
    for(const sd of [-1,1]){if(gn>=SGCAP*2)break;const a=it.ang+sd*.42,x=it.lx+Math.cos(a)*(r+1.4),z=it.ly+Math.sin(a)*(r+1.4),ry=Math.atan2(-(it.ly-z),it.lx-x);put(SG.car,gn,x,z,1.7,1.7,1.7,ry);put(SG.gun,gn,x,z,1.7,1.7,1.7,ry,.15);gn++;}
    const npf=it.wall<.5?8:5,h0=Math.max(surf(it.lx,it.ly),.5)+it.u*1.6;
    for(let q=0;q<npf;q++){let sp=sgPuffs[np];if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:puffTex,color:0x6a5e52,transparent:true,depthWrite:false,opacity:0}));scene.add(sp);sgPuffs.push(sp);}
-    sp.visible=true;sp.material.color.setHex(it.wall<.5?0x3e342c:0x5a5046);sp.userData={x:it.lx-W/2+(q%3-1)*it.u*.7,z:it.ly-H/2+((q>>1)%2-.5)*it.u*.5,h0,ph:q/npf+hash(it.i,q)*.3,sc:clamp(it.u/2.2,1,1.9),int:it.wall<.5?.85:.7};np++;}}
+    sp.visible=true;sp.material.color.copy(lin(it.wall<.5?0x3a3029:0x5a5046));sp.userData={x:it.lx-W/2+(q%3-1)*it.u*.7,z:it.ly-H/2+((q>>1)%2-.5)*it.u*.5,h0,ph:q/npf+hash(it.i,q)*.3,sc:clamp(it.u/2.2,1,1.9),int:it.wall<.5?.95:.85};np++;}}
   for(let q=np;q<sgPuffs.length;q++)sgPuffs[q].visible=false;
   SG.tent.count=t;SG.stake.count=k;SG.gun.count=gn;SG.car.count=gn;
   for(const m of Object.values(SG)){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
@@ -4503,8 +4503,8 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
  }
  G3.sgDebug=()=>sgPuffs.map(p=>[p.visible,p.position.toArray().map(Math.round),+p.scale.x.toFixed(1),+p.material.opacity.toFixed(2)]);
  /** Smoke drift: puffs rise, swell and fade on a loop (only advances when a frame is rendered). */
- function sgSmoke(now){const t=now/1000;for(const p of sgPuffs){if(!p.visible)continue;const d=p.userData,u=(t*.17+d.ph)%1,s=(1.6+u*5.5)*d.sc;
-  p.position.set(d.x+u*u*5,d.h0+u*15,d.z-u*1.2);p.scale.set(s,s,1);p.material.opacity=(1-u)*(1-u)*d.int*(u<.08?u/.08:1);}}
+ function sgSmoke(now){const t=now/1000;for(const p of sgPuffs){if(!p.visible)continue;const d=p.userData,u=(t*.17+d.ph)%1,s=(2.6+u*8)*d.sc;
+  p.position.set(d.x+u*u*5,d.h0+u*15,d.z-u*1.2);p.scale.set(s,s,1);p.material.opacity=d.int*Math.min(1,u/.12)*(1-u*u);}}
  function camUpdate(){
   const t=clamp((Math.log(G3.s)-Math.log(fitS*.85))/(Math.log(6)-Math.log(fitS*.85)),0,1),pitch=(66-30*t)*Math.PI/180;
   const d=vh/(2*G3.s*Math.tan(fov*Math.PI/360)),tx=G3.mx-W/2,tz=G3.my-H/2;
