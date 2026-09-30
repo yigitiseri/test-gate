@@ -5,7 +5,7 @@
    Also reachable from the season report ("Muharebe kartları", ACT bcard).
    ===================================================================== */
 const A_CARD={hold:3500,roll:850};
-let aCardTm=0,aCardHover=false,aCardEnd=0,aCardRoll=0;
+let aCardTm=0,aCardHover=false,aCardEnd=0,aCardRoll=0,aCardHold=A_CARD.hold;   // aCardHold: length of the current card's timer (the siege card, 07f, holds longer)
 const aPct=m=>{const v=Math.round((m-1)*100);return (v>=0?'+':'−')+Math.abs(v)+'%';};
 const A_KIND={assault:lng('Kale saldırısı','Assault on the walls'),field:lng('Meydan muharebesi','Field battle'),sally:lng('Kuşatma çıkışı','Sally'),siege:lng('Kuşatma','Siege')};
 const A_PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
@@ -54,7 +54,7 @@ function aCardShow(rep,o={}){const el=$('#card');if(!el||!rep||!S)return;
  // phones: never cover the province panel; fall back to a one-line strip when there is no room
  if(vw<760){const p=$('#panel');if(p&&!p.hidden&&!o.over){const room=p.getBoundingClientRect().top-el.getBoundingClientRect().top-8;if(el.offsetHeight>room)el.classList.add('mini');}}
  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,dice=el.querySelectorAll('.a-die'),fin=[aFace(m.roll.a),aFace(m.roll.d)],t0=performance.now();
- const settle=()=>{dice.forEach((d,k)=>{d.outerHTML=aDie(fin[k]);});el.classList.add('settled');aCardEnd=performance.now()+A_CARD.hold;aCardTick();};
+ const settle=()=>{dice.forEach((d,k)=>{d.outerHTML=aDie(fin[k]);});el.classList.add('settled');aCardHold=A_CARD.hold;aCardEnd=performance.now()+aCardHold;aCardTick();};
  if(reduce||!dice.length)settle();
  else{el.classList.add('rolling');let last=0;const spin=now=>{if(el.hidden)return;if(now-t0>=A_CARD.roll){el.classList.remove('rolling');settle();return;}
    if(now-last>75){last=now;dice.forEach(d=>{const v=1+Math.floor(Math.random()*6);d.dataset.v=v;d.innerHTML=[0,1,2,3,4,5,6,7,8].map(k=>`<i${A_PIPS[v].includes(k)?' class="on"':''}></i>`).join('');});}
@@ -63,7 +63,7 @@ function aCardShow(rep,o={}){const el=$('#card');if(!el||!rep||!S)return;
 function aCardTick(){const el=$('#card');if(el.hidden)return;clearTimeout(aCardTm);
  const left=aCardEnd-performance.now(),bar=el.querySelector('.a-bc-tm i');
  if(aCardHover){aCardEnd=performance.now()+Math.max(left,1200);aCardTm=setTimeout(aCardTick,200);return;}
- if(bar)bar.style.width=Math.max(0,left/A_CARD.hold*100)+'%';
+ if(bar)bar.style.width=Math.max(0,left/aCardHold*100)+'%';
  if(left<=0){aCardHide();return;}aCardTm=setTimeout(aCardTick,100);}
 function aCardHide(){const el=$('#card');clearTimeout(aCardTm);cancelAnimationFrame(aCardRoll);if(!el)return;el.hidden=true;el.innerHTML='';el.className='';if(KE.card)KE.card.shown=false;}
 {const el=$('#card');if(el){el.addEventListener('click',e=>{if(!e.target.closest('[data-act]:not([data-act="bcard-x"])'))aCardHide();});

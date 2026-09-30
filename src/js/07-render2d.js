@@ -18,6 +18,8 @@ let mapMode='pol',polDist=null;
 function renderPol(){
  const N=W*H,d=polImg.data;const col=FK.map(f=>hex2(FAC[f].c));const fi={};FK.forEach((f,k)=>fi[f]=k);
  const oi=new Int16Array(NP);for(let i=0;i<NP;i++)oi[i]=fi[S.prov[i].o];
+ // occupation (W2): an occupied province keeps its owner's colour and borders, hatched with the occupier's colour (EU4 style)
+ const oc=new Int16Array(NP).fill(-1);let anyOc=false;for(let i=0;i<NP;i++){const c=S.prov[i].ctl;if(c&&c!==S.prov[i].o&&fi[c]!=null){oc[i]=fi[c];anyOc=true;}}
  if(!polDist)polDist=new Uint16Array(N);const D=polDist;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,id=idMap[i];if(id<0){D[i]=65535;continue;}const o=oi[id];let src=false;
   if(x>0){const b=idMap[i-1];if(b===-2||(b>=0&&oi[b]!==o))src=true;}
@@ -34,6 +36,7 @@ function renderPol(){
   let a=baseA+grad*Math.max(0,1-(dist-2)/11);
   const pb=(x<W-1&&idMap[i+1]>=0&&idMap[i+1]!==id)||(y<H-1&&idMap[i+W]>=0&&idMap[i+W]!==id);
   if(pb&&((x+y)&3)<2){d[o]=c[0]*.3;d[o+1]=c[1]*.3;d[o+2]=c[2]*.3;d[o+3]=pol?120:90;continue;}
+  if(anyOc&&oc[id]>=0){const m=(x+y)%9;if(m<4){const q=col[oc[id]],e=m===0||m===3?.72:1;d[o]=q[0]*e;d[o+1]=q[1]*e;d[o+2]=q[2]*e;d[o+3]=pol?205:170;continue;}if(a<.42)a=.42;}
   d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=a*255;}
  polC.getContext('2d').putImageData(polImg,0,0);
  computeFacLabels();polDirty=false;G3.texDirty=true;G3.objDirty=true;
@@ -119,6 +122,7 @@ function draw(){
   if(g3){szs[d.i]=(1.9+p.dev*.3)*s*1.4;continue;}
   if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push(aTag([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6],'c'));}
   else if(isCap){szs[d.i]=4;ctx.font='13px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle='rgba(20,14,8,.7)';ctx.strokeText('★',sx,sy);ctx.fillStyle='#f1cf72';ctx.fillText('★',sx,sy);}}
+ aSgReserve(P0,szs,s,g3);   // siege camps and wall plaques (07f) claim their space before chips and names
  // garrison chips: hidden under 0.1k; shown near the selection, on hover, for big stacks, or when zoomed in and the garrison is at least half full
  const chips=[],pl=S.player,zMin=phone?1.1:.75;
  for(const d of vis){const p=S.prov[d.i];if(p.t<150&&d.i!==sel)continue;const mine=p.o===pl,force=d.i===sel||d.i===aHover,near=nearSel.has(d.i);

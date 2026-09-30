@@ -41,7 +41,8 @@ function tokItems(){const out=[];if(!S||!Array.isArray(S.armies))return out;cons
   if(ov){if(!ov.hide)out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:ov.x,y:ov.y,k:0,al:ov.al,dir:ov.dir,mp:a.mp,mpMax:a.mpMax});continue;}
   (byLoc[a.loc]||(byLoc[a.loc]=[])).push(a);}
  for(const i in byLoc){const L=byLoc[i].sort((a,b)=>((b.f===pl)-(a.f===pl))||(b.n-a.n)),d=PD[i];
-  L.forEach((a,k)=>out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k,al:1,mp:a.mp,mpMax:a.mpMax,path:Array.isArray(a.path)?a.path:null}));}
+  let k=0;for(const a of L){const cp=aSgCampOf(a);   // a besieging army stands in its siege camp (07f)
+   out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k:cp?0:k++,camp:cp,al:1,mp:a.mp,mpMax:a.mpMax,path:Array.isArray(a.path)?a.path:null});}}
  if(typeof aRpGhosts==='function')for(const g of aRpGhosts())out.push(g);
  return out;}
 
@@ -49,8 +50,8 @@ function tokItems(){const out=[];if(!S||!Array.isArray(S.armies))return out;cons
 function tokLayout(s,g3,now){const out=[],a3=[];
  if(S&&Array.isArray(S.armies)){const pl=S.player,z0=clamp(.68+.3*s,.86,1.2)*(g3?.86:1);
   for(const it of tokItems()){let fx,fy;const z=z0;
-   if(g3){const wx=it.x-8-7.5*it.k,wy=it.y+2+2*it.k;if((it.al==null?1:it.al)>.3)a3.push({f:it.f,n:it.n,wx,wy,dir:it.dir});const q=pj(wx,wy,7.5);if(!q[2])continue;fx=q[0];fy=q[1];}
-   else{const q=pj(it.x,it.y);fx=q[0]-(15+26*it.k)*z;fy=q[1]+(5-4*it.k)*z;}
+   if(g3){let wx=it.x-8-7.5*it.k,wy=it.y+2+2*it.k;if(it.camp){const o=aSgCamp3(it.camp);wx=it.x+o[0];wy=it.y+o[1];}if((it.al==null?1:it.al)>.3)a3.push({f:it.f,n:it.n,wx,wy,dir:it.dir});const q=pj(wx,wy,7.5);if(!q[2])continue;fx=q[0];fy=q[1];}
+   else{const q=pj(it.x,it.y);if(it.camp){const o=aSgCampOff(it.camp,s);fx=q[0]+o[0];fy=q[1]+o[1]+7*z;}else{fx=q[0]-(15+26*it.k)*z;fy=q[1]+(5-4*it.k)*z;}}
    if(fx<-40||fy<-10||fx>vw+40||fy>vh+70)continue;
    const own=!!pl&&it.f===pl,war=!!pl&&!own&&alive(it.f)&&atWar(pl,it.f),id=it.id==null?null:it.id;
    out.push({id,f:it.f,n:it.n,gi:tokInitials(it.gen),fx,fy,ax:fx,ay:fy,z,al:it.al==null?1:it.al,own,war,sel:id!=null&&id===selArmy,
@@ -62,7 +63,7 @@ function tokLayout(s,g3,now){const out=[],a3=[];
    for(const [dx,dy] of NUDGE){const u={fx:t.ax+dx*t.z,fy:t.ay+dy*t.z,z:t.z};if(!hit(body(u))){ok=u;break;}}
    if(ok){t.fx=ok.fx;t.fy=ok.fy;}placed.push(body(t));}
   for(const t of out)t.r=[t.fx-17*t.z,t.fy-60*t.z,t.fx+17*t.z,t.fy+4*t.z];}
- if(g3){const sig=a3.map(a=>a.f+a.n+'@'+a.wx.toFixed(1)+','+a.wy.toFixed(1)).join(';');if(sig!==G3.armySig){G3.armySig=sig;G3.armyItems=a3;G3.armyDirty=true;}}
+ if(g3){const sig=G3.lod()+'|'+a3.map(a=>a.f+a.n+'@'+a.wx.toFixed(1)+','+a.wy.toFixed(1)).join(';');if(sig!==G3.armySig){G3.armySig=sig;G3.armyItems=a3;G3.armyDirty=true;}}
  out.sort((a,b)=>a.fy-b.fy);return tokLast=out;}
 
 /** Draw one token with its foot at (t.fx,t.fy). */
