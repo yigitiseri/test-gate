@@ -637,6 +637,25 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
   .pick .ph h2{font-size:19px}
   .pick p{font-size:14.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }
+
+/* ---------- turn flow (#hud): envoys waiting, armies awaiting orders (11g) ---------- */
+.ui-flow{position:fixed;top:calc(var(--toph,60px) + 8px);right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:min(360px,calc(100vw - 24px))}
+.ui-flow .fl{display:flex;align-items:center;gap:8px;min-height:44px;max-width:100%;padding:6px 15px 6px 12px;border-radius:24px;cursor:pointer;
+  background:var(--leather);border:1px solid var(--gold);color:#f3e3bb;font:600 14.5px/1.2 var(--body);text-align:left;box-shadow:0 6px 16px rgba(0,0,0,.42)}
+.ui-flow .fl .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui-flow .fl .ic{font-size:17px;line-height:1;color:#f0cf7a}
+.ui-flow .fl-idle{border-color:#e0795f}.ui-flow .fl-idle .ic{color:#ff9b82}
+.ui-flow .fl:hover{border-color:#f0cf7a}
+.ui-flow .fl:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#endTurn[data-idle]{position:relative}
+#endTurn[data-idle]::after{content:attr(data-idle);position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:10px;
+  background:#e35a41;color:#fff;font:700 12px/20px var(--body);text-align:center;box-shadow:0 0 0 2px #2a1a0e;pointer-events:none}
+/* aggressive expansion meter in the State Ledger */
+.ui-ae .ae-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:15px}
+.ui-ae .bar{height:10px;background:rgba(110,77,39,.16);border:1px solid #a88452;border-radius:2px;overflow:hidden}
+.ui-ae .bar i{display:block;height:100%;background:linear-gradient(90deg,#c99a3b,#8e1f14)}
+.ui-ae .hint{margin:8px 0 0;font-size:14px;color:#4a3520}
+@media (max-width:760px){.ui-flow{right:8px;top:calc(var(--toph,60px) + 6px)}.ui-flow .fl{font-size:13.5px}}
 /* language switch (00b-i18n) */
 .langsw{display:inline-flex;border:1px solid rgba(74,53,32,.45);border-radius:8px;overflow:hidden;vertical-align:middle}
 .langsw .btn{border:0;border-radius:0;min-height:44px;padding:6px 12px;font-size:14px;margin:0;background:transparent}
@@ -4962,7 +4981,7 @@ PANEL_SECTIONS.push({id:'advisor',order:90,when:c=>c.tgt<0&&c.mine&&uiAdvOn,html
 KE.uiAdvice=()=>{const r=uiAdvPick();return r?r.a.id:null;};
 /* =====================================================================
    TUTORIAL ENGINE (Track D): coach marks driven by TUT_STEPS, state in S.tut={step,done,off}.
-   Step: {id, text, sel?:'css selector' | at?():[screenX,screenY] (map point), done(S,x):bool,
+   Step: {id, text, sel?:'css selector' | at?():[screenX,screenY] (map point), done(S,x):bool, only?(S):bool (realm filter),
           need?(S):null|{text,sel?,at?} (what to show while the step's context is missing),
           panel?:true (target lives in the province sheet: open it far enough to be seen)}
    x = {seen:Set of data-acts clicked this session, turn0: S.turn when the step became current}.
@@ -4973,26 +4992,68 @@ const tutSeen=new Set();let tutTurn0=null,tutIdx=-1,tutTimer=0,tutKey='';
 const tutCap=()=>S.fac[S.player].cap;
 const tutAtProv=i=>()=>{const d=PD[i];const p=pj(d.lx,d.ly);return p[2]===false?null:[p[0],p[1]];};
 const tutOwnSel=()=>sel>=0&&S.prov[sel]&&S.prov[sel].o===S.player;
+const tutOsm=S=>S.player==='OSM';
+const tutNotOsm=S=>S.player!=='OSM';
 TUT_STEPS.push(
- {id:'select',text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
+ {id:'select',only:tutNotOsm,text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
   done:()=>tutOwnSel()},
- {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
+ {id:'recruit',only:tutNotOsm,panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
   need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
   done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
- {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
+ {id:'diplo',only:tutNotOsm,sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
   done:(S,x)=>x.seen.has('diplo')},
- {id:'end',sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
+ {id:'end',only:tutNotOsm,sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
   done:(S,x)=>S.turn>x.turn0}
 );
+/* ---------- "Fetih": the Ottoman lesson, from Edirne to the peace table (about six seasons) ---------- */
+const tutIst=()=>PK.istanbul;
+const tutBy='BYZ';
+/** The Ottoman army to guide: the selected one, else the one closest to Constantinople (then the largest). */
+function tutArmy(){const L=S.armies?S.armies.filter(a=>a.f===S.player&&a.st!=='siege'):[];const s=selArmy!=null&&L.find(a=>a.id===selArmy);if(s)return s;
+ const d=a=>{const p=armyPath(a.id,tutIst());return p?p.length:99;};return L.sort((x,y)=>d(x)-d(y)||y.n-x.n)[0]||null;}
+const tutArmySel=()=>{const a=selArmy!=null&&armyById(selArmy);return !!(a&&a.f===S.player);};
+/** One of our armies stands next to (or inside) Constantinople. */
+const tutAtWalls=()=>{const i=tutIst();return !!(S.armies&&S.armies.some(a=>a.f===S.player&&(a.loc===i||PD[i].adj.includes(a.loc))));};
+/** The siege of Constantinople has begun (Track B), or the city was attacked or taken (before sieges existed). */
+const tutSieged=()=>{const i=tutIst(),sg=typeof siegeAt==='function'&&siegeAt(i),c=S.prov[i].ctl||S.prov[i].o;
+ return !!(sg&&sg.f===S.player)||c===S.player||S.battles.some(b=>b.att===S.player&&b.to===i);};
+/** Next stop of our army on the road to Constantinople this season (the city itself when it is in reach). */
+function tutWaypoint(){const a=tutArmy(),i=tutIst();if(!a)return i;const p=armyPath(a.id,i);if(!p||!p.length)return i;return p[Math.max(0,Math.min(a.mp||0,p.length)-1)];}
+/** Shared hints: select an army first; an army that has marched waits for the next season. */
+function tutArmyNeed(){if(!tutArmySel())return {text:lng('Önce ordunu seç (halka şehre en yakın orduyu gösteriyor): haritadaki sancağına ya da eyaletin panelindeki orduya dokun.','First select your army (the ring shows the one closest to the city): tap its banner on the map, or the army in the province panel.'),at:()=>{const a=tutArmy();return a?tutAtProv(a.loc)():null;}};
+ const a=armyById(selArmy);if(a&&a.mp<=0&&a.st!=='siege')return {text:lng('Bu ordu bu mevsimlik yolunu yürüdü. Turu bitir; yeni mevsimde yürüyüşe devam eder.','This army has marched as far as it can this season. End the turn; it marches on in the new season.'),sel:'#endTurn'};
+ return null;}
+TUT_STEPS.push(
+ {id:'f-select',only:tutOsm,text:lng('Hoş geldin Sultanım. Yıl 1451, taht Edirne\'de. Önce başkentin Edirne\'ye dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my Sultan. The year is 1451 and the throne stands in Adrianople. First tap your capital, Adrianople: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
+  done:()=>tutOwnSel()},
+ {id:'f-recruit',only:tutOsm,panel:true,sel:'#panel [data-act="rec1"]',text:lng('Konstantiniyye surları büyük bir ordu ister. Buradan asker topla: yeni alaylar bu eyaletteki orduya katılır.','The walls of Constantinople call for a great army. Raise troops here: new regiments join the army standing in this province.'),
+  need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
+  done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
+ {id:'f-war',only:tutOsm,panel:true,sel:'#panel [data-act="dwar"]',text:lng('Şimdi Bizans\'a savaş ilan et. Emin misin diye sorarım: düğmeye iki kez bas.','Now declare war on Byzantium. I will ask whether you are sure: press the button twice.'),
+  need:()=>sel===tutIst()?null:{text:lng('Konstantiniyye\'ye dokun: Bizans\'ın başkenti ve bin yıllık surları orada.','Tap Constantinople: the capital of Byzantium and its thousand-year-old walls are there.'),at:()=>tutAtProv(tutIst())()},
+  done:()=>atWar(S.player,tutBy)||!alive(tutBy)},
+ {id:'f-march',only:tutOsm,text:lng('Ordunu surlara yürüt: halkadaki eyalete dokun, sonra paneldeki Yürü düğmesine bas. Düşman toprağına giren ordu o mevsim orada durur.','March your army to the walls: tap the province in the ring, then press March in the panel. An army that enters enemy land stops there for the season.'),
+  at:()=>tutAtProv(tutWaypoint())(),need:()=>tutArmyNeed(),
+  done:()=>tutAtWalls()||tutSieged()||!alive(tutBy)},
+ {id:'f-siege',only:tutOsm,text:lng('Konstantiniyye\'ye dokun ve Kuşat\'a bas. Ordun şehrin önüne kamp kurar; surlar her mevsim biraz daha yıkılır.','Tap Constantinople and press Besiege. Your army camps before the city, and every season the walls crumble a little more.'),
+  at:()=>tutAtProv(tutIst())(),need:()=>tutArmyNeed(),
+  done:()=>tutSieged()||!alive(tutBy)},
+ {id:'f-hold',only:tutOsm,sel:'#endTurn',text:lng('Kuşatma sürüyor. Şehrin üstündeki halka dolunca surlar düşer ve şehir senin işgaline girer. Toplar işi hızlandırır; kışın ise ordu hastalıktan erir. Turu bitir ve sabret.','The siege goes on. When the ring over the city fills, the walls fall and the city is yours to occupy. Cannon speed the work; in winter the army wastes away from sickness. End the turn and be patient.'),
+  done:(S,x)=>S.turn>=x.turn0+2||!atWar(S.player,tutBy)||(S.prov[tutIst()].ctl||S.prov[tutIst()].o)===S.player},
+ {id:'f-peace',only:tutOsm,sel:'#navTabs [data-act="diplo"]',text:lng('Savaş ancak barışla kazanılır: işgal ettiğin topraklar, barış masasında istersen senin olur. Divan\'ı aç ve Bizans\'la barış masasına otur.','A war is only won at the peace: the lands you occupy become yours if you demand them at the peace table. Open the Divan and sit down with Byzantium.'),
+  done:(S,x)=>x.seen.has('pt-send')||x.seen.has('dp-peace')||!atWar(S.player,tutBy)}
+);
+/** The lessons of this game: the steps whose `only` filter fits the player's realm. */
+function tutList(){return TUT_STEPS.filter(st=>!st.only||st.only(S));}
 function tutActive(){return !!(S&&S.player&&S.tut&&!S.tut.done&&!S.tut.off&&!S.over);}
 const tutFinished=()=>{try{return localStorage.getItem('ke-tut')==='done';}catch(e){return false;}};
 const tutRemember=()=>{try{localStorage.setItem('ke-tut','done');}catch(e){}};
 hook('newGame',(S,player)=>{if(player)S.tut=tutFinished()?null:{step:0,done:false,off:false};},60);
 /** Advance past every finished step; returns the current step or null. */
-function tutStep(){if(!tutActive())return null;
- for(let g=0;g<TUT_STEPS.length+1;g++){const k=S.tut.step;if(k>=TUT_STEPS.length){S.tut.done=true;tutRemember();tutIdx=-1;
+function tutStep(){if(!tutActive())return null;const TL=tutList();
+ for(let g=0;g<TL.length+1;g++){const k=S.tut.step;if(k>=TL.length){S.tut.done=true;tutRemember();tutIdx=-1;
    toast(lng('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','Vizier: The first lessons are done. The rest is left to your wisdom; if you need help, look in the Guide.'),'good');SND.play('coin');return null;}
-  const st=TUT_STEPS[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
+  const st=TL[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
   let ok=false;try{ok=!!st.done(S,{seen:tutSeen,turn0:tutTurn0});}catch(e){console.error('tut '+st.id,e);ok=true;}
   if(!ok)return st;S.tut.step=k+1;}
  return null;}
@@ -5010,7 +5071,7 @@ function tutRender(){const ring=$('#tutRing'),bub=$('#tutBub');if(!ring)return;
    if(tutKey!==st.id&&(er.bottom>pr.bottom-4||er.top<pr.top)){tutKey=st.id;if(uiSheetCur==='peek')uiSheetSet('half');el.scrollIntoView({block:'nearest'});}}
   r=tutVisible(el);}
  else if(at){pt=at();if(pt&&(pt[0]<0||pt[1]<topH()||pt[0]>innerWidth||pt[1]>innerHeight))pt=null;if(pt)r={left:pt[0]-24,top:pt[1]-24,width:48,height:48,right:pt[0]+24,bottom:pt[1]+24};}
- const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`,`The Vizier's lesson · ${k+1} / ${TUT_STEPS.length}`);bub.querySelector('.tut-t').textContent=text;
+ const TL=tutList(),k=TL.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TL.length}`,`The Vizier's lesson · ${k+1} / ${TL.length}`);bub.querySelector('.tut-t').textContent=text;
  bub.hidden=false;bub.dataset.step=st.id;
  if(r){const pad=pt?0:5;ring.hidden=false;ring.classList.toggle('dot',!!pt);Object.assign(ring.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+2*pad+'px',height:r.height+2*pad+'px'});}
  else ring.hidden=true;
@@ -5031,7 +5092,7 @@ new MutationObserver(()=>{if(tutActive())tutRender();}).observe($('#modal'),{att
 ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast(lng('Dersler kapandı. Menüden yeniden başlatabilirsin.','Lessons turned off. You can restart them from the Menu.'));if(typeof uiAdvRender==='function')uiAdvRender();save();};
 ACTS['tut-restart']=()=>{S.tut={step:0,done:false,off:false};tutIdx=-1;tutSeen.clear();closeModal();try{localStorage.removeItem('ke-tut');}catch(e){}renderAll();};
 MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>${lng('Vezirin dersleri',"The Vizier's lessons")}</h3><div class="acts">${tutActive()?`<button class="btn" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button>`:`<button class="btn" data-act="tut-restart">${lng('Dersleri baştan başlat','Restart the lessons')}</button>`}</div></div>`});
-KE.tut=()=>{const st=tutActive()?TUT_STEPS[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null};};
+KE.tut=()=>{const TL=S&&S.player?tutList():[],st=tutActive()?TL[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null,n:TL.length};};
 /* =====================================================================
    TOP-BAR SHORTCUTS: tap "Ordu" to jump from army to army, "Eyalet" from province to province (capital
    first, then the richest). Each tap centres the map there and opens its panel, so a last forgotten island
@@ -5052,6 +5113,67 @@ ACTS['cyc-army']=()=>{if(!S||!S.player)return;const L0=cycArmyList(S.player);
 QUIET.add('cyc-prov');QUIET.add('cyc-army');
 hook('enterGame',()=>{cycArmy=-1;cycProv=-1;});
 KE.cyc=()=>({army:selArmy,prov:sel});
+/* =====================================================================
+   TURN FLOW (Track D, Wave 2): what still waits for the player before the season ends.
+   - "Emir bekleyen ordular": at war, armies that have not marched this season and are not besieging.
+     A chip under the top bar counts them; each tap jumps to the next one. The End Turn button shows the count.
+     Never blocks the turn (the treasury double-tap in 11-ui-core stays the only confirm).
+   - "Elçiler": envoys waiting with a peace offer (S.offers, Track B keeps them 2 turns). Tap -> the report.
+   - Aggressive expansion (AE, 05b): the realm's standing in the State Ledger, the neighbours' fear in the
+     Divan rows, and two vizier counsels (fear rising, coalition formed).
+   ===================================================================== */
+const uiFlowCfg={aeWarn:35,aeCoal:60};
+let uiFlowIdx=0;
+/** Armies of f waiting for orders while at war: not moved this season, not besieging, not empty. */
+function uiIdleArmies(f){if(!S||!S.armies||!warsOf(f).length)return [];
+ return S.armies.filter(a=>a.f===f&&a.st!=='siege'&&a.n>=500&&a.mp>0&&a.mp>=(a.mpMax||BAL_B.mpMax)).sort((x,y)=>y.n-x.n);}
+/** Envoys still waiting (Track B drops them after two turns). */
+function uiInbox(){if(!S||!S.offers)return [];return S.offers.filter(o=>typeof offerOk!=='function'||offerOk(o));}
+(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="uiFlow" class="ui-flow" hidden>
+ <button class="fl fl-inbox" data-act="ui-inbox" hidden><span class="ic" aria-hidden="true">✉</span><span class="t"></span></button>
+ <button class="fl fl-idle" data-act="ui-idle" hidden><span class="ic" aria-hidden="true">⚑</span><span class="t"></span></button></div>`);})();
+function uiFlowRender(){const box=$('#uiFlow');if(!box)return;const on=S&&S.player&&!S.over&&$('#start').hidden;
+ const et=$('#endTurn');
+ if(!on){box.hidden=true;if(et)delete et.dataset.idle;return;}
+ const f=S.player,idle=uiIdleArmies(f),inb=uiInbox();
+ const bi=box.querySelector('.fl-inbox'),bd=box.querySelector('.fl-idle');
+ bi.hidden=!inb.length;if(inb.length){bi.querySelector('.t').textContent=inb.length===1?lng(`${FAC[inb[0].f].s} elçisi barış istiyor`,`An envoy of ${FAC[inb[0].f].s} asks for peace`):lng(`${inb.length} elçi barış istiyor`,`${inb.length} envoys ask for peace`);
+  bi.setAttribute('aria-label',bi.querySelector('.t').textContent);}
+ bd.hidden=!idle.length;if(idle.length){const t=idle.length===1?lng(`${armName(idle[0])} emir bekliyor`,`The ${armName(idle[0])} awaits orders`):lng(`${idle.length} ordu emir bekliyor`,`${idle.length} armies await orders`);
+  bd.querySelector('.t').textContent=t;bd.setAttribute('aria-label',t);bd.dataset.tip='idle';}
+ box.hidden=!inb.length&&!idle.length;
+ if(et){if(idle.length&&!busy)et.dataset.idle=idle.length;else delete et.dataset.idle;}}
+ACTS['ui-idle']=()=>{const L=uiIdleArmies(S.player);if(!L.length){uiFlowRender();return;}const a=L[uiFlowIdx++%L.length];uiFocusProv(a.loc,a.id);};
+ACTS['ui-inbox']=()=>{if(uiInbox().length)showReport();else uiFlowRender();};
+TIPS.idle=()=>{const L=uiIdleArmies(S.player);return `<b class="tt">${lng('Emir bekleyen ordular','Armies awaiting orders')}</b>${L.slice(0,6).map(a=>`<div>${esc(armName(a))} · ${esc(PD[a.loc].name)} · ${fmtK(a.n)}</div>`).join('')}<p>${lng('Savaştayız ama bu ordular bu mevsim yürümedi. Dokun, sırayla göstereyim. Beklemeleri gerekiyorsa turu yine de bitirebilirsin.','We are at war, yet these armies have not marched this season. Tap and I will show them one by one. If they are meant to wait, you may still end the turn.')}</p>`;};
+hook('renderAll',uiFlowRender);
+hook('enterGame',()=>{uiFlowIdx=0;uiFlowRender();});
+hook('afterRound',()=>{uiFlowIdx=0;},60);
+
+/* ---------- aggressive expansion in the UI ---------- */
+/** Word for an AE level (the world's fear of a realm). */
+function uiAeWord(v){return v>=uiFlowCfg.aeCoal?lng('Korku','Dread'):v>=uiFlowCfg.aeWarn?lng('Tedirginlik','Unease'):v>=10?lng('Dikkat','Wariness'):lng('Sükûnet','Calm');}
+STATE_SECTIONS.push({id:'ae',order:30,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
+ const pc=Math.min(100,Math.round(v/uiFlowCfg.aeCoal*100));
+ return `<div class="sec ui-ae"><h3>${lng('Komşuların gözünde','In the eyes of our neighbours')}</h3>
+ <div class="ae-row"><span>${esc(uiAeWord(v))}</span><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div><b>${pc}%</b></div>
+ <p class="hint">${C?lng(`Koalisyon: ${C.m.map(g=>esc(FAC[g].s)).join(', ')} sana karşı birleşti.`,`Coalition: ${C.m.map(g=>esc(FAC[g].s)).join(', ')} have joined forces against you.`)
+   :lng('Her fetih komşuları tedirgin eder; aynı dinden birinin toprağını almak daha çok. Çubuk dolarsa korkan komşular birleşip sana birlikte savaş açar. Barış yıllarında korku yavaş yavaş söner.','Every conquest makes the neighbours uneasy, and taking land from a realm of your own faith even more so. If the bar fills up, the frightened neighbours band together and declare war on you as one. In years of peace the fear slowly fades.')}</p></div>`;}});
+DIPLO_ROW.push({id:'ae',order:40,meta(f){const pl=S.player,C=typeof aiCoal==='function'&&aiCoal(pl);let h='';
+ if(C&&C.m.includes(f))h+=`<span class="chip war">${lng('Koalisyonda','In the coalition')}</span>`;
+ const v=typeof aeOf==='function'?aeOf(f):0;if(v>=uiFlowCfg.aeWarn)h+=`<span>${lng('Komşuları tedirgin','Its neighbours are uneasy')}</span>`;
+ return h;}});
+ADVICE.push(
+ {id:'coal',prio:95,when:(S,f)=>{const C=typeof aiCoal==='function'&&aiCoal(f);return C&&C.m.some(g=>atWar(g,f))?C:null;},
+  t:()=>lng('Koalisyon savaşı','A coalition war'),d:(S,f,C)=>lng(`Sultanım, ${C.m.map(g=>FAC[g].s).join(', ')} fetihlerimizden korkup bize karşı birleşti. İlk mevsimlerde ayrı barış yapmazlar; kaleleri tut, en tehlikeli orduya karşı birlikte dur, sonra teker teker barış iste.`,
+   `My lord, fearing our conquests, ${C.m.map(g=>FAC[g].s).join(', ')} have joined forces against us. They will not make a separate peace in the first seasons; hold the fortresses, stand together against the most dangerous army, then ask for peace one by one.`),
+  go:()=>showDiplo(),goL:lng('Divan\'ı aç','Open the Divan')},
+ {id:'ae',prio:65,when:(S,f)=>{const v=typeof aeOf==='function'?aeOf(f):0;return v>=uiFlowCfg.aeWarn&&!(typeof aiCoal==='function'&&aiCoal(f))?v:null;},
+  t:()=>lng('Komşular tedirgin','The neighbours are uneasy'),d:(S,f,v)=>lng(`Hızlı fetihlerimiz komşuları korkutuyor${v>=uiFlowCfg.aeCoal*.8?'; bir koalisyon kurulmak üzere':''}. Bir süre yeni toprak almazsak korku söner. Devlet defterinde ne kadar tedirgin olduklarını görebilirsin.`,
+   `Our swift conquests frighten the neighbours${v>=uiFlowCfg.aeCoal*.8?'; a coalition is about to form':''}. If we take no new land for a while, the fear will fade. The State Ledger shows how uneasy they are.`),
+  go:()=>showState(),goL:lng('Devlet defteri','State Ledger')}
+);
+KE.uiFlow=()=>({idle:uiIdleArmies(S.player).map(a=>a.id),inbox:uiInbox().length,shown:!$('#uiFlow').hidden,badge:$('#endTurn').dataset.idle||null});
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
