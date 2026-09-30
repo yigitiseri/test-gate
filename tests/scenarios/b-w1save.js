@@ -17,7 +17,8 @@ module.exports = {
       S.offers = [{ f: 'OSM', type: 'peace', wt: 0 }];
       if (S.b) delete S.b.pc;
       return JSON.stringify(S); });
-    await E(([k, r]) => { localStorage.setItem(k, r); }, [SAVE, raw]);
+    // the running page may save on unload: seed the W1 save before the next page's scripts run (once)
+    await page.context().addInitScript(([k, r]) => { try { if (!sessionStorage.getItem('ke-seeded-w1')) { localStorage.setItem(k, r); sessionStorage.setItem('ke-seeded-w1', '1'); } } catch (e) {} }, [SAVE, raw]);
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 180000 });
     await L.waitLoaded(page);
     await page.click('[data-act="continue"]');

@@ -96,7 +96,7 @@ function siegeStorm(id){const a=armyById(id);if(!a||a.st!=='siege'||a.mp<=0)retu
  const i=a.loc,n0=a.n,rep=armAssault(a,i,i);if(rep){TURN_TRACE.push({k:'battle',f:a.f,from:i,to:i,path:[i],army:a.id,n:n0,win:!!rep.win,rep});if(!rep.win)a.mp=0;}
  siegeClean();return rep;}
 /** Siege s is complete: the garrison flees or falls, the province is occupied (or liberated). */
-function siegeFall(s){const i=s.i,a=armyById(s.a),f=s.f,L=siegeArmies(s);delete S.sieges[i];if(!a)return;for(const b of L){b.st='idle';b.mp=0;}
+function siegeFall(s){const i=s.i,a=armyById(s.a),f=s.f,L=siegeArmies(s);delete S.sieges[i];if(!a)return;for(const b of L)b.st='idle'; // the camp breaks up after the season's refresh: ready to march next turn
  const n0=a.n;armOccupy(a,i);
  TURN_TRACE.push({k:'siegeFell',f,to:i,army:a.id,n:n0});
  runHooks('siegeFell',i,f);}
