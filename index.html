@@ -5153,7 +5153,7 @@ hook('afterRound',()=>{uiFlowIdx=0;},60);
 /* ---------- aggressive expansion in the UI ---------- */
 /** Word for an AE level (the world's fear of a realm). */
 function uiAeWord(v){return v>=uiFlowCfg.aeCoal?lng('Korku','Dread'):v>=uiFlowCfg.aeWarn?lng('Tedirginlik','Unease'):v>=10?lng('Dikkat','Wariness'):lng('Sükûnet','Calm');}
-STATE_SECTIONS.push({id:'ae',order:30,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
+STATE_SECTIONS.push({id:'ae',order:35,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
  const pc=Math.min(100,Math.round(v/uiFlowCfg.aeCoal*100));
  return `<div class="sec ui-ae"><h3>${lng('Komşuların gözünde','In the eyes of our neighbours')}</h3>
  <div class="ae-row"><span>${esc(uiAeWord(v))}</span><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div><b>${pc}%</b></div>
@@ -5247,9 +5247,10 @@ ACTS.off=(t,f)=>{let k=+t.dataset.k;const ok=t.dataset.v==='1',fk=t.dataset.f;
  const of=S.offers[k];if(!of){pruneOffers();renderAll();showReport();return;}S.offers.splice(k,1);if(!offerOk(of)){pruneOffers();toast(lng('Bu teklif artık geçerli değil.','This offer is no longer valid.'));renderAll();showReport();return;}
  if(ok&&atWar(of.f,f)){makePeace(of.f,f);SND.play('peace');toast(lng(`${FAC[of.f].s} ile barış yapıldı.`,`Peace made with ${FAC[of.f].s}.`),'good');}else if(!ok)addOp(f,of.f,-5);renderAll();showReport();};
 /* ---------------- guide ---------------- */
-const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Savaş','War')],['bina',lng('Binalar','Buildings')],['diplo',lng('Diplomasi','Diplomacy')],['olay',lng('Olaylar','Events')]];
+const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Ordular','Armies')],['kusatma',lng('Kuşatma','Sieges')],['antlasma',lng('Antlaşmalar','Treaties')],
+ ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['olay',lng('Olaylar','Events')]];
 function guideBody(t){
- const half=Math.ceil(NP*.5);
+ const half=Math.ceil(NP*.5),w2=guideW2(t);if(w2)return w2;
  if(EN)return guideBodyEn(t,half);
  if(t==='para')return `<p>Devletin hazinesi eyaletlerinden gelen vergiyle dolar. Her mevsimin sonunda bütün eyaletlerin vergisini öder. Bir eyalet ne kadar gelişmişse o kadar çok vergi verir; büyük bir şehir, küçük bir kasabanın birkaç katını getirir.</p>
  <h3>Parayı ne artırır?</h3>
@@ -5283,10 +5284,12 @@ function guideBody(t){
  <li><b>Toplar</b> surları yıkar. Osmanlı 1453'te Urban'ın dev toplarını alır, diğer devletler 1460'ta barutlu toplara kavuşur. Toplu bir ordunun karşısında kale eski gücünü büyük ölçüde kaybeder.</li>
  <li>Her muharebede biraz da <b>şans</b> vardır; kıl payı üstün bir ordu kaybedebilir.</li></ul>
  <h3>Muharebeden sonra</h3>
- <p><b>Kazanırsan</b> eyalet senin olur. Askerlerinin bir kısmı düşer ama ne kadar üstünsen o kadar az kayıp verirsin. Düşman garnizonunun çoğu ölür, kalanlar komşu eyaletlerine kaçar. Surlar hasar görür ve askerlerin şehri yağmalar.</p>
+ <p><b>Kazanırsan</b> şehir ordunun <b>işgaline</b> girer. Askerlerinin bir kısmı düşer ama ne kadar üstünsen o kadar az kayıp verirsin. Düşman garnizonunun çoğu ölür, kalanlar komşu eyaletlerine kaçar ve askerlerin şehri yağmalar. Eyalet senin olsun istiyorsan barış masasında iste (<b>Antlaşmalar</b>).</p>
+ <p><b>Surlu şehirler</b> hemen alınmaz, kuşatılır (<b>Kuşatma</b>). <b>Meydan muharebesi</b> ise iki ordu karşılaştığında olur: surlar sayılmaz, arazi, mevsim, komutan ve askerlerin morali sayılır. Yenilen ordu komşu bir eyalete çekilir; kaçacak yeri yoksa yok olur.</p>
  <p><b>Kaybedersen</b> ordunun ağır kayıplar verir, sağ kalanlar geri çekilir. Düşman da biraz asker kaybeder.</p>
  <p><b>Muharebe kartı</b> savaşın neden kazanıldığını ya da kaybedildiğini gösterir: kale, arazi, kış, komutan ve talih zarları. Mevsim raporundaki satırlara dokunarak yeniden açabilirsin.</p>
  <p>Bir devletin <b>başkenti düşerse</b> hazinesinin bir kısmı yağmalanır ve başkentini başka bir şehre taşır. Son şehrini de kaybeden devlet tarihten silinir.</p>
+ <p><b>Emir bekleyen ordular:</b> savaştayken bu mevsim hiç yürümemiş ordularını üst çubuğun altındaki küçük düğme sayar; Turu Bitir düğmesinin köşesinde de sayıları görünür. Dokununca sırayla gösterir. Bekletmek istediğin ordular varsa turu yine de bitirebilirsin.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Saldırmadan önce paneldeki tahmine bak. <b>"Ezici üstünlük"</b> yazıyorsa rahat saldır, <b>"Başa baş"</b> ya da <b>"Riskli"</b> yazıyorsa sınırda birkaç mevsim daha asker biriktir. Kalın surlu şehirlere topun gelmeden ve kışın saldırma.</p>`;
  if(t==='bina')return `<p>Kendi eyaletine dokununca açılan panelde asker toplayabilir ve yapı kurabilirsin. Her düğmenin üstünde fiyatı yazar; para hemen hazineden çıkar ve yapı o anda biter.</p>
  <h3>İmar</h3><p>Şehri büyütür. Büyüyen şehir daha çok vergi verir, daha çok asker yetiştirir ve saldırıya karşı daha çok halk silaha sarılır. Şehir büyüdükçe bir sonraki imar daha pahalıya gelir.</p>
@@ -5374,10 +5377,12 @@ function guideBodyEn(t,half){
  <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
  <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
  <h3>After the battle</h3>
- <p><b>If you win</b>, the province is yours. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed and the rest flee to neighbouring provinces. The walls are damaged and your soldiers plunder the city.</p>
+ <p><b>If you win</b>, the city is <b>occupied</b> by your army. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed, the rest flee to neighbouring provinces, and your soldiers plunder the town. If you want to keep the province, demand it at the peace table (<b>Treaties</b>).</p>
+ <p><b>Walled cities</b> are not taken at once: they are besieged (<b>Sieges</b>). A <b>field battle</b> is fought when two armies meet: walls do not count, but terrain, season, commander and the soldiers' morale do. The beaten army falls back to a neighbouring province, or is destroyed if it has nowhere to go.</p>
  <p><b>If you lose</b>, your army suffers heavy losses and the survivors fall back. The enemy loses some men too.</p>
  <p>The <b>Battle card</b> shows why a battle was won or lost: walls, terrain, winter, commander and the dice of fortune. You can open it again by tapping the lines in the Season Report.</p>
  <p>When a realm's <b>capital falls</b>, part of its treasury is plundered and it moves its capital to another city. A realm that loses its last city vanishes from history.</p>
+ <p><b>Armies awaiting orders:</b> while you are at war, a small button under the top bar counts the armies that have not marched this season, and the End Turn button shows the number in its corner. Tap it to see them one by one. If some armies are meant to wait, you may still end the turn.</p>
  <p class="tip"><b>The Vizier's counsel:</b> Look at the estimate in the panel before you attack. If it says <b>"Overwhelming"</b>, attack with confidence; if it says <b>"Even odds"</b> or <b>"Risky"</b>, gather troops on the border for a few more seasons. Do not storm thick-walled cities before your cannon arrive, and not in winter.</p>`;
  if(t==='bina')return `<p>Tap one of your own provinces to open its panel: there you can raise troops and put up buildings. Each button shows its price; the gold leaves the treasury at once and the work is finished on the spot.</p>
  <h3>Develop</h3><p>Makes the city grow. A bigger city pays more tax, trains more soldiers, and more of its people take up arms when it is attacked. The bigger the city gets, the more the next round of development costs.</p>
@@ -5438,6 +5443,105 @@ function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);
+/* Wave 2 guide tabs: sieges, treaties, coalitions, dynasties (plain words, no formulas). */
+function guideW2(t){
+ if(t==='kusatma')return EN?`<p>A city behind walls is not taken in a single blow. When your army marches into an enemy province that has walls and no enemy army inside, it <b>lays siege</b>: it pitches camp before the city and starts wearing the walls down.</p>
+ <h3>How a siege goes</h3>
+ <ul><li>A ring over the besieged city fills up season by season. When it is full, the walls fall and the city is <b>occupied</b> by your army.</li>
+ <li>The higher the walls, the longer the siege. Mountain fortresses and great walls, such as those of Constantinople, hold out much longer.</li>
+ <li><b>Cannon</b> shorten a siege a great deal, though they are hard to haul up a mountain. A big army digs faster than a small one.</li>
+ <li>The besiegers lose men every season to sickness and desertion, and in <b>winter</b> even more.</li>
+ <li>A strong garrison may <b>sally out</b> against the camp. If it wins, the siege loses ground.</li>
+ <li>While the siege runs you may <b>storm</b> the walls; the more they have crumbled, the better your chances.</li></ul>
+ <p>A town without walls does not need a siege: your army storms it at once, and if it wins, the town is occupied.</p>
+ <h3>Occupied land</h3>
+ <p>An occupied province does not yet belong to you. Half of its taxes come to you and your army may march through it, but its owner only gives it up <b>at the peace table</b>. Until then the enemy can win it back with a siege of its own.</p>
+ <p>A realm whose every province is occupied has to surrender. A capital that stays occupied through a long war is taken outright.</p>
+ <h3>Relieving a siege</h3>
+ <p>If an enemy army besieges one of your cities, attack it with an army of your own. Win the field battle and the besiegers fall back; the progress they made is lost.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Never leave a besieging army alone. While your main army sits before a great city, keep a second army at home: the enemy likes to walk into lands left undefended. And do not begin a long siege at the start of winter.</p>`
+ :`<p>Surlu bir şehir tek hamlede alınmaz. Ordun surları olan ve içinde düşman ordusu bulunmayan bir düşman eyaletine girince <b>kuşatma</b> başlar: şehrin önüne kamp kurar ve surları yıpratmaya koyulur.</p>
+ <h3>Kuşatma nasıl ilerler?</h3>
+ <ul><li>Kuşatılan şehrin üstündeki halka her mevsim biraz daha dolar. Halka dolunca surlar düşer ve şehir ordunun <b>işgaline</b> girer.</li>
+ <li>Surlar ne kadar yüksekse kuşatma o kadar uzun sürer. Dağ kaleleri ve Konstantiniyye gibi büyük surlar çok daha uzun direnir.</li>
+ <li><b>Toplar</b> kuşatmayı çok kısaltır, ama dağa zor çıkarılır. Büyük bir ordu küçük bir ordudan daha hızlı kazar.</li>
+ <li>Kuşatan ordu her mevsim hastalık ve firar yüzünden asker yitirir; <b>kışın</b> daha da çok.</li>
+ <li>Güçlü bir garnizon kampa karşı <b>çıkış</b> yapabilir. Kazanırsa kuşatma geriler.</li>
+ <li>Kuşatma sürerken surlara <b>hücum</b> edebilirsin; surlar ne kadar yıkıldıysa şansın o kadar yüksektir.</li></ul>
+ <p>Surları olmayan bir kasaba kuşatılmaz: ordun hemen saldırır, kazanırsa kasaba işgal edilir.</p>
+ <h3>İşgal altındaki topraklar</h3>
+ <p>İşgal ettiğin eyalet henüz senin değildir. Vergisinin yarısı sana gelir ve ordun oradan geçebilir, ama sahibi onu ancak <b>barış masasında</b> bırakır. O zamana kadar düşman kendi kuşatmasıyla onu geri alabilir.</p>
+ <p>Bütün eyaletleri işgal edilen devlet teslim olmak zorunda kalır. Uzun süren bir savaşta işgal altında kalan başkent de doğrudan alınır.</p>
+ <h3>Kuşatmayı kırmak</h3>
+ <p>Düşman ordusu şehirlerinden birini kuşatıyorsa, kendi ordunla ona saldır. Meydan muharebesini kazanırsan kuşatanlar geri çekilir ve o ana kadarki emekleri boşa gider.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Kuşatan orduyu yalnız bırakma. Ana ordun büyük bir şehrin önündeyken memlekette ikinci bir ordu tut: düşman boş kalan topraklara girmeyi sever. Kışın başında da uzun bir kuşatmaya girişme.</p>`;
+ if(t==='antlasma')return EN?`<p>A war ends at the <b>peace table</b>. There you write down what you want from your enemy: provinces, gold, or freedom for a nation it once conquered. Every item has a price in <b>war score</b>, and the enemy signs only if the whole basket is not dearer than what the war has earned you.</p>
+ <h3>What makes the enemy give in?</h3>
+ <ul><li><b>War score:</b> battles won, walls taken and capitals occupied push it up; lost battles and sieges push it down.</li>
+ <li><b>War exhaustion:</b> every season of war, every thousand men lost and every province occupied wears a realm down. A tired realm gives more.</li>
+ <li><b>Weakness:</b> a realm far weaker than you is readier to yield.</li></ul>
+ <h3>What things cost</h3>
+ <ul><li>A province you <b>occupy</b> is cheap; one you have not taken costs twice as much. A rich province and a capital cost more.</li>
+ <li>The province your war was declared for (your <b>claim</b>) costs only half.</li>
+ <li><b>Gold</b> is cheap but the enemy can only pay what is in its treasury.</li>
+ <li><b>Releasing a nation</b> gives an old realm its historical lands back, and weakens your enemy for good.</li></ul>
+ <p>When peace is signed, every occupation between the two of you ends: what you did not demand goes back to its owner. Then comes a <b>three-year truce</b>.</p>
+ <h3>Envoys</h3>
+ <p>An enemy that is losing may send an <b>envoy</b> to ask for peace. A chip under the top bar tells you an envoy is waiting; the offer holds for two seasons. If you are the one ahead, do not wait for envoys: go to the Divan and set your own terms.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Occupy first, bargain later. A basket full of provinces you already hold costs little war score. If the enemy refuses, take one province out and ask again.</p>`
+ :`<p>Savaş <b>barış masasında</b> biter. Orada düşmanından ne istediğini yazarsın: eyaletler, altın ya da bir zamanlar fethettiği bir milletin özgürlüğü. Her kalemin <b>savaş skoru</b> olarak bir bedeli vardır; düşman, istediklerinin toplamı savaşta kazandığından pahalı değilse imzalar.</p>
+ <h3>Düşmanı ne yola getirir?</h3>
+ <ul><li><b>Savaş skoru:</b> kazanılan muharebeler, düşen surlar ve işgal edilen başkentler skoru yükseltir; kaybedilen muharebeler ve kuşatmalar düşürür.</li>
+ <li><b>Savaş yorgunluğu:</b> savaşın her mevsimi, kaybedilen her bin asker ve işgal edilen her eyalet bir devleti yıpratır. Yorgun devlet daha çok verir.</li>
+ <li><b>Zayıflık:</b> senden çok zayıf bir devlet boyun eğmeye daha yatkındır.</li></ul>
+ <h3>Neyin bedeli ne?</h3>
+ <ul><li><b>İşgal ettiğin</b> eyalet ucuzdur; almadığın bir eyalet iki kat pahalıdır. Zengin eyaletler ve başkentler daha pahalıdır.</li>
+ <li>Savaşı uğruna açtığın eyalet (<b>hak iddian</b>) yarı fiyatınadır.</li>
+ <li><b>Altın</b> ucuzdur ama düşman hazinesinde ne varsa ancak onu ödeyebilir.</li>
+ <li><b>Bir milleti serbest bırakmak</b> eski bir devlete tarihî topraklarını geri verir ve düşmanını kalıcı olarak zayıflatır.</li></ul>
+ <p>Barış imzalanınca aranızdaki bütün işgaller sona erer: istemediğin topraklar sahibine döner. Ardından <b>üç yıl ateşkes</b> gelir.</p>
+ <h3>Elçiler</h3>
+ <p>Kaybeden bir düşman barış istemek için <b>elçi</b> gönderebilir. Üst çubuğun altındaki küçük düğme bekleyen bir elçi olduğunu haber verir; teklif iki mevsim geçerlidir. Öndeysen elçi bekleme: Divan'a git ve şartlarını kendin koy.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Önce işgal et, sonra pazarlık yap. Zaten elinde tuttuğun eyaletlerle dolu bir sepet az savaş skoru tutar. Düşman reddederse bir eyaleti çıkar ve yeniden iste.</p>`;
+ if(t==='koalisyon')return EN?`<p>The world watches every conquest. Each province you take makes your neighbours more <b>uneasy</b>; taking land from a realm of your own faith frightens them even more, and a capital most of all. Land gained at the peace table counts a little less than land taken by storm.</p>
+ <h3>The coalition</h3>
+ <p>When the fear grows too great, your frightened neighbours band together into a <b>coalition</b> and declare war on you all at once. In the first seasons of a coalition war its members do not make a separate peace. The State Ledger shows how uneasy the world is about you; the vizier warns you before it is too late.</p>
+ <p>Fear fades slowly in years of peace. Once it has faded and the fighting is over, the coalition breaks up, and it does not come back at once.</p>
+ <h3>The crusade</h3>
+ <p>When a Muslim realm grows fearsome to the Christian world, the Pope may call a <b>crusade</b>. The Christian realms that border it, and those who answer such calls, grow eager for war against it for a few years.</p>
+ <h3>The same rules for everyone</h3>
+ <p>The other realms live by these rules too. A neighbour that swallows its neighbours quickly will soon face a coalition of its own, and that may be your chance.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Conquer in waves. After a great war, rest a few years: develop your cities, fill the treasury, and let the fear fade before the next campaign.</p>`
+ :`<p>Dünya her fethi izler. Aldığın her eyalet komşularını biraz daha <b>tedirgin</b> eder; aynı dinden bir devletin toprağını almak onları daha çok korkutur, bir başkenti almak hepsinden çok. Barış masasında kazanılan toprak, kılıçla alınandan biraz daha az korkutur.</p>
+ <h3>Koalisyon</h3>
+ <p>Korku çok büyüyünce tedirgin komşular bir <b>koalisyon</b> kurar ve sana hep birlikte savaş açar. Koalisyon savaşının ilk mevsimlerinde üyeleri ayrı barış yapmaz. Dünyanın senden ne kadar tedirgin olduğunu Devlet defteri gösterir; iş işten geçmeden vezir de seni uyarır.</p>
+ <p>Barış yıllarında korku yavaş yavaş söner. Korku sönüp çarpışmalar bitince koalisyon dağılır ve hemen yeniden kurulmaz.</p>
+ <h3>Haçlı Seferi</h3>
+ <p>Bir Müslüman devlet Hristiyan dünyası için korkutucu hâle gelince Papa <b>Haçlı Seferi</b> çağrısı yapabilir. Ona komşu olan ve bu tür çağrılara kulak veren Hristiyan devletler birkaç yıl boyunca ona karşı savaşa hevesli olur.</p>
+ <h3>Herkes için aynı kurallar</h3>
+ <p>Öteki devletler de bu kurallarla yaşar. Komşularını hızla yutan bir devlet yakında kendi koalisyonuyla karşılaşır; bu senin fırsatın olabilir.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Fetihleri dalga dalga yap. Büyük bir savaştan sonra birkaç yıl dinlen: şehirlerini imar et, hazineyi doldur ve bir sonraki seferden önce korkunun sönmesini bekle.</p>`;
+ if(t==='hanedan')return EN?`<p>Every realm is ruled by a living <b>ruler</b>. Rulers grow old, fall ill and die, and history does not wait for them.</p>
+ <h3>Heirs and succession</h3>
+ <ul><li>The <b>heir</b> is usually the ruler's eldest son. When the ruler dies, the throne passes to him and the realm carries on.</li>
+ <li>If the new ruler is still a child, a <b>regent</b> governs until he comes of age.</li>
+ <li>In elective realms such as Venice, the Papacy, the Knights of Rhodes or the Mamluk Sultanate, a new ruler is elected; elsewhere a related house may be invited to the throne.</li>
+ <li>A realm without an heir falls into a <b>succession crisis</b>: a stranger takes the throne, and you are asked how to settle it, with gold or with patience.</li></ul>
+ <h3>Commanders</h3>
+ <p>Pashas, princes and the ruler himself can lead armies. The more stars a commander has, the more he helps in battle and in the field. Commanders age and die too, and a commander may fall or be captured when his army is beaten.</p>
+ <p>The State Ledger shows your dynasty: the ruler, the heir and your commanders.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Do not risk an old ruler without an heir in the front line. And keep a free pasha at hand: an army without a commander fights worse.</p>`
+ :`<p>Her devleti yaşayan bir <b>hükümdar</b> yönetir. Hükümdarlar yaşlanır, hastalanır ve ölür; tarih onları beklemez.</p>
+ <h3>Veliaht ve tahtın geçişi</h3>
+ <ul><li><b>Veliaht</b> çoğunlukla hükümdarın en büyük oğludur. Hükümdar ölünce taht ona geçer ve devlet yoluna devam eder.</li>
+ <li>Yeni hükümdar henüz çocuksa, reşit olana kadar devleti bir <b>naip</b> yönetir.</li>
+ <li>Venedik, Papalık, Rodos Şövalyeleri ya da Memlükler gibi seçimle yönetilen devletlerde yeni hükümdar seçilir; başka yerlerde tahta akraba bir hanedan davet edilebilir.</li>
+ <li>Varisi olmayan devlet bir <b>taht bunalımına</b> düşer: tahta bir yabancı çıkar ve sana bunalımı altınla mı sabırla mı çözeceğin sorulur.</li></ul>
+ <h3>Komutanlar</h3>
+ <p>Paşalar, şehzadeler ve hükümdarın kendisi ordu yönetebilir. Komutanın yıldızı ne kadar çoksa muharebede ve seferde o kadar işe yarar. Komutanlar da yaşlanır ve ölür; ordusu yenilen bir komutan düşebilir ya da esir alınabilir.</p>
+ <p>Devlet defteri hanedanını gösterir: hükümdarı, veliahtı ve komutanlarını.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Varisi olmayan yaşlı bir hükümdarı cephenin önüne sürme. Elinde boşta bir paşa da tut: komutansız ordu daha kötü savaşır.</p>`;
+ return '';}
 function showHelp(){openModal(EN?`<div class="eyebrow">How to play</div><h2>The Art of War</h2>
  <div class="logl">
  <div><time>Select</time><span>Tap one of your provinces. Green neighbours are your own land, red ones belong to an enemy you are at war with.</span></div>

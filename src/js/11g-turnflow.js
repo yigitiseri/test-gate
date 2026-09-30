@@ -38,7 +38,7 @@ hook('afterRound',()=>{uiFlowIdx=0;},60);
 /* ---------- aggressive expansion in the UI ---------- */
 /** Word for an AE level (the world's fear of a realm). */
 function uiAeWord(v){return v>=uiFlowCfg.aeCoal?lng('Korku','Dread'):v>=uiFlowCfg.aeWarn?lng('Tedirginlik','Unease'):v>=10?lng('Dikkat','Wariness'):lng('Sükûnet','Calm');}
-STATE_SECTIONS.push({id:'ae',order:30,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
+STATE_SECTIONS.push({id:'ae',order:35,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
  const pc=Math.min(100,Math.round(v/uiFlowCfg.aeCoal*100));
  return `<div class="sec ui-ae"><h3>${lng('Komşuların gözünde','In the eyes of our neighbours')}</h3>
  <div class="ae-row"><span>${esc(uiAeWord(v))}</span><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div><b>${pc}%</b></div>
