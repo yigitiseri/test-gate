@@ -8,7 +8,10 @@
    A choice without next goes to the following stage; 'end' closes the chain.
    ===================================================================== */
 const BAL_CHN={fetihFrom:4,fetihWar:7,hisar:40,hisarMul:1.10,gemi:30,gemiMul:1.15,giust:50,giustMul:1.20,zincir:25,zincirMul:1.10,
- belgradFrom:20,kapMul:1.15,kapGold:40,otlukFrom:84,otlukGold:40,otlukMul:1.15,cemPay:3};
+ belgradFrom:20,kapMul:1.15,kapGold:40,otlukFrom:84,otlukGold:40,otlukMul:1.15,cemPay:3,
+ /* W2 sieges (Track B): extra siege progress per turn (in turns of progress) from the 1453 choices, and how often
+    the Ottoman target nudge on the city is renewed while the war lasts */
+ sgHisar:.25,sgGemi:.35,sgGiust:.3,sgZincir:.2,fetihRenew:8};
 const CHAINS=[];
 function chnState(id){return S.chains[id]||(S.chains[id]={stage:0,t:0,data:{},done:false,wait:false});}
 const chnNudge=(f,spec)=>{if(typeof aiNudge==='function'&&alive(f))aiNudge(f,{prio:3,until:S.turn+40,...spec});};
@@ -37,7 +40,7 @@ hook('newTurn',()=>chnTick(),21);
 CHAINS.push({id:'fetih',abort:S=>!alive('OSM')||!alive('BYZ')||!chnOwn('istanbul','BYZ'),stages:[
  {when:S=>S.turn>=BAL_CHN.fetihFrom,who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.hisar?0:1,fire:st=>({t:lng('Boğazkesen Hisarı','The Strait-Cutter Fortress'),
    d:lng('Sultan, Boğaz\'ın Avrupa yakasında, Anadolu Hisarı\'nın karşısına bir hisar yaptırmak istiyor. Hisar bitince Karadeniz\'den Konstantiniyye\'ye gelecek yardım kesilecek.','The Sultan wants a fortress built on the European shore of the Bosphorus, facing the old Anatolian castle. Once it stands, no help can reach Constantinople from the Black Sea.'),
-   ch:[{l:lng(`Hisarı yaptır (−${BAL_CHN.hisar} altın; Konstantiniyye\'ye saldırıda +10%)`,`Build the fortress (−${BAL_CHN.hisar} gold; +10% when attacking Constantinople)`),dis:S.fac.OSM.gold<BAL_CHN.hisar,next:{stage:1,delay:2},f:st=>{S.fac.OSM.gold-=BAL_CHN.hisar;st.data.hisar=1;chnNudge('OSM',{war:'BYZ',target:PK.istanbul});
+   ch:[{l:lng(`Hisarı yaptır (−${BAL_CHN.hisar} altın; Konstantiniyye\'ye saldırıda +10%, kuşatma daha hızlı)`,`Build the fortress (−${BAL_CHN.hisar} gold; +10% when attacking Constantinople, a faster siege)`),dis:S.fac.OSM.gold<BAL_CHN.hisar,next:{stage:1,delay:2},f:st=>{S.fac.OSM.gold-=BAL_CHN.hisar;st.data.hisar=1;chnNudge('OSM',{war:'BYZ',target:PK.istanbul});
       news(lng('Osmanlı, Boğaz\'ın Avrupa yakasında Boğazkesen Hisarı\'nı yükseltiyor. Konstantiniyye\'nin Karadeniz yolu kesildi.','The Ottomans are raising the Strait-Cutter fortress on the European shore of the Bosphorus. Constantinople\'s road to the Black Sea is cut.'),S.player==='BYZ'?'war':'info');}},
     {l:lng('Acele etme (kuşatma bir yıl gecikir)','Do not hurry (the siege is delayed by a year)'),next:{stage:0,delay:6},f:()=>{}}]})},
  {when:S=>S.turn>=BAL_CHN.fetihWar&&!inTruce('OSM','BYZ'),who:()=>'OSM',fire:st=>({t:lng('Konstantiniyye Seferi','The Constantinople Campaign'),
@@ -46,13 +49,13 @@ CHAINS.push({id:'fetih',abort:S=>!alive('OSM')||!alive('BYZ')||!chnOwn('istanbul
     {l:lng('Bir yıl daha bekle','Wait another year'),next:{stage:1,delay:4},f:()=>{}}]})},
  {when:S=>atWar('OSM','BYZ'),who:()=>'BYZ',ai:S=>S.fac.BYZ.gold>=BAL_CHN.giust?0:S.fac.BYZ.gold>=BAL_CHN.zincir?1:2,fire:st=>({t:lng('Cenevizli Giustiniani','Giustiniani the Genoese'),
    d:lng('Cenevizli kumandan Giovanni Giustiniani Longo, 700 askerle Haliç\'e geldi. Surların savunmasını üstlenmeye hazır, ama ücret istiyor. Haliç\'in ağzına demir bir zincir germek de mümkün.','The Genoese captain Giovanni Giustiniani Longo has reached the Golden Horn with 700 men. He is ready to take charge of the walls, but he wants to be paid. An iron chain could also be stretched across the mouth of the Golden Horn.'),
-   ch:[{l:lng(`Giustiniani\'yi tut (−${BAL_CHN.giust} altın; o yaşadıkça surlarda savunma +20%)`,`Hire Giustiniani (−${BAL_CHN.giust} gold; +20% defence on the walls while he lives)`),dis:S.fac.BYZ.gold<BAL_CHN.giust,f:st=>{S.fac.BYZ.gold-=BAL_CHN.giust;
+   ch:[{l:lng(`Giustiniani\'yi tut (−${BAL_CHN.giust} altın; o yaşadıkça surlarda savunma +20%, kuşatma yavaşlar)`,`Hire Giustiniani (−${BAL_CHN.giust} gold; +20% defence on the walls and a slower siege while he lives)`),dis:S.fac.BYZ.gold<BAL_CHN.giust,f:st=>{S.fac.BYZ.gold-=BAL_CHN.giust;
       const g=chCreate({n:'Giovanni Giustiniani',f:'BYZ',role:'gen',born:1418,hd:1453,skill:3,dyn:'Giustiniani'});S.fac.BYZ.gens.push(g.id);st.data.giust=g.id;news(lng('Giustiniani, Theodosius surlarının savunmasını üstlendi.','Giustiniani has taken command of the Theodosian Walls.'),S.player==='OSM'?'war':'info');}},
-    {l:lng(`Haliç\'e zincir ger (−${BAL_CHN.zincir} altın; surlarda savunma +10%)`,`Chain the Golden Horn (−${BAL_CHN.zincir} gold; +10% defence on the walls)`),dis:S.fac.BYZ.gold<BAL_CHN.zincir,f:st=>{S.fac.BYZ.gold-=BAL_CHN.zincir;st.data.zincir=1;news(lng('Haliç\'in ağzına demir zincir gerildi.','An iron chain now closes the mouth of the Golden Horn.'),S.player==='OSM'?'war':'info');}},
+    {l:lng(`Haliç\'e zincir ger (−${BAL_CHN.zincir} altın; surlarda savunma +10%, kuşatma yavaşlar)`,`Chain the Golden Horn (−${BAL_CHN.zincir} gold; +10% defence on the walls and a slower siege)`),dis:S.fac.BYZ.gold<BAL_CHN.zincir,f:st=>{S.fac.BYZ.gold-=BAL_CHN.zincir;st.data.zincir=1;news(lng('Haliç\'in ağzına demir zincir gerildi.','An iron chain now closes the mouth of the Golden Horn.'),S.player==='OSM'?'war':'info');}},
     {l:lng('Hazineyi koru, surlara güven','Save the treasury and trust the walls'),f:()=>{}}]})},
  {when:S=>atWar('OSM','BYZ'),who:()=>'OSM',ai:S=>S.fac.OSM.gold>=BAL_CHN.gemi?0:1,fire:st=>({t:lng('Gemiler Karadan Yürüdü','Ships over Land'),
    d:st.data.zincir?lng('Zincir Haliç\'i kapatıyor. Mimarlar, gemileri yağlanmış kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.','The chain closes the Golden Horn. The engineers propose hauling the ships on greased slipways over the hills of Galata and down into the Horn.'):lng('Haliç\'in surları zayıf. Mimarlar, gemileri kızaklarla Galata sırtlarından aşırıp Haliç\'e indirmeyi öneriyor.','The walls along the Golden Horn are weak. The engineers propose hauling the ships on slipways over the hills of Galata and down into the Horn.'),
-   ch:[{l:lng(`Gemileri karadan yürüt (−${BAL_CHN.gemi} altın; Konstantiniyye\'ye saldırıda +15%, zincir işe yaramaz)`,`Haul the ships over land (−${BAL_CHN.gemi} gold; +15% when attacking Constantinople, the chain is useless)`),dis:S.fac.OSM.gold<BAL_CHN.gemi,f:st=>{S.fac.OSM.gold-=BAL_CHN.gemi;st.data.gemi=1;
+   ch:[{l:lng(`Gemileri karadan yürüt (−${BAL_CHN.gemi} altın; Konstantiniyye\'ye saldırıda +15%, kuşatma hızlanır, zincir işe yaramaz)`,`Haul the ships over land (−${BAL_CHN.gemi} gold; +15% when attacking Constantinople, a faster siege, and the chain is useless)`),dis:S.fac.OSM.gold<BAL_CHN.gemi,f:st=>{S.fac.OSM.gold-=BAL_CHN.gemi;st.data.gemi=1;
       news(lng('Osmanlı gemileri bir gecede karadan yürüyerek Haliç\'e indi!','In a single night the Ottoman ships crossed over land and slid into the Golden Horn!'),S.player==='BYZ'?'war':'cap');}},
     {l:lng('Kara surlarına yüklen','Press the land walls'),f:()=>{}}]})},
  {when:S=>!atWar('OSM','BYZ'),fire:st=>({t:'',d:'',ch:[{l:'',next:{stage:1,delay:12},f:st=>{st.data.tries=(st.data.tries||0)+1;if(st.data.tries>=3)st.done=true;
@@ -100,6 +103,26 @@ ECON_ROWS.push(f=>{if(!S.chains||!S.chains.cem)return null;const d=S.chains.cem.
  if(!d.host||!chLive(c)||c.role!=='claimant'||!alive(d.host)||!alive('OSM'))return null;
  if(f==='OSM')return [{id:'ch-cem',l:lng(`Cem Sultan\'ın nafakası (${FAC[d.host].s})`,`Upkeep of Prince Cem (${FAC[d.host].s})`),v:BAL_CHN.cemPay,k:'exp'}];
  if(f===d.host)return [{id:'ch-cem',l:lng('Rehin şehzadenin nafakası','Upkeep of the hostage prince'),v:BAL_CHN.cemPay,k:'inc'}];return null;});
+
+/* ---------- 1453 against real sieges (Track B's S.sieges; every hook is a no-op until B is merged) ---------- */
+/** Who holds province i now: the occupier while a siege has fallen, else the owner (B's ctl(), or p.o before B). */
+function chnCtl(i){return typeof ctl==='function'?ctl(i):(S.prov[i].ctl||S.prov[i].o);}
+/** Extra siege progress per turn from chain choices at the besieged province (positive: faster for the besieger). */
+function chnSiegeBonus(s){if(!s||!S.chains)return 0;let d=0;
+ if(s.i===PK.istanbul&&S.chains.fetih&&S.prov[s.i].o==='BYZ'){const x=S.chains.fetih.data;
+  if(s.f==='OSM'){if(x.hisar)d+=BAL_CHN.sgHisar;if(x.gemi)d+=BAL_CHN.sgGemi;}
+  const g=x.giust!=null&&S.chars[x.giust];if(chLive(g)&&g.cap==null)d-=BAL_CHN.sgGiust;if(x.zincir&&!x.gemi)d-=BAL_CHN.sgZincir;}
+ for(const fn of CHN_SIEGE)d+=fn(s)||0;
+ return d;}
+const CHN_SIEGE=[];   // more (s)=>delta rows from the W2 chains (06e)
+hook('siegeTick',s=>{const d=chnSiegeBonus(s);if(d&&typeof s.prog==='number')s.prog=Math.max(0,s.prog+d);},60);
+hook('siegeStart',s=>{if(!s||s.i!==PK.istanbul||s.f!=='OSM'||!S.chains||!S.chains.fetih||S.chains.fetih.data.sg)return;S.chains.fetih.data.sg=S.turn;
+ news(lng('Urban\'ın dev topu Theodosius surlarını dövmeye başladı: Konstantiniyye kuşatması başladı.','Urban\'s great bombard has begun to pound the Theodosian Walls: the siege of Constantinople has begun.'),S.player==='BYZ'?'war':S.player==='OSM'?'cap':'info');});
+/* The walls are breached: the city is not merely occupied, it falls and the empire ends with it. */
+hook('siegeFell',(i,f)=>{if(i!==PK.istanbul||f!=='OSM'||S.prov[i].o!=='BYZ'||!alive('BYZ'))return;capture(i,'OSM');delete S.prov[i].ctl;polDirty=true;},30);
+/* while the war lasts, keep the Ottoman AI's eyes on the city (the nudge expires otherwise) */
+hook('newTurn',()=>{const st=S.chains&&S.chains.fetih;if(!st||st.done||st.data.war==null||!atWar('OSM','BYZ')||S.prov[PK.istanbul].o!=='BYZ')return;
+ if((S.turn-st.data.war)%BAL_CHN.fetihRenew===0&&typeof aiNudges==='function'&&!aiNudges('OSM').some(n=>n.target===PK.istanbul))chnNudge('OSM',{war:'BYZ',target:PK.istanbul,prio:5,until:S.turn+BAL_CHN.fetihRenew+2});},22);
 
 /* ---------- chain modifiers in battle ---------- */
 BATTLE_MODS.push(ctx=>{if(!S.chains||ctx.to==null)return null;const out=[];

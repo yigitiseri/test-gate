@@ -23,7 +23,7 @@ const BAL_C={
 let chRep=[];               // this turn's dynasty news for the season report (transient)
 const chYear=t=>START_YEAR+Math.floor((t==null?S.turn:t)/4);
 const chLive=c=>!!c&&c.died==null;
-function chNewC(){return {v:1,sp:{},el:{},alt:{},reg:{},regency:{},past:{},pend:[],hold:{},lastSucc:{}};}
+function chNewC(){return {v:1,sp:{},el:{},alt:{},reg:{},regency:{},past:{},pend:[],hold:{},lastSucc:{},clm:null,clmKeep:null};}
 
 /* ---------------- core API ---------------- */
 /** Create a character. spec: {n,f,role,born,traits?,skill?,dyn?,...extra}. */
@@ -136,6 +136,7 @@ function chSucceed(f,old,o={}){const F=S.fac[f],sd=CH_SEED[f]||{};if(!F||!F.aliv
  if(!neu&&sd.alt){neu=chAltSucc(f);if(neu)how='invite';}
  if(!neu){neu=chGenerate(f,'ruler',28+Math.floor(R()*15));how='crisis';}
  if(old){const P=S.c.past[f]||(S.c.past[f]=[]);P.push({n:old.rn||old.n,t0:old.acc??0,t1:S.turn,ep:old.ep||null});if(P.length>6)P.shift();}
+ if(typeof chnRename==='function')chnRename(f,neu,how);
  neu.role='ruler';neu.acc=S.turn;neu.rn=chRegnal(f,neu);F.ruler=neu.id;F.heir=null;
  if(!neu.hk){const sdk=[...(sd.kin||[]),...(sd.alt||[])];if(neu.sk&&sdk.some(x=>x.par===neu.sk))neu.hk=1;}
  chPickHeir(f);
@@ -151,9 +152,11 @@ function chSucceed(f,old,o={}){const F=S.fac[f],sd=CH_SEED[f]||{};if(!F||!F.aliv
   if(how==='crisis')chAsk('crisis',{f,id:neu.id});
   else{const hd=chHeir(f),d=(old?lng(`${chName(old)} artık yok. `,`${chName(old)} is no more. `):'')+msg+(hd?lng(` Veliaht: ${chLabel(hd)}.`,` Heir: ${chLabel(hd)}.`):lng(' Tahtın bir varisi yok; hanedanın geleceği belirsiz.',' The throne has no heir; the future of the dynasty is uncertain.'));
    queueModal(()=>eventModal({t:how==='elect'?lng('Yeni Seçim','A New Election'):lng('Taht Değişti','The Throne Passes'),e:dateStr(S.turn),d,ch:[{l:lng(`Yaşasın ${nm}!`,`Long live ${nm}!`)}]}));}}
- else if(how==='crisis')chCrisisAI(f);
- runHooks('succession',f,old,neu);
+ else if(how==='crisis')chCrisisRise(f);
+ runHooks('succession',f,old,neu,how);
  return neu;}
+/** Crisis in an AI realm: a pretender may rise in arms (claimant war, 06e, needs the reserved FAC slot), else 1-3 provinces turn restless. */
+function chCrisisRise(f){if(typeof chClmCan==='function'&&chClmCan(f)&&R()<BAL_CH2.clmP&&chClmSpawn(f))return;chCrisisAI(f);}
 /** Crisis consequences for an AI realm: 1-3 provinces turn restless. */
 function chCrisisAI(f){const ps=facProvs(f).filter(i=>i!==S.fac[f].cap);const n=Math.min(ps.length,1+Math.floor(R()*3));
  for(let k=0;k<n;k++){const i=ps.splice(Math.floor(R()*ps.length),1)[0];S.prov[i].un=Math.max(S.prov[i].un,6);}}
@@ -169,7 +172,7 @@ function chKill(id,cause){const c=typeof id==='object'?id:S.chars[id];if(!chLive
   if(f===S.player)chNews(f,`${who} ${why}.`,wasHeir?'war':'info');}
  runHooks('charDied',c);
  if(wasRuler&&F.alive){const age=chAge(c),nm=chName(c);
-  const why=cause==='battle'?lng('muharebe meydanında düştü','fell on the field of battle'):cause==='fall'?lng('şehrinin surlarında savaşarak can verdi','died fighting on the walls of the city'):cause==='plague'?lng('vebadan öldü','died of the plague'):age>=70?lng(`${age} yaşında, ihtiyarlıktan öldü`,`died of old age at ${age}`):lng(`${age} yaşında öldü`,`died at the age of ${age}`);
+  const why=cause==='battle'?lng('muharebe meydanında düştü','fell on the field of battle'):cause==='fall'?lng('şehrinin surlarında savaşarak can verdi','died fighting on the walls of the city'):cause==='plague'?lng('vebadan öldü','died of the plague'):cause==='deposed'?lng('tahttan indirildi','was deposed'):age>=70?lng(`${age} yaşında, ihtiyarlıktan öldü`,`died of old age at ${age}`):lng(`${age} yaşında öldü`,`died at the age of ${age}`);
   if(f===S.player){try{SND.play('bell');}catch(e){}}
   chNews(f,lng(`${FAC[f].s} hükümdarı ${nm} ${why}.`,`${FAC[f].s}: the ruler ${nm} ${why}.`),'cap');
   chSucceed(f,c);}
@@ -275,7 +278,8 @@ function chShowPend(p){if(!S.c.pend.includes(p))return;let spec=null;try{spec=CH
 hook('enterGame',()=>{if(S&&S.c&&S.c.pend.length)S.c.pend.forEach(p=>queueModal(()=>chShowPend(p)));});
 CH_PEND.crisis=({f,id})=>{const c=S.chars[id];if(!chLive(c)||f!==S.player)return null;const F=S.fac[f],g=chCrisisGold(f),nm=chName(c);
  return {t:lng('Taht Boşluğu','An Empty Throne'),d:lng(`Hanedanın erkek varisi kalmadı. Divan, uzak bir akraba olan ${nm} adını öne sürdü; ama beyler bölünmüş durumda. Tahtı nasıl sağlamlaştıracaksın?`,`No male heir of the dynasty remains. The Divan has put forward a distant relative, ${nm}, but the nobles are divided. How will you secure the throne?`),
-  ch:[{l:lng('Beyleri kendi hâllerine bırak (2 eyalet 6 tur huzursuz)','Leave the nobles to themselves (2 provinces restless for 6 turns)'),f:()=>chCrisisAI(f)},
+  ch:[typeof chClmCan==='function'&&chClmCan(f)?{l:lng('Beyleri kendi hâllerine bırak (bir taht davacısı 1–3 eyalette ayaklanır ve sana savaş açar)','Leave the nobles to themselves (a pretender rises in 1–3 provinces and makes war on you)'),f:()=>{if(!chClmSpawn(f))chCrisisAI(f);}}
+    :{l:lng('Beyleri kendi hâllerine bırak (2 eyalet 6 tur huzursuz)','Leave the nobles to themselves (2 provinces restless for 6 turns)'),f:()=>chCrisisAI(f)},
    {l:lng(`Beylere altın dağıt (−${g} altın)`,`Hand out gold to the nobles (−${g} gold)`),dis:F.gold<g,f:()=>{F.gold=Math.max(0,F.gold-g);}},
    {l:lng('Ordunun adayını destekle (hükümdar Cengâver olur, başkent garnizonu −20%)','Back the army\'s candidate (the ruler becomes Valiant, capital garrison −20%)'),f:()=>{if(!c.traits.includes('cengaver'))c.traits.push('cengaver');const p=S.prov[F.cap];p.t=Math.round(p.t*.8/100)*100;}}]};};
 

@@ -3,7 +3,7 @@
 /*
  * Static lint of the mission trees (G15), node only:
  *   node tests/missions-lint.js
- * Every faction has >= 5 missions in 2 branches; every province key exists; no mission targets a
+ * Every faction has >= 5 missions in 2 branches, each at least 3 tiers deep; every province key exists; no mission targets a
  * province of a starting ally (or the faction's own starting province only); req ids exist and form
  * no cycle; ally/vs factions exist; hold provinces are owned at start; exactly one goal per mission.
  */
@@ -55,7 +55,8 @@ for (const f of Object.keys(FAC)) {
   const byId = Object.fromEntries(L.map(m => [m.id, m]));
   const depth = (m, seen = new Set()) => { if (seen.has(m.id)) return Infinity; seen.add(m.id); return 1 + Math.max(0, ...(m.req || []).map(r => byId[r] ? depth(byId[r], new Set(seen)) : 0)); };
   for (const m of L) { const d = depth(m); if (d === Infinity) fails.push(`${f}: req cycle at ${m.id}`); }
-  const tiers = Math.max(...L.map(m => depth(m))); if (tiers < 2) fails.push(`${f}: only ${tiers} tier`);
+  // W2: every branch is at least three tiers deep (the "3x2" trees)
+  for (const b of ['A', 'B']) { const ms = L.filter(m => m.br === b); const tiers = ms.length ? Math.max(...ms.map(m => depth(m))) : 0; if (tiers < 3) fails.push(`${f}: branch ${b} only ${tiers} tier(s)`); }
 }
 for (const x of fails) console.log('[missions-lint] FAIL', x);
 console.log('[missions-lint]', fails.length ? `FAILED (${fails.length})` : `PASSED ${Object.keys(MIS).length} factions, ${n} missions`);
