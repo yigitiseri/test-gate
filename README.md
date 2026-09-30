@@ -23,6 +23,8 @@ The game is available in **English and Turkish** (switch on the start screen or 
 - **Commanders.** Pashas, princes and even the sultan himself can lead an army; each has skill stars and traits
   (an akıncı raider marches further). Appoint or move commanders from the army panel; an army that loses its
   commander in battle or to captivity gets a free replacement at the end of the round.
+- **Shortcuts.** Tap **Army** or **Provinces** in the top bar to jump through your armies or provinces one
+  by one, so a forgotten island or a lost army is always one tap away.
 - **Dynasties.** Rulers age, die and are succeeded by their heirs; Venice elects doges; succession crises break
   out when there is no heir.
 - **Economy.** Income comes from developed provinces. Build markets, barracks, walls and new quarters; pay your

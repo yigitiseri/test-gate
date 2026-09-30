@@ -36,6 +36,8 @@ run "smoke 2D HUN x$TURNS" node tests/smoke.js --faction=HUN --turns="$TURNS" --
 run "smoke 2D VEN x$TURNS" node tests/smoke.js --faction=VEN --turns="$TURNS" --mode=2d
 run "smoke 2D mobile POL x40" node tests/smoke.js --faction=POL --turns=40 --mode=2d --viewport=mobile
 run "ui 2D" node tests/ui.js --mode=2d
+run "i18n English OSM x12" node tests/i18n.js --turns=12 --assert
+run "i18n English data" node tests/i18n-data.js
 run "scenarios" node tests/scenario.js
 run "sim quick OSM ai x60 seed 1" node tests/sim.js --faction=OSM --policy=ai --turns=60 --seed=1 --assert
 run "smoke 3D OSM x20" node tests/smoke.js --faction=OSM --turns=20 --mode=3d
