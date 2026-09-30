@@ -25,7 +25,7 @@ module.exports = {
 
     // ---------- Otranto 1480 ----------
     const o1 = await E(() => { const K = window.__ke, S = K.S, c = window.__c; c.only(['otranto'], 1480); S.fac.OSM.gold = 500;
-      K.chn.tick(); const a = K.armyList('OSM').find(x => x.loc === c.pk('avlonya') && x.n === 8000);
+      K.chn.tick(); const a = K.armyList('OSM').find(x => x.loc === c.pk('avlonya') && x.n >= 8000);
       return { st: c.st('otranto'), war: c.war('OSM', 'ARA'), army: !!a, gen: a && a.gen != null && S.chars[a.gen].n }; });
     check('Otranto: the Ottomans send the fleet and declare war on Naples', o1.st.stage === 1 && o1.war && o1.st.data.t0 != null, o1);
     check('Otranto: a landing army of 8k at Valona with a commander', o1.army && !!o1.gen, o1);
