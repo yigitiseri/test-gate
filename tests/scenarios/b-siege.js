@@ -3,7 +3,7 @@
 // an army marching on walls starts S.sieges[i] (hooks siegeStart / siegeTick / siegeFell, TURN_TRACE 'siege' and
 // 'siegeFell'); the fallen city is OCCUPIED (ctl) and still owned; the occupier collects half its taxes and the owner
 // can no longer recruit there; a storm through the panel; the lane rule (Karaman cannot cross to Cyprus, the straits
-// stay open, Venice sails); a fully occupied realm capitulates; an occupied capital is annexed after 20 turns of war.
+// stay open, Venice sails); a realm fully occupied in a long war capitulates; a capital that fell to a siege is annexed after 20 turns of war.
 module.exports = {
   name: 'b-siege',
   fac: 'OSM',
@@ -84,7 +84,7 @@ module.exports = {
     }
 
     // capitulation: Albania, every province occupied
-    const cap = await E(() => { const K = window.__ke, S = K.S; if (!S.war['ALB|OSM']) K.declareWar('OSM', 'ALB');
+    const cap = await E(() => { const K = window.__ke, S = K.S; if (!S.war['ALB|OSM']) K.declareWar('OSM', 'ALB'); S.war['ALB|OSM'].t = S.turn - 35; // capitulation needs a long war
       S.armies = S.armies.filter(a => a.f !== 'ALB'); const ps = S.prov.map((p, i) => p.o === 'ALB' ? i : -1).filter(i => i >= 0); ps.forEach(i => { S.prov[i].ctl = 'OSM'; }); return ps; });
     await L.endTurn(page); await L.closeModals(page);
     const cp = await E(ps => { const S = window.__ke.S; return { alive: S.fac.ALB.alive, owners: ps.map(i => S.prov[i].o), ctl: ps.map(i => S.prov[i].ctl || null) }; }, cap);

@@ -19,7 +19,8 @@ const BAL_S={
  attr:.02,attrWinter:.04,          // besieger losses per turn (sickness, desertion)
  sallyRatio:.5,sallyP:.35,sallyShare:.6, // the garrison sallies when it is >= 50% of the besiegers (chance 35%), with 60% of its men
  scFall:2,scCap:3,scLib:1,scSally:1,     // war score: walls taken +2 (+3 more for a capital), liberation +1, won sally +1
- annexWar:20,                      // an occupied capital in a war this old is annexed
+ annexWar:20,                      // a capital that fell to a siege is annexed once its war is this old
+ capWar:30,                        // a realm whose every province is occupied surrenders once the war is this old
  occInc:.5,                        // the occupier collects half of the province's taxes; the owner nothing
  exTurn:1,exLoss:5000,exOcc:.5,exMax:100, // exhaustion: +1 per turn, +1 per 5k dead, +0.5 per own province occupied (per turn)
  exDiv:10,weak:3,                  // the AI concedes (exhaustion / 10) war score more, +3 when far weaker
@@ -53,8 +54,12 @@ function siegeMen(s){return siegeArmies(s).reduce((t,a)=>t+a.n,0);}
 function siegeValid(s){let a=armyById(s.a);const c=ctl(s.i);if(!alive(s.f)||c===s.f||!atWar(s.f,c))return false;
  if(!a||a.f!==s.f||a.loc!==s.i||a.st!=='siege'){const L=siegeArmies(s).sort((x,y)=>y.n-x.n);if(!L.length)return false;s.a=L[0].id;a=L[0];} // the next army takes over the camp
  return true;}
+/** End occupations that lost their war (peace or an ownership change made elsewhere, e.g. by events). -> changed */
+function occClean(){let ch=false;for(let i=0;i<NP;i++){const p=S.prov[i],c=p.ctl;if(!c)continue;
+  if(c===p.o||!alive(c)||!atWar(c,p.o)){delete p.ctl;p.t=Math.min(p.t,garMin(i));ch=true;}}
+ if(ch)polDirty=true;return ch;}
 /** Drop sieges whose armies left, died or whose war ended; armies outside a valid siege camp stop besieging. -> changed */
-function siegeClean(){if(!S||!S.sieges)return false;let ch=false;const live=new Set();
+function siegeClean(){if(!S||!S.sieges)return false;let ch=occClean();const live=new Set();
  for(const k of Object.keys(S.sieges)){const s=S.sieges[k];if(!s||!siegeValid(s)){delete S.sieges[k];ch=true;}else live.add(s.f+'|'+s.i);}
  for(const a of S.armies||[])if(a.st==='siege'&&!live.has(a.f+'|'+a.loc)){a.st='idle';ch=true;}
  if(ch)polDirty=true;return ch;}
@@ -110,6 +115,7 @@ function armOccupy(a,i){const p=S.prov[i],f=a.f,df=ctl(i),own=p.o,lib=own===f,wa
  const g=Math.max(0,Math.min(Math.round(BAL_B.capGarDev*p.dev/100)*100,Math.floor(a.n*BAL_B.capGarShare/100)*100));p.t=g;a.n-=g;
  a.morale=Math.min(BAL_B.moraleMax,+(a.morale+BAL_B.moraleWin/2).toFixed(2));
  if(w){w.sc[f]=(w.sc[f]||0)+(lib?BAL_S.scLib:BAL_S.scFall+(wasCap?BAL_S.scCap:0));
+  if(wasCap){if(!w.capOcc)w.capOcc=[];if(!w.capOcc.includes(i))w.capOcc.push(i);}
   if(!lib&&!w.looted)w.looted=[];if(!lib&&!w.looted.includes(i)){w.looted.push(i);S.fac[f].gold+=p.dev*BAL_B.loot;}}
  if(f===S.player&&!lib)S.stats.taken++;
  const d=PD[i];
@@ -125,15 +131,17 @@ function armOccupy(a,i){const p=S.prov[i],f=a.f,df=ctl(i),own=p.o,lib=own===f,wa
  return {retreat:ret,gar:g};}
 /** A realm whose every province is occupied by its enemies capitulates: each occupier keeps what it holds. */
 function warCapitulate(o){if(!alive(o))return false;const ps=facProvs(o);if(!ps.length)return false;
- if(!ps.every(i=>{const c=S.prov[i].ctl;return c&&c!==o&&alive(c)&&atWar(o,c);}))return false;
+ if(!ps.every(i=>{const c=S.prov[i].ctl;return c&&c!==o&&alive(c)&&atWar(o,c)&&S.turn-S.war[key(o,c)].t>=BAL_S.capWar;}))return false;
  const m=lng(`${FAC[o].n} teslim oldu: bütün toprakları işgal altındaydı.`,`The ${FAC[o].n} has surrendered: all of its lands were occupied.`);
  o===S.player||ps.some(i=>S.prov[i].ctl===S.player)?news(m,'cap'):addLog(m,'cap');
  for(const i of ps){const c=S.prov[i].ctl;if(S.prov[i].o===o&&c&&alive(c))capture(i,c,{peace:true,annex:true});}
  return true;}
-/** An occupied capital is annexed in a war that has lasted BAL_S.annexWar turns. */
-function warAnnexCap(f,o){if(!alive(o)||!alive(f))return false;const w=S.war[key(f,o)],c=S.fac[o].cap;
- if(!w||S.turn-w.t<BAL_S.annexWar||c<0||S.prov[c].o!==o||S.prov[c].ctl!==f)return false;
- capture(c,f,{peace:true,annex:true});return true;}
+/** A capital of o that fell to f's siege (w.capOcc) and is still occupied is annexed once the war has lasted BAL_S.annexWar turns. */
+function warAnnexCap(f,o){if(!alive(o)||!alive(f))return false;const w=S.war[key(f,o)];
+ if(!w||!w.capOcc||S.turn-w.t<BAL_S.annexWar)return false;let done=false;
+ const L=w.capOcc.filter(c=>S.prov[c].o===o);w.capOcc=w.capOcc.filter(c=>S.prov[c].o!==o&&S.prov[c].ctl);
+ for(const c of L){if(S.prov[c].o===o&&S.prov[c].ctl===f&&alive(o)){capture(c,f,{peace:true,annex:true});done=true;}}
+ return done;}
 
 /* ---------------- war exhaustion ---------------- */
 function exAdd(w,f,v){if(!w.ex)w.ex={};w.ex[f]=Math.min(BAL_S.exMax,+((w.ex[f]||0)+v/BAL_S.exLoss).toFixed(2));}
@@ -179,7 +187,6 @@ function aiAcceptBasket(ai,other,bk){if(!atWar(ai,other))return false;bk=peaceNo
 /** The treaty `win` can get from `lose`: occupied provinces (most valuable first) within the limit, then gold. */
 function aiPeaceBasket(win,lose){const bk={prov:[],gold:0,release:[]};if(!atWar(win,lose))return bk;let lim=peaceLimit(lose,win);if(lim<=0)return bk;
  const ps=facProvs(lose).filter(i=>S.prov[i].ctl===win).map(i=>[i,peaceProvCost(i,win)]).sort((x,y)=>S.prov[y[0]].dev-S.prov[x[0]].dev||x[1]-y[1]);
- if(ps.length&&ps.length===facProvs(lose).length)ps.pop(); // a treaty never takes the last province (that is capitulation)
  for(const [i,c] of ps)if(c<=lim+1e-9){bk.prov.push(i);lim-=c;}
  const g=Math.floor(Math.min(S.fac[lose].gold*.5,lim*BAL_S.gold)/5)*5;if(g>=10)bk.gold=g;
  return bk;}
