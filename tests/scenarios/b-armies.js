@@ -1,7 +1,7 @@
 'use strict';
 // Track B field armies through the real UI (Ottomans): select an army on the map, march it (asel -> tap a
 // neighbour -> amove), recruit into it, strengthen / reduce a garrison, disband, split and merge,
-// then declare war and fight a field battle and an assault. Garrisons never attack; TURN_TRACE holds paths.
+// then declare war, fight a field battle and besiege walls (occupation, not ownership). Garrisons never attack; TURN_TRACE holds paths.
 module.exports = {
   name: 'b-armies',
   fac: 'OSM',
@@ -121,16 +121,19 @@ module.exports = {
     await E(id => { window.__ke.S.armies.find(a => a.id === id).mp = 2; }, ids.A);
     await L.clickProv(page, pair.t);
     const ao = await E(() => { const s = document.querySelector('#panel [data-sheet="action"]'); return s && s.textContent; });
-    check('no enemy army: assault order', /Hücum/.test(ao || ''), ao);
+    check('no enemy army: siege order (walls) or assault order (no walls)', /Kuşatma|Hücum/.test(ao || ''), ao);
     await click('#panel [data-act="amove"]');
     await page.waitForTimeout(200);
-    const as = await E(({ t, A }) => { const K = window.__ke, r = K.S.battles[K.S.battles.length - 1], a = K.S.armies.find(x => x.id === A); return { kind: r.kind, win: r.win, owner: K.S.prov[t].o, loc: a && a.loc, gar: K.S.prov[t].t }; }, { t: pair.t, A: ids.A });
-    check('assault takes the province; the army moves in and leaves a garrison', as.kind === 'assault' && as.win && as.owner === 'OSM' && as.loc === pair.t && as.gar > 0, as);
+    const sg = await E(({ t, A }) => { const K = window.__ke, S = K.S, s = S.sieges[t], a = S.armies.find(x => x.id === A); return { fort: S.prov[t].fort, siege: !!s && s.a === A && s.f === 'OSM', st: a && a.st, loc: a && a.loc, ctl: S.prov[t].ctl || null }; }, { t: pair.t, A: ids.A });
+    check('the march starts a siege (walls) or occupies at once (no walls)', sg.fort >= 1 ? sg.siege && sg.st === 'siege' && sg.loc === pair.t : sg.ctl === 'OSM', sg);
+    if (sg.siege) { await E(t => { const s = window.__ke.S.sieges[t]; s.prog = Math.max(0, s.need - 0.01); }, pair.t); await L.endTurn(page); await L.closeModals(page); }
+    const as = await E(({ t, A }) => { const K = window.__ke, a = K.S.armies.find(x => x.id === A); return { owner: K.S.prov[t].o, ctl: K.S.prov[t].ctl || null, loc: a && a.loc, st: a && a.st, gar: K.S.prov[t].t, siege: !!K.S.sieges[t] }; }, { t: pair.t, A: ids.A });
+    check('the walls fall: occupied by the Ottomans, still owned by Byzantium; the army moves in and leaves a garrison', as.owner === 'BYZ' && as.ctl === 'OSM' && as.loc === pair.t && as.st === 'idle' && as.gar > 0 && !as.siege, as);
     check('every battle was fought by a field army (garrisons never attack)', await E(() => window.__ke.S.battles.every(b => b.army != null)));
     await L.closeModals(page);
 
     // end the season: movement points refresh, invariants hold
-    await L.endTurn(page); await L.closeModals(page);
+    if (!sg.siege) { await L.endTurn(page); await L.closeModals(page); }
     check('movement refreshed at the new season', await E(() => window.__ke.S.armies.filter(a => a.f === 'OSM').every(a => a.mp === a.mpMax)));
     check('AI armies exist and obey the cap', await E(() => { const K = window.__ke, c = {}; K.S.armies.forEach(a => c[a.f] = (c[a.f] || 0) + 1); return Object.keys(c).length > 5 && Object.keys(c).every(f => c[f] <= K.armyCap(f)); }));
   },

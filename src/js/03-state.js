@@ -25,6 +25,10 @@ const BAL_B={
  aiMaxStack:30000,                     // AI: no merging / recruiting an army above this size
  aiGarFill:.6,                         // AI: front garrisons are kept at >= 60% of their max
  aiOdds:.6,aiReach:3,                  // AI attacks at >= 60% odds, looks 3 steps ahead
+ aiFree:2,                             // AI: liberating / relieving its own provinces weighs x2 against other targets
+ aiDistExp:.75,                        // AI: a far target is worth prio / distance^0.75 (a great prize draws armies across the map)
+ aiGate:.8,                            // AI: attacking the gateway to a target behind hostile land counts 80% of the target
+ aiStorm:.85,                          // AI: a besieging army storms the breached walls at >= 85% odds
 };
 let S=null;
 const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
@@ -47,11 +51,11 @@ function baseOp(a,b){let v=FAC[a].rel===FAC[b].rel?20:-20;const h=HIST.find(x=>(
 
 function facProvs(f){const r=[];for(let i=0;i<NP;i++)if(S.prov[i].o===f)r.push(i);return r;}
 function strength(f){return garTotal(f)+armTotal(f);}
-/** Troops in f's province garrisons / in f's field armies. */
-function garTotal(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].t;return s;}
+/** Troops in the garrisons f controls (own land not occupied, plus land f occupies) / in f's field armies. */
+function garTotal(f){let s=0;for(let i=0;i<NP;i++){const p=S.prov[i];if((p.ctl||p.o)===f)s+=p.t;}return s;}
 function armTotal(f){let s=0;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a.n;return s;}
 /** Development weighted by barracks: manpower only (never gold, bug B5). */
-function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;}
+function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;} // occupied land gives no manpower
 /** Plain development sum (no barracks bonus): use this for any gold amount. */
 function devRaw(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev;return s;}
 function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}
@@ -59,7 +63,7 @@ function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
 function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;return s;}
-ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=provIncome(i);return [{id:'tax',l:lng('Eyalet vergileri','Provincial taxes'),v:s,k:'inc'}];});
+ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=provIncome(i);return [{id:'tax',l:lng('Eyalet vergileri','Provincial taxes'),v:s,k:'inc'}];}); // occupied land pays its occupier (04d)
 ECON_ROWS.push(f=>{const n=facProvs(f).length,v=n<BAL_B.smallAid.length?BAL_B.smallAid[n]:0;
  return v>0?[{id:'small',l:lng('Küçük devlet desteği','Small realm support'),v,k:'inc',tip:lng('Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.','Small realms receive help from neighbouring dynasties, merchants and the Church. The help shrinks as the realm grows and stops once it holds nine provinces.')}]:null;});
 ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:lng(`Ordu maaşları (${fmtK(a)})`,`Army pay (${fmtK(a)})`),v:a/1000*UPK,k:'exp',tip:lng('Sahra orduları: her 1.000 asker için tur başına 1 altın.','Field armies: 1 gold per turn for every 1,000 troops.')}];});

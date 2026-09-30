@@ -3,44 +3,51 @@
    garrisons, clean-up (armTidy) and the v1 -> armies save conversion.
    The AI (05-ai.js / 05a-ai-armies.js) and the player UI (09b / 11b) use exactly these rules.
    ===================================================================== */
-/** Province i is friendly ground for f (own or allied). Armies may only stand on friendly ground. */
-function armFriendly(f,i){const o=S.prov[i].o;return o===f||isAlly(f,o);}
+/** Province i is friendly ground for f (controlled by f or an ally: own and occupied land). Armies may only stand
+ on friendly ground, or in a province they besiege. */
+function armFriendly(f,i){const o=ctl(i);return o===f||isAlly(f,o);}
 /** Armies at province i whose faction is at war with f. */
 function armFoesAt(i,f){return S.armies.filter(a=>a.loc===i&&a.f!==f&&atWar(f,a.f));}
 /** Provinces holding an army at war with f (one pass over S.armies). */
 function armFoeLocs(f){const s=new Set();for(const a of S.armies)if(a.f!==f&&atWar(f,a.f))s.add(a.loc);return s;}
-/** BFS from army a: friendly provinces without enemy armies are passable; an enemy province (at war)
- or a province holding an enemy army is a terminal step (entering it ends the move: battle or assault).
- Lanes are allowed. -> {dist:Int16Array (-1 unreachable), par:Int16Array, term:Uint8Array} */
+/** BFS from army a: friendly provinces without enemy armies are passable; a hostile province (controlled by a
+ realm at war with a.f) or a province holding an enemy army is a terminal step (entering it ends the move: battle,
+ siege or assault). Sea lanes only for seafaring realms or at the straits (armLaneOk).
+ -> {dist:Int16Array (-1 unreachable), par:Int16Array, term:Uint8Array} */
 function armReach(a){const f=a.f,foes=armFoeLocs(f),dist=new Int16Array(NP).fill(-1),par=new Int16Array(NP).fill(-1),term=new Uint8Array(NP);
  dist[a.loc]=0;const q=[a.loc];
  for(let h=0;h<q.length;h++){const u=q[h];if(term[u])continue;
-  for(const v of PD[u].adj){if(dist[v]>=0)continue;const o=S.prov[v].o,foe=foes.has(v),fr=o===f||isAlly(f,o);
+  for(const v of PD[u].adj){if(dist[v]>=0||!armLaneOk(f,u,v))continue;const o=ctl(v),foe=foes.has(v),fr=o===f||isAlly(f,o);
    if(fr&&!foe){dist[v]=dist[u]+1;par[v]=u;q.push(v);}
    else if(foe||(o!==f&&atWar(f,o))){dist[v]=dist[u]+1;par[v]=u;term[v]=1;q.push(v);}}}
  return {dist,par,term};}
 function armPathFrom(R0,to){if(R0.dist[to]<=0)return null;const p=[];for(let v=to;R0.par[v]>=0;v=R0.par[v])p.push(v);return p.reverse();}
 /** Shortest legal path of army `id` to province `to` (excluding the start), or null. Any length (multi-turn). */
 function armyPath(id,to){const a=armyById(id);if(!a||to==null||to<0||to>=NP)return null;return armPathFrom(armReach(a),to);}
-/** Can army `id` reach `to` THIS turn? -> {ok, reason (Turkish, for the player), cost (steps), path, kind:'move'|'battle'|'assault'} */
+/** Can army `id` reach `to` THIS turn? -> {ok, reason (for the player), cost (steps), path, kind:'move'|'battle'|'siege'|'assault'}
+ 'siege': a hostile walled province without an enemy army; 'assault': a hostile town without walls (stormed at once). */
 function armyCanMove(id,to){const a=armyById(id);
  if(!a)return {ok:false,reason:lng('Ordu bulunamadı.','Army not found.'),cost:0,path:null,kind:null};
  if(to===a.loc)return {ok:false,reason:lng('Ordu zaten orada.','The army is already there.'),cost:0,path:null,kind:null};
- const path=armyPath(id,to),o=S.prov[to].o;
- if(!path){const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?lng(`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`,`You are not at war with ${FAC[o].s}; you cannot enter its lands.`):lng('Oraya giden bir yol yok.','There is no road there.');
+ const path=armyPath(id,to),o=ctl(to);
+ if(!path){const sea=PD[to].adj.some(u=>armLane(u,to))&&!BAL_S.naval.includes(a.f)&&!PD[to].adj.some(u=>!armLane(u,to)&&armyPath(id,u));
+  const why=o!==a.f&&!isAlly(a.f,o)&&!atWar(a.f,o)?lng(`${FAC[o].s} ile savaşta değilsin; topraklarına giremezsin.`,`You are not at war with ${FAC[o].s}; you cannot enter its lands.`)
+   :sea?lng('Oraya yalnızca deniz yoluyla gidilir; donanması olmayan devletler denizi geçemez.','That land lies across the sea; realms without a fleet cannot cross it.'):lng('Oraya giden bir yol yok.','There is no road there.');
   return {ok:false,reason:why,cost:0,path:null,kind:null};}
- const foes=armFoesAt(to,a.f).length>0,kind=foes?'battle':o!==a.f&&atWar(a.f,o)?'assault':'move',cost=path.length;
- if(a.st==='siege')return {ok:false,reason:lng('Ordu kuşatmada.','The army is besieging.'),cost,path,kind};
+ const foes=armFoesAt(to,a.f).length>0,hostile=o!==a.f&&atWar(a.f,o),kind=foes?'battle':hostile?(S.prov[to].fort>=1?'siege':'assault'):'move',cost=path.length;
+ if(kind==='siege'){const s=siegeAt(to);if(s&&s.f!==a.f&&siegeValid(s))return {ok:false,reason:lng(`${FAC[s.f].s} orada kuşatma yürütüyor.`,`${FAC[s.f].s} is already besieging it.`),cost,path,kind};
+  if(s&&s.a===a.id)return {ok:false,reason:lng('Ordu zaten bu surları kuşatıyor.','The army is already besieging these walls.'),cost,path,kind};}
  if(a.mp<=0)return {ok:false,reason:lng('Bu ordu bu mevsim yürüyüşünü tamamladı.','This army has finished its march for the season.'),cost,path,kind};
  if(cost>a.mp)return {ok:false,reason:lng(`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,`Too far: this army can march at most ${a.mp} ${a.mp===1?'province':'provinces'} this season (the road is ${cost}).`),cost,path,kind};
  return {ok:true,reason:'',cost,path,kind};}
-/** Move army `id` to `to` under the rules (player and AI alike). Entering an enemy province or a province with
- an enemy army ends the move with a field battle ('battle') or an assault ('assault').
- Pushes TURN_TRACE with the full path. -> {kind:'move'|'battle'|'assault'|'none', rep?, reason?} */
+/** Move army `id` to `to` under the rules (player and AI alike). Entering a hostile province or a province with
+ an enemy army ends the move with a field battle ('battle'), a siege ('siege', walls >= 1) or a storm ('assault',
+ no walls). Leaving a siege lifts it. Pushes TURN_TRACE with the full path. -> {kind:'move'|'battle'|'siege'|'assault'|'none', rep?, siege?, reason?} */
 function armyMove(id,to){const c=armyCanMove(id,to);if(!c.ok)return {kind:'none',reason:c.reason};
- const a=armyById(id),f=a.f,from0=a.loc,full=[from0,...c.path];
+ const a=armyById(id),f=a.f,from0=a.loc,full=[from0,...c.path];if(a.st==='siege'){a.st='idle';siegeClean();}
  if(c.kind==='move'){a.loc=to;a.mp-=c.cost;a.st='idle';polDirty=true;
   TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:a.n});return {kind:'move'};}
+ if(c.kind==='siege'){const n0=a.n;a.mp=0;TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:n0});const s=siegeBegin(a,to);return {kind:'siege',siege:s};}
  const stage=full[full.length-2],n0=a.n;a.loc=stage;a.mp=0;
  const rep=c.kind==='battle'?fieldBattle(a,armFoesAt(to,f),to):armAssault(a,stage,to);
  TURN_TRACE.push({k:'battle',f,from:from0,to,path:full,army:id,n:n0,win:!!(rep&&rep.win),rep});
@@ -67,7 +74,7 @@ function fieldBattle(att,defs,i){
   for(const d of defs){down(d);if(d.n<100){rep.destroyed.push(d.id);armyRemove(d.id,'destroyed');continue;}
    const foes=armFoeLocs(d.f);foes.add(i);
    const ret=PD[i].adj.filter(j=>armFriendly(d.f,j)&&!foes.has(j)).sort((x,y)=>(S.prov[y].o===d.f)-(S.prov[x].o===d.f)||S.prov[y].t-S.prov[x].t);
-   if(ret.length){d.loc=ret[0];d.mp=0;rep.retreat=ret[0];}else{rep.destroyed.push(d.id);rep.surrounded=true;armyRemove(d.id,'destroyed');}}
+   if(ret.length){d.loc=ret[0];d.mp=0;d.st='idle';rep.retreat=ret[0];}else{rep.destroyed.push(d.id);rep.surrounded=true;armyRemove(d.id,'destroyed');}}
   if(att.n>=100&&armFriendly(att.f,i)&&!armFoesAt(i,att.f).length)att.loc=i;
  }else{down(att);for(const d of defs)up(d);}
  if(att.n<100){rep.destroyed.push(att.id);armyRemove(att.id,'destroyed');}
@@ -99,6 +106,7 @@ function garRoom(i){return Math.max(0,Math.floor((garrisonMax(i)-S.prov[i].t)/10
 /** Where a recruit of faction f in province i goes: {to:'army',army}|{to:'new'}|{to:'gar'}|{to:null,reason}. o={army?,gar?} */
 function armRecruitDest(f,i,o={}){
  if(S.prov[i].o!==f)return {to:null,reason:lng('Sadece kendi eyaletinde asker toplayabilirsin.','You can only raise troops in your own provinces.')};
+ if(S.prov[i].ctl)return {to:null,reason:lng('Eyalet düşman işgalinde: burada asker toplanamaz.','The province is under enemy occupation: no troops can be raised here.')};
  if(o.gar)return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
  const sa=o.army!=null&&armyById(o.army),here=sa&&sa.f===f&&sa.loc===i?sa:armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
  if(here)return {to:'army',army:here};
@@ -121,22 +129,22 @@ function armDistFrom(s){const d=new Int16Array(NP).fill(-1);d[s]=0;const q=[s];
 /** Keep the army rules true after anything (captures, peace, events, lost provinces):
  armies stand on friendly ground (else they go home), sizes are multiples of 100, no faction keeps more armies
  than armyCap, and a garrison far above its maximum spills into a field army. -> true if anything changed. */
-function armTidy(){if(!S||!S.armies)return false;let ch=false;
+function armTidy(){if(!S||!S.armies)return false;let ch=siegeClean();
  for(const a of S.armies.slice()){
   if(!S.fac[a.f]||!S.fac[a.f].alive){armyRemove(a.id,'eliminated');ch=true;continue;}
   const r=Math.round(a.n/100)*100;if(r!==a.n){a.n=r;ch=true;}
   if(a.n<100){armyRemove(a.id,'destroyed');ch=true;continue;}
   if(a.st!=='siege'&&!armFriendly(a.f,a.loc)){const d=armDistFrom(a.loc),foes=armFoeLocs(a.f);let best=-1;
-   for(let i=0;i<NP;i++)if(S.prov[i].o===a.f&&!foes.has(i)&&d[i]>=0&&(best<0||d[i]<d[best]))best=i;
+   for(let i=0;i<NP;i++)if(S.prov[i].o===a.f&&!S.prov[i].ctl&&!foes.has(i)&&d[i]>=0&&(best<0||d[i]<d[best]))best=i;
    if(best>=0){a.loc=best;a.mp=0;}else armyRemove(a.id,'evicted');ch=true;}}
  for(const f of FK){if(!S.fac[f].alive)continue;let L=armyList(f);const cap=armyCap(f);
   while(L.length>cap){L.sort((x,y)=>x.n-y.n);const s=L[0],mate=L.slice(1).find(x=>x.loc===s.loc);
-   if(mate)armyMerge(mate,s);else{const p=S.prov[s.loc];let n=s.n;if(p.o===f){const g=Math.min(n,garRoom(s.loc));p.t+=g;n-=g;}
+   if(mate)armyMerge(mate,s);else{const p=S.prov[s.loc];let n=s.n;if(ctl(s.loc)===f){const g=Math.min(n,garRoom(s.loc));p.t+=g;n-=g;}
     const F=S.fac[f];F.mp=Math.max(F.mp,Math.min(armMpCap(f),F.mp+Math.round(n*BAL_B.disbandMp)));
     if(f===S.player)news(lng(`${armName(s)} dağıtıldı: devletin bu kadar orduyu besleyemiyor.`,`The ${armName(s)} was disbanded: your realm cannot feed so many armies.`),'war');armyRemove(s.id,'disbanded');}
    L=armyList(f);ch=true;}}
  for(let i=0;i<NP;i++){const p=S.prov[i],m=garrisonMax(i);if(p.t<=m+BAL_B.garSlack)continue;
-  const f=p.o,ex=p.t-m;p.t=m;ch=true;const here=armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
+  const f=ctl(i),ex=p.t-m;p.t=m;ch=true;const here=armyAt(i,f).sort((x,y)=>y.n-x.n)[0];
   if(here){here.n+=ex;continue;}
   if(armyList(f).length<armyCap(f)){armyCreate(f,i,ex,{mp:0});continue;}
   const d=armDistFrom(i),L=armyList(f).sort((x,y)=>d[x.loc]-d[y.loc]);if(L.length){L[0].n+=ex;continue;}
