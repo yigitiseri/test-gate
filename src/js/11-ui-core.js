@@ -128,9 +128,6 @@ ACTS.end=()=>{const r=uiEndRisk();
   toast(lng(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,`The treasury runs dry ${r.gold<-r.net?'this turn':'within two turns'}, and unpaid soldiers desert. Press again to end the turn anyway.`),'war');
   renderTop();setTimeout(()=>{if(!busy)renderTop();},uiCfg.endArmMs+50);return;}
  uiEndArm=0;endTurn();};
-/* English: the frozen turn flow (06) writes the end-turn label in Turkish; translate it as it lands */
-if(EN){const et=$('#endTurn'),m={'Turu Bitir':'End Turn','Oyun bitti':'Game over','Hamleler…':'Moves…'};
- new MutationObserver(()=>{const v=m[et.textContent];if(v)et.textContent=v;}).observe(et,{childList:true,characterData:true,subtree:true});}
 KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);KE.uiRender=()=>renderAll();
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});

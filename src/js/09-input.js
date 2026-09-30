@@ -29,7 +29,7 @@ function uiNearCentre(sx,sy,r){let best=-1,bd=r*r;
  for(let i=0;i<NP;i++){const d=PD[i],p=pj(d.lx,d.ly);if(p[2]===false)continue;const dx=p[0]-sx,dy=p[1]-sy,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=i;}}
  return best;}
 /** Plain word for a win chance 0..1. */
-function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
+function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even odds'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
 /** Map hover card (desktop): name, owner, garrison; with an own province selected and an enemy
  neighbour hovered, the chance of victory as a word and a percentage. */
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id],d=PD[id];

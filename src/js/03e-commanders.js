@@ -3,8 +3,8 @@
    - Army panel (slot 36, after C's "Komutan" card): "Komutan ata / değiştir" lists the realm's able commanders
      (ruler, heir, generals) that are alive and not captive. A commander leading another army can be moved;
      that army is then without a commander until the next replacement.
-   - Replacement: at the end of every round an army without a commander gets a free one (same pick as a new
-     army, C's chAssignGen), for every realm. The player hears about their own.
+   - Replacement: at the end of every round an army without a commander gets a free one if the realm has one
+     (same pick as C's chFreeGen, but never a newly created general), for every realm. The player hears about their own.
    Akıncı commanders keep C's rule: +1 movement while in command.
    ===================================================================== */
 let cmdOpen=null; // army id whose commander list is open in the panel
@@ -20,10 +20,10 @@ function cmdAttach(a,c){a.gen=c.id;if(c.traits&&c.traits.includes('akinci')){con
 function cmdSet(aid,gid){const a=armyById(aid),c=S.chars&&S.chars[gid];
  if(!a||!c||c.f!==a.f||!chLive(c)||c.cap!=null||a.gen===gid)return false;
  const was=S.armies.find(x=>x.gen===gid);if(was)cmdDetach(was);cmdDetach(a);cmdAttach(a,c);return true;}
-function cmdName(c){return c.rn||c.n;}
+function cmdName(c){return chName(c);}
 /* replacement for armies that lost their commander (died, captured, moved away) */
 hook('roundEnd',()=>{if(!S||!S.c||!S.armies)return;
- for(const a of S.armies){if(a.gen!=null)continue;chAssignGen(a);
+ for(const a of S.armies){if(a.gen!=null)continue;const g=chFreeGen(a.f,false);if(!g)continue;cmdAttach(a,g); // only free commanders: no new general, no dice
   if(a.gen!=null&&a.f===S.player){const c=S.chars[a.gen];news(lng(`${cmdName(c)}, ${armName(a)}'nun başına geçti.`,`${cmdName(c)} takes command of the ${armName(a)}.`),'good');}}},45);
 PANEL_SECTIONS.push({id:'commander',order:36,when:c=>{if(selArmy==null||!S.c)return false;const a=armyById(selArmy);return !!a&&a.f===S.player&&a.loc===c.i;},
  html(){const a=armyById(selArmy),L0=cmdCands(a.f).filter(x=>x.c.id!==a.gen),open=cmdOpen===a.id||a.gen==null;

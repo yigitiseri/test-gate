@@ -643,6 +643,11 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
 .langsw .btn.on{background:var(--brass,#c99a3b);color:#2a1c0e;font-weight:700}
 .herorow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
 .herorow .gbtn{margin-top:0!important}
+/* top-bar shortcuts (11f-shortcuts): Ordu / Eyalet stats are buttons */
+.stat.cyc{cursor:pointer;border-radius:6px;transition:background .15s}
+.stat.cyc:hover,.stat.cyc:focus-visible{background:rgba(201,154,59,.16);outline:none}
+.stat.cyc:active{background:rgba(201,154,59,.28)}
+.stat.cyc b::after{content:"›";font-size:.8em;opacity:.55;margin-left:3px}
 </style>
 </head>
 <body>
@@ -2448,8 +2453,8 @@ const CH_DYN_EN={'Osmanoğlu':'House of Osman','Karamanoğlu':'Karamanids','Cand
    - Army panel (slot 36, after C's "Komutan" card): "Komutan ata / değiştir" lists the realm's able commanders
      (ruler, heir, generals) that are alive and not captive. A commander leading another army can be moved;
      that army is then without a commander until the next replacement.
-   - Replacement: at the end of every round an army without a commander gets a free one (same pick as a new
-     army, C's chAssignGen), for every realm. The player hears about their own.
+   - Replacement: at the end of every round an army without a commander gets a free one if the realm has one
+     (same pick as C's chFreeGen, but never a newly created general), for every realm. The player hears about their own.
    Akıncı commanders keep C's rule: +1 movement while in command.
    ===================================================================== */
 let cmdOpen=null; // army id whose commander list is open in the panel
@@ -2465,10 +2470,10 @@ function cmdAttach(a,c){a.gen=c.id;if(c.traits&&c.traits.includes('akinci')){con
 function cmdSet(aid,gid){const a=armyById(aid),c=S.chars&&S.chars[gid];
  if(!a||!c||c.f!==a.f||!chLive(c)||c.cap!=null||a.gen===gid)return false;
  const was=S.armies.find(x=>x.gen===gid);if(was)cmdDetach(was);cmdDetach(a);cmdAttach(a,c);return true;}
-function cmdName(c){return c.rn||c.n;}
+function cmdName(c){return chName(c);}
 /* replacement for armies that lost their commander (died, captured, moved away) */
 hook('roundEnd',()=>{if(!S||!S.c||!S.armies)return;
- for(const a of S.armies){if(a.gen!=null)continue;chAssignGen(a);
+ for(const a of S.armies){if(a.gen!=null)continue;const g=chFreeGen(a.f,false);if(!g)continue;cmdAttach(a,g); // only free commanders: no new general, no dice
   if(a.gen!=null&&a.f===S.player){const c=S.chars[a.gen];news(lng(`${cmdName(c)}, ${armName(a)}'nun başına geçti.`,`${cmdName(c)} takes command of the ${armName(a)}.`),'good');}}},45);
 PANEL_SECTIONS.push({id:'commander',order:36,when:c=>{if(selArmy==null||!S.c)return false;const a=armyById(selArmy);return !!a&&a.f===S.player&&a.loc===c.i;},
  html(){const a=armyById(selArmy),L0=cmdCands(a.f).filter(x=>x.c.id!==a.gen),open=cmdOpen===a.id||a.gen==null;
@@ -3073,7 +3078,7 @@ function checkVictory(){if(S.over)return;const n=facProvs(S.player).length;if(n>
 let busy=false;
 function endTurn(){
  if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
- $('#endTurn').textContent='Hamleler…';
+ $('#endTurn').textContent=lng('Hamleler…','Moves…');
  setTimeout(()=>{
   const t0=performance.now();
   S.news=[];S.report=[];TURN_TRACE.length=0;pruneOffers();
@@ -3086,7 +3091,7 @@ function endTurn(){
   if(!S.over)runHooks('events');
   KE.stats.turnMs=performance.now()-t0;
   save();polDirty=true;renderAll();
-  const fin=()=>{$('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';$('#endTurn').disabled=false;busy=false;};
+  const fin=()=>{$('#endTurn').textContent=S.over?lng('Oyun bitti','Game over'):lng('Turu Bitir','End Turn');$('#endTurn').disabled=false;busy=false;};
   if(S.over){fin();queueModal(showEnd);return;}
   present(fin);
  },30);
@@ -3096,7 +3101,7 @@ function endTurn(){
 PRESENTERS.push({id:'fx',order:50,run(next){
  S.battles.filter(b=>b.turn===S.turn-1).slice(-30).forEach((b,k)=>{const me=b.att===S.player||b.def===S.player;
   if(me)addFx({type:'march',a:b.from,b:b.to,dur:420,delay:k*140,col:FAC[b.att].c});
-  addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
+  addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?lng('Kaybedildi','Lost'):lng('Savunuldu','Held')):'',good:b.def===S.player&&!b.win});});
  next();}});
 PRESENTERS.push({id:'report',order:90,run(next){
  if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);
@@ -3347,19 +3352,19 @@ EVENTS.push(
    ch:[{l:lng(`Birliği ilan et (Venedik ve Papalık ile ilişki +20; ${c.capn} 4 tur huzursuz)`,`Proclaim the Union (relations with Venice and the Papacy +20; unrest in ${c.capn} for 4 turns)`),f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,20);});evUnrest(c.cap,4);}},
     {l:lng(`Ortodoks halkın yanında dur (Venedik ve Papalık ile ilişki −15; +${fmtK(m)} gönüllü insan gücü)`,`Stand with the Orthodox people (relations with Venice and the Papacy −15; +${fmtK(m)} volunteer manpower)`),f:()=>{['VEN','PAP'].forEach(g=>{if(alive(g))addOp(c.f,g,-15);});c.F.mp+=m;}}]};}},
  {id:'bahsis',w:0,cd:0,req:(S,f)=>f==='OSM',build:c=>{const k=Math.max(30,Math.round(evDev(c.f)*.4)),r=chRuler(c.f);
-  return {t:lng('Cülus Bahşişi','The Accession Gift'),d:lng(`Yeniçeriler, ${r?r.rn||r.n:'yeni padişah'} tahta çıkınca âdet olan cülus bahşişini istiyor. Vermezsen kışlalarda kazan kaldırabilirler.`,`Now that ${r?r.rn||r.n:'the new sultan'} has taken the throne, the Janissaries demand the customary accession gift. Refuse, and they may overturn their cauldrons in the barracks.`),
+  return {t:lng('Cülus Bahşişi','The Accession Gift'),d:lng(`Yeniçeriler, ${r?chName(r):'yeni padişah'} tahta çıkınca âdet olan cülus bahşişini istiyor. Vermezsen kışlalarda kazan kaldırabilirler.`,`Now that ${r?chName(r):'the new sultan'} has taken the throne, the Janissaries demand the customary accession gift. Refuse, and they may overturn their cauldrons in the barracks.`),
    ch:[{l:lng(`Bahşişi dağıt (−${k} altın)`,`Hand out the gift (−${k} gold)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
     {l:lng(`Reddet (${c.capn} garnizonu −25%, 4 tur huzursuz)`,`Refuse (${c.capn} garrison −25%, unrest for 4 turns)`),f:()=>{evCut(c.cap,.25);evUnrest(c.cap,4);}}]};}},
  {id:'veba64',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1464&&y<=1467;},build:c=>evPlague(c,lng('Büyük Veba','The Great Plague'),lng('Balkanlardan Anadolu\'ya yayılan büyük veba salgını şehirleri boşaltıyor. Saray ne yapacağını tartışıyor.','A great plague spreading from the Balkans into Anatolia is emptying the cities. The court debates what to do.'))},
  {id:'veba90',w:5,cd:0,once:1,req:(S,f)=>{const y=chYear();return y>=1490&&y<=1493;},build:c=>evPlague(c,lng('Veba Yeniden','The Plague Returns'),lng('Veba bir kez daha limanlardan içerilere yayıldı. Divan başkentte mi kalmalı, yoksa yaylaya mı çekilmeli?','Once again the plague has spread inland from the ports. Should the Divan stay in the capital, or withdraw to the summer uplands?'))},
  {id:'entrika',w:2,cd:30,req:(S,f)=>{const r=chRuler(f),h=chHeir(f);return !!r&&!!h&&chAge(r)>=45&&chAge(h)>=18;},build:c=>{const r=chRuler(c.f),h=chHeir(c.f);if(!r||!h)return null;const k=20+c.small;
-  return {t:lng('Saray Entrikası','Palace Intrigue'),d:lng(`Bazı vezirler ve beyler, yaşlanan ${r.rn||r.n} yerine ${chLabel(h)} etrafında toplanıyor. Saray fısıltılarla dolu.`,`Some viziers and beys are gathering around ${chLabel(h)} instead of the ageing ${r.rn||r.n}. The palace is full of whispers.`),
+  return {t:lng('Saray Entrikası','Palace Intrigue'),d:lng(`Bazı vezirler ve beyler, yaşlanan ${chName(r)} yerine ${chLabel(h)} etrafında toplanıyor. Saray fısıltılarla dolu.`,`Some viziers and beys are gathering around ${chLabel(h)} instead of the ageing ${chName(r)}. The palace is full of whispers.`),
    ch:[{l:lng(`Veliahtı uzak bir sancağa gönder (−${k} altın masraf)`,`Send the heir to a distant province (−${k} gold in costs)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);}},
     {l:lng(`Hizbi dağıt, vezirleri azlet (${c.capn} 3 tur huzursuz)`,`Break up the faction and dismiss the viziers (unrest in ${c.capn} for 3 turns)`),f:()=>{evUnrest(c.cap,3);}}]};}},
  {id:'komutan',w:2,cd:24,req:(S,f)=>chGenerals(f).some(g=>g.skill<5&&g.cap==null),build:c=>{const L=chGenerals(c.f).filter(g=>g.skill<5&&g.cap==null);if(!L.length)return null;const g=c.pick(L),k=25+c.small;
-  return {t:lng('Komutanın Dileği','A Commander\'s Request'),d:lng(`${g.n} sadakatinin karşılığında kendisine geniş bir dirlik verilmesini istiyor.`,`${g.n} asks for a large fief in return for his loyalty.`),
-   ch:[{l:lng(`Dirliği ver (−${k} altın; ${g.n} kabiliyeti +1)`,`Grant the fief (−${k} gold; ${g.n} skill +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const x=S.chars[g.id];if(x)x.skill=Math.min(5,x.skill+1);}},
-    {l:lng(`Reddet (${g.n} küser, kabiliyeti −1)`,`Refuse (${g.n} is offended, skill −1)`),f:()=>{const x=S.chars[g.id];if(x)x.skill=Math.max(1,x.skill-1);}}]};}},
+  return {t:lng('Komutanın Dileği','A Commander\'s Request'),d:lng(`${chName(g)} sadakatinin karşılığında kendisine geniş bir dirlik verilmesini istiyor.`,`${chName(g)} asks for a large fief in return for his loyalty.`),
+   ch:[{l:lng(`Dirliği ver (−${k} altın; ${chName(g)} kabiliyeti +1)`,`Grant the fief (−${k} gold; ${chName(g)} skill +1)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);const x=S.chars[g.id];if(x)x.skill=Math.min(5,x.skill+1);}},
+    {l:lng(`Reddet (${chName(g)} küser, kabiliyeti −1)`,`Refuse (${chName(g)} is offended, skill −1)`),f:()=>{const x=S.chars[g.id];if(x)x.skill=Math.max(1,x.skill-1);}}]};}},
  {id:'evlilik',w:2,cd:30,req:(S,f)=>{const h=chHeir(f);return !!h&&chAge(h)>=14&&chAge(h)<=35&&FK.some(g=>g!==f&&alive(g)&&!atWar(f,g)&&getOp(f,g)>=0);},build:c=>{
   const h=chHeir(c.f);if(!h)return null;const L=FK.filter(g=>g!==c.f&&alive(g)&&!atWar(c.f,g)&&getOp(c.f,g)>=0);if(!L.length)return null;
   const same=L.filter(g=>FAC[g].rel===c.rel);const g=(c.f==='TRB'&&L.includes('AKK'))?'AKK':(c.f==='AKK'&&L.includes('TRB'))?'TRB':c.pick(same.length?same:L);const k=25+c.small;
@@ -3385,7 +3390,7 @@ EVENTS.push(
 );
 function evPlague(c,t,d){const k=25+c.small;
  return {t,d,ch:[{l:lng(`Saray yaylaya çekilsin (−${k} altın; insan gücü −10%)`,`Let the court withdraw to the uplands (−${k} gold; manpower −10%)`),dis:c.F.gold<k,f:()=>{evPay(c.F,k);c.F.mp=Math.round(c.F.mp*.9);}},
-  {l:lng(`Divan başkentte kalsın (${c.capn} gelişimi −1; hükümdar hastalanabilir)`,`Let the Divan stay in the capital (${c.capn} development −1; the ruler may fall ill)`),f:()=>{const p=S.prov[c.cap];p.dev=Math.max(1,p.dev-1);const r=chRuler(c.f);if(r&&R()<.35&&!r.traits.includes('hasta')){r.traits.push('hasta');news(lng(`${r.rn||r.n} vebaya yakalandı; sağlığı bozuldu.`,`${r.rn||r.n} has caught the plague; the ruler's health is broken.`),'war');}}}]};}
+  {l:lng(`Divan başkentte kalsın (${c.capn} gelişimi −1; hükümdar hastalanabilir)`,`Let the Divan stay in the capital (${c.capn} development −1; the ruler may fall ill)`),f:()=>{const p=S.prov[c.cap];p.dev=Math.max(1,p.dev-1);const r=chRuler(c.f);if(r&&R()<.35&&!r.traits.includes('hasta')){r.traits.push('hasta');news(lng(`${chName(r)} vebaya yakalandı; sağlığı bozuldu.`,`${chName(r)} has caught the plague; the ruler's health is broken.`),'war');}}}]};}
 /* The janissaries ask their accession gift whenever an Ottoman player's sultan comes to the throne. */
 hook('succession',(f,old,neu)=>{if(f===S.player&&f==='OSM'&&old)evFire('bahsis');});
 /* Debug handle for the English data check (tests/i18n-data.js): build any pool event for any realm. */
@@ -4178,7 +4183,7 @@ function uiNearCentre(sx,sy,r){let best=-1,bd=r*r;
  for(let i=0;i<NP;i++){const d=PD[i],p=pj(d.lx,d.ly);if(p[2]===false)continue;const dx=p[0]-sx,dy=p[1]-sy,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=i;}}
  return best;}
 /** Plain word for a win chance 0..1. */
-function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
+function uiOddsWord(p){return p>=.9?lng('Ezici üstünlük','Overwhelming'):p>=.65?lng('Üstünüz','Favoured'):p>=.4?lng('Başa baş','Even odds'):p>=.15?lng('Riskli','Risky'):lng('Umutsuz','Hopeless');}
 /** Map hover card (desktop): name, owner, garrison; with an own province selected and an enemy
  neighbour hovered, the chance of victory as a word and a percentage. */
 function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidden=true;return;}const p=S.prov[id],d=PD[id];
@@ -4444,9 +4449,6 @@ ACTS.end=()=>{const r=uiEndRisk();
   toast(lng(`Hazine ${r.gold<-r.net?'bu tur':'iki tur içinde'} boşalıyor, maaşsız askerler kaçar. Yine de bitirmek için bir daha bas.`,`The treasury runs dry ${r.gold<-r.net?'this turn':'within two turns'}, and unpaid soldiers desert. Press again to end the turn anyway.`),'war');
   renderTop();setTimeout(()=>{if(!busy)renderTop();},uiCfg.endArmMs+50);return;}
  uiEndArm=0;endTurn();};
-/* English: the frozen turn flow (06) writes the end-turn label in Turkish; translate it as it lands */
-if(EN){const et=$('#endTurn'),m={'Turu Bitir':'End Turn','Oyun bitti':'Game over','Hamleler…':'Moves…'};
- new MutationObserver(()=>{const v=m[et.textContent];if(v)et.textContent=v;}).observe(et,{childList:true,characterData:true,subtree:true});}
 KE.uiEndRisk=()=>uiEndRisk();KE.uiToast=(m,k)=>toast(m,k);KE.uiRender=()=>renderAll();
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;SND.init();if(!QUIET.has(t.dataset.act))SND.play('click');act(t.dataset.act,t);});
@@ -4801,6 +4803,26 @@ ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast
 ACTS['tut-restart']=()=>{S.tut={step:0,done:false,off:false};tutIdx=-1;tutSeen.clear();closeModal();try{localStorage.removeItem('ke-tut');}catch(e){}renderAll();};
 MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>${lng('Vezirin dersleri',"The Vizier's lessons")}</h3><div class="acts">${tutActive()?`<button class="btn" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button>`:`<button class="btn" data-act="tut-restart">${lng('Dersleri baştan başlat','Restart the lessons')}</button>`}</div></div>`});
 KE.tut=()=>{const st=tutActive()?TUT_STEPS[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null};};
+/* =====================================================================
+   TOP-BAR SHORTCUTS: tap "Ordu" to jump from army to army, "Eyalet" from province to province (capital
+   first, then the richest). Each tap centres the map there and opens its panel, so a last forgotten island
+   or a lost army is always one tap away. A long-press (touch) or hover (mouse) still shows the tooltip.
+   ===================================================================== */
+let cycArmy=-1,cycProv=-1;
+(()=>{for(const [s,a,tr,en] of [['#army','cyc-army','Ordularını sırayla göster','Show your armies one by one'],['#provs','cyc-prov','Eyaletlerini sırayla göster','Show your provinces one by one']]){
+ const st=$(s)&&$(s).closest('.stat');if(!st)continue;st.dataset.act=a;st.setAttribute('role','button');st.setAttribute('aria-label',lng(tr,en));st.classList.add('cyc');}})();
+function cycProvList(f){const cap=S.fac[f].cap;return facProvs(f).slice().sort((a,b)=>((b===cap)-(a===cap))||(S.prov[b].dev-S.prov[a].dev)||(a-b));}
+function cycArmyList(f){return S.armies?S.armies.filter(a=>a.f===f&&a.n>0).sort((a,b)=>(b.n-a.n)||(a.id-b.id)):[];}
+ACTS['cyc-prov']=()=>{if(!S||!S.player)return;const L0=cycProvList(S.player);if(!L0.length)return;
+ cycProv=(cycProv+1)%L0.length;const i=L0[cycProv];armSelect(i);uiFocusProv(i,selArmy);
+ toast(lng(`Eyalet ${cycProv+1}/${L0.length}: ${PD[i].name}`,`Province ${cycProv+1} of ${L0.length}: ${PD[i].name}`));};
+ACTS['cyc-army']=()=>{if(!S||!S.player)return;const L0=cycArmyList(S.player);
+ if(!L0.length){toast(lng('Sahada ordun yok. Bir eyaletinde asker toplayarak ordu kurabilirsin.','You have no army in the field. Raise troops in one of your provinces to form one.'));return;}
+ cycArmy=(cycArmy+1)%L0.length;const a=L0[cycArmy];armSelect(a.loc,a.id);uiFocusProv(a.loc,a.id);
+ toast(lng(`${armName(a)} (${cycArmy+1}/${L0.length}): ${fmtK(a.n)} asker, ${PD[a.loc].name}`,`${armName(a)} (${cycArmy+1} of ${L0.length}): ${fmtK(a.n)} troops, ${PD[a.loc].name}`));};
+QUIET.add('cyc-prov');QUIET.add('cyc-army');
+hook('enterGame',()=>{cycArmy=-1;cycProv=-1;});
+KE.cyc=()=>({army:selArmy,prov:sel});
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
@@ -4853,7 +4875,7 @@ function showDiplo(){
  openModal(`<div class="eyebrow">${lng('Divan-ı Hümayun','The Imperial Divan')}</div><h2>${lng('Diplomasi','Diplomacy')}</h2><p class="lead" style="font-size:14px">${lng('Savaş skoru muharebe ve fetihlerle artar. Önde olduğun düşman barışa ve haraç vermeye daha yatkındır. Müttefiklerin sana savaş açan devletlere karşı yanında savaşır.','War score rises with battles and conquests. An enemy you are beating is more willing to make peace and pay tribute. Your allies fight at your side against any realm that attacks you.')}</p><div class="rows">${rows}</div><div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);
 }
 DIPLO_ROW.push({id:'core',order:10,
- meta(f){const pl=S.player,w=atWar(pl,f),op=getOp(pl,f);return `<span>${lng('Eyalet','Provinces')} <b>${facProvs(f).length}</b></span><span>${lng('Ordu','Army')} <b>${fmtK(strength(f))}</b></span><span>${lng('İlişki','Relations')} <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>${lng('Savaş skoru','War score')} <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(FAC[f].rel)}</span>`;},
+ meta(f){const pl=S.player,w=atWar(pl,f),op=getOp(pl,f);return `<span>${lng('Eyalet','Provinces')} <b>${facProvs(f).length}</b></span><span>${lng('Ordu','Army')} <b>${fmtK(strength(f))}</b></span><span>${lng('İlişki','Relations')} <b style="color:${op>=20?'var(--ok)':op<=-20?'var(--war2)':'inherit'}">${op>0?'+':''}${op}</b></span>${w?`<span>${lng('Savaş skoru','War score')} <b>${warScore(pl,f)>=0?'+':''}${warScore(pl,f)}</b></span>`:''}<span>${esc(relName(f))}</span>`;},
  buttons(f){const pl=S.player,F=S.fac[pl],w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f);let b='';
   if(w){b+=`<button class="btn" data-act="dp-peace" data-f="${f}">${lng('Barış teklif et','Offer peace')}</button><button class="btn" data-act="dp-trib" data-f="${f}">${lng('Haraç iste','Demand tribute')}</button>`;}
   else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">${lng('İttifakı boz','Break alliance')}</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">${lng('İttifak öner','Propose alliance')}</button>`;
@@ -5115,7 +5137,7 @@ function renderStart(){
   +`<div class="fmore" aria-hidden="true">${lng('Aşağıda başka devletler de var ↓','More realms below ↓')}</div>`;
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
- $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(relName(f))} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
   <div class="row2">${has?`<button class="btn" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button>`:''}<button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
   :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${has?`<div class="row2"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button></div>`:''}`;
 }
@@ -5178,7 +5200,7 @@ async function boot(){
 boot();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&document.querySelector('link[rel=manifest]'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 Object.defineProperty(KE,'S',{get(){return S;},enumerable:true});
-Object.assign(KE,{PD,W,H,endTurn,aiTurn,beginGame,proj:(x,y)=>pj(x,y),battleOdds,hook,runHooks,save,loadGame});
+Object.assign(KE,{PD,W,H,endTurn,aiTurn,beginGame,capture:(i,f)=>capture(i,f),proj:(x,y)=>pj(x,y),battleOdds,hook,runHooks,save,loadGame});
 window.__ke=KE;
 })();
 </script>

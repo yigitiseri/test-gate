@@ -13,5 +13,5 @@ async function boot(){
 boot();
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&document.querySelector('link[rel=manifest]'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 Object.defineProperty(KE,'S',{get(){return S;},enumerable:true});
-Object.assign(KE,{PD,W,H,endTurn,aiTurn,beginGame,proj:(x,y)=>pj(x,y),battleOdds,hook,runHooks,save,loadGame});
+Object.assign(KE,{PD,W,H,endTurn,aiTurn,beginGame,capture:(i,f)=>capture(i,f),proj:(x,y)=>pj(x,y),battleOdds,hook,runHooks,save,loadGame});
 window.__ke=KE;

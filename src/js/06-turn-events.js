@@ -10,7 +10,7 @@ function checkVictory(){if(S.over)return;const n=facProvs(S.player).length;if(n>
 let busy=false;
 function endTurn(){
  if(busy||!S||S.over)return;busy=true;$('#endTurn').disabled=true;clearSel();SND.play('turn');
- $('#endTurn').textContent='Hamleler…';
+ $('#endTurn').textContent=lng('Hamleler…','Moves…');
  setTimeout(()=>{
   const t0=performance.now();
   S.news=[];S.report=[];TURN_TRACE.length=0;pruneOffers();
@@ -23,7 +23,7 @@ function endTurn(){
   if(!S.over)runHooks('events');
   KE.stats.turnMs=performance.now()-t0;
   save();polDirty=true;renderAll();
-  const fin=()=>{$('#endTurn').textContent=S.over?'Oyun bitti':'Turu Bitir';$('#endTurn').disabled=false;busy=false;};
+  const fin=()=>{$('#endTurn').textContent=S.over?lng('Oyun bitti','Game over'):lng('Turu Bitir','End Turn');$('#endTurn').disabled=false;busy=false;};
   if(S.over){fin();queueModal(showEnd);return;}
   present(fin);
  },30);
@@ -33,7 +33,7 @@ function endTurn(){
 PRESENTERS.push({id:'fx',order:50,run(next){
  S.battles.filter(b=>b.turn===S.turn-1).slice(-30).forEach((b,k)=>{const me=b.att===S.player||b.def===S.player;
   if(me)addFx({type:'march',a:b.from,b:b.to,dur:420,delay:k*140,col:FAC[b.att].c});
-  addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?'Kaybedildi':'Savunuldu'):'',good:b.def===S.player&&!b.win});});
+  addFx({type:'boom',p:b.to,dur:1300,delay:k*140+(me?400:0),seed:k*1.7,label:b.def===S.player?(b.win?lng('Kaybedildi','Lost'):lng('Savunuldu','Held')):'',good:b.def===S.player&&!b.win});});
  next();}});
 PRESENTERS.push({id:'report',order:90,run(next){
  if(S.news.some(n=>n.k==='war'))setTimeout(()=>SND.play('war'),600);else if(S.report.length)setTimeout(()=>SND.play('battle',{}),500);

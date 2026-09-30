@@ -52,7 +52,7 @@ function renderStart(){
   +`<div class="fmore" aria-hidden="true">${lng('Aşağıda başka devletler de var ↓','More realms below ↓')}</div>`;
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
- $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(FAC[f].rel)} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
+ $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(relName(f))} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
   <div class="row2">${has?`<button class="btn" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button>`:''}<button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
   :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${has?`<div class="row2"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button></div>`:''}`;
 }

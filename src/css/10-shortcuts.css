@@ -1,0 +1,5 @@
+/* top-bar shortcuts (11f-shortcuts): Ordu / Eyalet stats are buttons */
+.stat.cyc{cursor:pointer;border-radius:6px;transition:background .15s}
+.stat.cyc:hover,.stat.cyc:focus-visible{background:rgba(201,154,59,.16);outline:none}
+.stat.cyc:active{background:rgba(201,154,59,.28)}
+.stat.cyc b::after{content:"›";font-size:.8em;opacity:.55;margin-left:3px}
