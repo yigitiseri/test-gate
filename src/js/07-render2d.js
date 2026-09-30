@@ -123,6 +123,7 @@ function draw(){
   if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push(aTag([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6],'c'));}
   else if(isCap){szs[d.i]=4;ctx.font='13px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle='rgba(20,14,8,.7)';ctx.strokeText('★',sx,sy);ctx.fillStyle='#f1cf72';ctx.fillText('★',sx,sy);}}
  aSgReserve(P0,szs,s,g3);   // siege camps and wall plaques (07f) claim their space before chips and names
+ aSgUnder(ctx,now,g3);       // ...and the camps are drawn under them
  // garrison chips: hidden under 0.1k; shown near the selection, on hover, for big stacks, or when zoomed in and the garrison is at least half full
  const chips=[],pl=S.player,zMin=phone?1.1:.75;
  for(const d of vis){const p=S.prov[d.i];if(p.t<150&&d.i!==sel)continue;const mine=p.o===pl,force=d.i===sel||d.i===aHover,near=nearSel.has(d.i);

@@ -75,14 +75,8 @@ function aSgReserve(P0,szs,s,g3){aSgLay=[];const L=aSieges();
 
 /* ---- 2D drawing: manuscript siege-plan style (ink outlines, parchment highlights) ---- */
 function aSgRing(c,it){const {cx,cy,r}=it,n=Math.max(18,Math.round(r*1.1))*2;
- // the line breaks where a town name, garrison chip or wall plaque sits, so labels stay readable
- const hide=[];for(const o of aOcc)if(o.k==='n'||o.k==='g'||o.k==='s')if(o[0]<cx+r+5&&o[2]>cx-r-5&&o[1]<cy+r+5&&o[3]>cy-r-5)hide.push(o);
- const runs=[];let cur=null;
- for(let k=0;k<=n;k++){const a=k/n*Math.PI*2,rr=k%2?r+3.4:r;const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.86;
-  if(hide.some(o=>x>o[0]-2&&x<o[2]+2&&y>o[1]-2&&y<o[3]+2)){cur=null;continue;}if(!cur){runs.push(cur=[]);cur.k0=k;}cur.push([x,y]);cur.k1=k;}
- if(runs.length>1&&runs[0].k0===0&&runs[runs.length-1].k1===n)runs[0]=runs.pop().concat(runs[0]);   // join across angle 0
  c.save();c.lineJoin='miter';c.beginPath();
- for(const L of runs){if(L.length<Math.max(6,n/8))continue;L.forEach((p,k)=>k?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));}
+ for(let k=0;k<=n;k++){const a=k/n*Math.PI*2,rr=k%2?r+3.4:r;const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.86;k?c.lineTo(x,y):c.moveTo(x,y);}
  c.strokeStyle='rgba(248,240,218,.7)';c.lineWidth=3.6;c.stroke();c.strokeStyle='rgba(125,32,16,.95)';c.lineWidth=1.6;c.stroke();c.restore();}
 function aSgTent(c,x,y,w,col,big){const h=w*(big?1.05:.88);
  c.fillStyle='rgba(25,14,4,.32)';c.beginPath();c.ellipse(x+1.2,y+.6,w*.62,w*.18,0,0,7);c.fill();
@@ -128,14 +122,12 @@ function aSgBar(c,it){const b=it.bar;if(!b)return;const {x,y,w,h,segs,sw}=b,g=it
   c.strokeStyle='rgba(42,26,12,.75)';c.lineWidth=.6;c.strokeRect(sx+.3,sy+.3,sw-1.6,sh-.6);}
  c.restore();}
 
-/* layer order: the camp and smoke go under the army tokens, the wall plaque above them */
-{const arm=DRAW_LAYERS.armies;delete DRAW_LAYERS.armies;
- DRAW_LAYERS.siegeCamp=(c,now,s,g3)=>{if(!aSgLay.length&&!(g3&&G3.sgDirty))return false;const hot=now<aSgHotT;if(hot)aSgT=now/1000;
-  if(!g3)for(const it of aSgLay)aSgCamp(c,it,aSgT,now,hot);
-  if(hot&&aSgLay.length&&!aSgTm)aSgTm=setTimeout(()=>{aSgTm=0;if(G3.on)G3.dirty=true;req();},1000/A_SG.fps);
-  return !!(g3&&G3.sgDirty);};
- if(arm)DRAW_LAYERS.armies=arm;
- DRAW_LAYERS.siegeTop=(c,now,s,g3)=>{if(!g3)for(const it of aSgLay)aSgSmoke(c,it,aSgT);for(const it of aSgLay)aSgBar(c,it);return false;};}
+/** Called by draw() right after aSgReserve: siege lines, tents and bombards go under chips, names and tokens (2D). */
+function aSgUnder(c,now,g3){if(!aSgLay.length)return;const hot=now<aSgHotT;if(hot)aSgT=now/1000;
+ if(!g3)for(const it of aSgLay){aSgCamp(c,it,aSgT,now,hot);aSgSmoke(c,it,aSgT);}
+ if(hot&&!aSgTm)aSgTm=setTimeout(()=>{aSgTm=0;if(G3.on)G3.dirty=true;req();},1000/A_SG.fps);}
+/* above the army tokens: the wall plaques */
+DRAW_LAYERS.siegeTop=(c,now,s,g3)=>{for(const it of aSgLay)aSgBar(c,it);return !!(g3&&G3.sgDirty);};
 
 /* ---- siege card (#card) ---- */
 const aSgQ=[];let aSgCardInfo=null;
