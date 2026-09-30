@@ -27,6 +27,7 @@ const BAL_S={
  offerLife:2,                      // envoys wait 2 turns
  prov:1,provDev:.4,provCap:3,provFree:2, // province price: 1 + dev*0.4 (+3 capital); not occupied by the demander: x2
  gold:25,release:.6,claim:.5,      // 25 gold = 1 point; releasing a nation costs 60% of its land; the war goal province half price
+ goalWar:24,goalEx:40,              // an AI ahead in its war holds out for its war goal for 24 turns (or until exhaustion 40)
  truce:12,
  naval:['VEN','GEN','OSM','RHO','ARA','CYP'],
  straits:[['istanbul','izmit'],['gelibolu','biga']],
@@ -180,9 +181,12 @@ function peaceValue(bk,a,b){bk=peaceNorm(bk);let v=0;
  return Math.round(v*10)/10;}
 /** The most war score `ai` will concede to `other`: war score of other + ai's exhaustion allowance (+ weakness). */
 function peaceLimit(ai,other){let v=warScore(other,ai)+warEx(ai,other)/BAL_S.exDiv;if(strength(ai)<strength(other)*.5)v+=BAL_S.weak;return Math.round(v*10)/10;}
-/** Does `ai` accept the basket `other` demands from it? */
+/** Does `ai` accept the basket `other` demands from it? An AI that is ahead and still fresh does not sign away
+ its war goal: while its claimed province is not in the basket it refuses (until the war is BAL_S.goalWar old). */
 function aiAcceptBasket(ai,other,bk){if(!atWar(ai,other))return false;bk=peaceNorm(bk);
  if(bk.gold>0&&bk.gold>Math.floor(S.fac[ai].gold))return false;if(bk.gold<0&&-bk.gold>Math.floor(S.fac[other].gold))return false;
+ const w=S.war[key(ai,other)],g=w&&w.goal;
+ if(g&&g.k==='claim'&&g.f===ai&&S.prov[g.prov]&&S.prov[g.prov].o===other&&!bk.prov.includes(g.prov)&&warScore(ai,other)>0&&warEx(ai,other)<BAL_S.goalEx&&S.turn-w.t<BAL_S.goalWar)return false;
  return peaceValue(bk,other,ai)<=peaceLimit(ai,other)+1e-9;}
 /** The treaty `win` can get from `lose`: occupied provinces (most valuable first) within the limit, then gold. */
 function aiPeaceBasket(win,lose){const bk={prov:[],gold:0,release:[]};if(!atWar(win,lose))return bk;let lim=peaceLimit(lose,win);if(lim<=0)return bk;

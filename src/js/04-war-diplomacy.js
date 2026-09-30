@@ -14,8 +14,9 @@ function declareWar(a,b,goal){
   const m2=lng(`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`,`${fname(c)} joined the war against ${fname(a)} to stand by its ally ${fname(b)}.`);if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
  runHooks('warDeclared',a,b);joined.forEach(c=>runHooks('warDeclared',c,a));
 }
-/** The default war goal: claim the most valuable province of b bordering a (capital first). */
-function warAutoGoal(a,b){let best=-1,bv=-1;for(let i=0;i<NP;i++){if(S.prov[i].o!==b)continue;if(!PD[i].adj.some(j=>S.prov[j].o===a))continue;
+/** The default war goal: a history nudge's target province of b, else the most valuable province of b bordering a (capital first). */
+function warAutoGoal(a,b){const nud=S.ai&&S.ai[a]&&S.ai[a].nudges;if(nud)for(const n of nud)if(n.target!=null&&S.prov[n.target]&&S.prov[n.target].o===b)return {k:'claim',f:a,prov:n.target}; // history's target first
+ let best=-1,bv=-1;for(let i=0;i<NP;i++){if(S.prov[i].o!==b)continue;if(!PD[i].adj.some(j=>S.prov[j].o===a))continue;
   const v=S.prov[i].dev+(S.fac[b].cap===i?5:0);if(v>bv){bv=v;best=i;}}return best>=0?{k:'claim',f:a,prov:best}:null;}
 /** End the war between a and b. terms: true/{silent} (legacy) or a basket {prov,gold,release,silent} that a takes
  from b (see peaceApply). Without a basket the side ahead in war score takes what the other concedes
@@ -40,7 +41,10 @@ function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
 function offerTerms(o){const pl=S.player,ws=warScore(o.f,pl),taker=ws>0?o.f:pl,giver=taker===pl?o.f:pl;return {taker,giver,bk:aiPeaceBasket(taker,giver)};}
 function warScore(a,b){const w=S.war[key(a,b)];return w?(w.sc[a]||0)-(w.sc[b]||0):0;}
 function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,other),ex=warEx(ai,other);
- const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ex>=60||(ex>=35&&ws<=0))return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return R()<.5;return false;}
+ const ra=strength(ai),ro=strength(other);if(ex>=60)return true;
+ // a war pushed by history (a nudge, e.g. the 1453 campaign) is fought on until the realm is worn out or badly beaten
+ const A=S.ai&&S.ai[ai],nud=A&&A.nudges&&A.nudges.some(n=>n.war===other&&(n.until==null||n.until>=S.turn));if(nud)return ws<=-8||(ex>=35&&ws<=-3);
+ if(ws<=-2&&(ra<ro*1.5||ws<=-6))return true;if(ex>=35&&ws<=0)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return R()<.5;return false;}
 /** White peace (no terms) proposed by pl to ai. */
 function aiAcceptPeace(ai,pl){return aiAcceptBasket(ai,pl,{prov:[],gold:0,release:[]});}
 function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return tributeAmt(ai)>=10&&(ws<=-4||strength(ai)<strength(pl)*.4);}

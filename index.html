@@ -2545,8 +2545,9 @@ function declareWar(a,b,goal){
   const m2=lng(`${fname(c)}, müttefiki ${fname(b)} için ${fname(a)} ile savaşa girdi.`,`${fname(c)} joined the war against ${fname(a)} to stand by its ally ${fname(b)}.`);if(c===S.player||a===S.player)news(m2,'war');else addLog(m2,'war');});
  runHooks('warDeclared',a,b);joined.forEach(c=>runHooks('warDeclared',c,a));
 }
-/** The default war goal: claim the most valuable province of b bordering a (capital first). */
-function warAutoGoal(a,b){let best=-1,bv=-1;for(let i=0;i<NP;i++){if(S.prov[i].o!==b)continue;if(!PD[i].adj.some(j=>S.prov[j].o===a))continue;
+/** The default war goal: a history nudge's target province of b, else the most valuable province of b bordering a (capital first). */
+function warAutoGoal(a,b){const nud=S.ai&&S.ai[a]&&S.ai[a].nudges;if(nud)for(const n of nud)if(n.target!=null&&S.prov[n.target]&&S.prov[n.target].o===b)return {k:'claim',f:a,prov:n.target}; // history's target first
+ let best=-1,bv=-1;for(let i=0;i<NP;i++){if(S.prov[i].o!==b)continue;if(!PD[i].adj.some(j=>S.prov[j].o===a))continue;
   const v=S.prov[i].dev+(S.fac[b].cap===i?5:0);if(v>bv){bv=v;best=i;}}return best>=0?{k:'claim',f:a,prov:best}:null;}
 /** End the war between a and b. terms: true/{silent} (legacy) or a basket {prov,gold,release,silent} that a takes
  from b (see peaceApply). Without a basket the side ahead in war score takes what the other concedes
@@ -2571,7 +2572,10 @@ function pruneOffers(){if(S.offers)S.offers=S.offers.filter(offerOk);}
 function offerTerms(o){const pl=S.player,ws=warScore(o.f,pl),taker=ws>0?o.f:pl,giver=taker===pl?o.f:pl;return {taker,giver,bk:aiPeaceBasket(taker,giver)};}
 function warScore(a,b){const w=S.war[key(a,b)];return w?(w.sc[a]||0)-(w.sc[b]||0):0;}
 function aiWantsPeace(ai,other){const w=S.war[key(ai,other)];if(!w)return false;const dur=S.turn-w.t,ws=warScore(ai,other),ex=warEx(ai,other);
- const ra=strength(ai),ro=strength(other);if(ws<=-2)return true;if(ex>=60||(ex>=35&&ws<=0))return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return R()<.5;return false;}
+ const ra=strength(ai),ro=strength(other);if(ex>=60)return true;
+ // a war pushed by history (a nudge, e.g. the 1453 campaign) is fought on until the realm is worn out or badly beaten
+ const A=S.ai&&S.ai[ai],nud=A&&A.nudges&&A.nudges.some(n=>n.war===other&&(n.until==null||n.until>=S.turn));if(nud)return ws<=-8||(ex>=35&&ws<=-3);
+ if(ws<=-2&&(ra<ro*1.5||ws<=-6))return true;if(ex>=35&&ws<=0)return true;if(ra<ro*.55)return true;if(dur>=16&&ws<3)return R()<.5;return false;}
 /** White peace (no terms) proposed by pl to ai. */
 function aiAcceptPeace(ai,pl){return aiAcceptBasket(ai,pl,{prov:[],gold:0,release:[]});}
 function aiAcceptTribute(ai,pl){const ws=warScore(ai,pl);return tributeAmt(ai)>=10&&(ws<=-4||strength(ai)<strength(pl)*.4);}
@@ -2951,6 +2955,7 @@ const BAL_S={
  offerLife:2,                      // envoys wait 2 turns
  prov:1,provDev:.4,provCap:3,provFree:2, // province price: 1 + dev*0.4 (+3 capital); not occupied by the demander: x2
  gold:25,release:.6,claim:.5,      // 25 gold = 1 point; releasing a nation costs 60% of its land; the war goal province half price
+ goalWar:24,goalEx:40,              // an AI ahead in its war holds out for its war goal for 24 turns (or until exhaustion 40)
  truce:12,
  naval:['VEN','GEN','OSM','RHO','ARA','CYP'],
  straits:[['istanbul','izmit'],['gelibolu','biga']],
@@ -3104,9 +3109,12 @@ function peaceValue(bk,a,b){bk=peaceNorm(bk);let v=0;
  return Math.round(v*10)/10;}
 /** The most war score `ai` will concede to `other`: war score of other + ai's exhaustion allowance (+ weakness). */
 function peaceLimit(ai,other){let v=warScore(other,ai)+warEx(ai,other)/BAL_S.exDiv;if(strength(ai)<strength(other)*.5)v+=BAL_S.weak;return Math.round(v*10)/10;}
-/** Does `ai` accept the basket `other` demands from it? */
+/** Does `ai` accept the basket `other` demands from it? An AI that is ahead and still fresh does not sign away
+ its war goal: while its claimed province is not in the basket it refuses (until the war is BAL_S.goalWar old). */
 function aiAcceptBasket(ai,other,bk){if(!atWar(ai,other))return false;bk=peaceNorm(bk);
  if(bk.gold>0&&bk.gold>Math.floor(S.fac[ai].gold))return false;if(bk.gold<0&&-bk.gold>Math.floor(S.fac[other].gold))return false;
+ const w=S.war[key(ai,other)],g=w&&w.goal;
+ if(g&&g.k==='claim'&&g.f===ai&&S.prov[g.prov]&&S.prov[g.prov].o===other&&!bk.prov.includes(g.prov)&&warScore(ai,other)>0&&warEx(ai,other)<BAL_S.goalEx&&S.turn-w.t<BAL_S.goalWar)return false;
  return peaceValue(bk,other,ai)<=peaceLimit(ai,other)+1e-9;}
 /** The treaty `win` can get from `lose`: occupied provinces (most valuable first) within the limit, then gold. */
 function aiPeaceBasket(win,lose){const bk={prov:[],gold:0,release:[]};if(!atWar(win,lose))return bk;let lim=peaceLimit(lose,win);if(lim<=0)return bk;
@@ -3252,6 +3260,12 @@ function armAiOps(f,enemies,tg){
  // besiegers hold their siege; they storm when the breach makes it a near-certain win
  for(const a of L){if(a.st!=='siege')continue;held.add(a.id);const s=siegeAt(a.loc);
   if(s&&s.a===a.id&&a.mp>0&&siegeLeft(s)>=2&&battleOdds({att:f,to:a.loc,army:a,kind:'assault'}).p>=BAL_B.aiStorm)siegeStorm(a.id);}
+ // the capital besieged or occupied: the strongest army that can get there marches to its relief, even from a siege
+ {const c=S.fac[f].cap,sg=c>=0&&siegeAt(c),lost=c>=0&&ctl(c)!==f&&atWar(f,ctl(c));
+  if(c>=0&&((sg&&sg.f!==f)||lost)){let best=null,bR=null,bd=1e9;
+   for(const a of L){if(!armyById(a.id)||a.mp<=0)continue;const own=a.st==='siege'&&siegeAt(a.loc);if(own&&own.a===a.id&&siegeLeft(own)<=1)continue;
+    const R0=armReach(a),d=R0.dist[c];if(d>0&&(d<bd||(d===bd&&a.n>best.n))){bd=d;best=a;bR=R0;}}
+   if(best){held.add(best.id);if(bd<=best.mp&&bR.term[c])armyMove(best.id,c);else armAiStep(best,bR,c);}}}
  // defence: the nearest army goes to the most urgent province D asks for
  const needs=(aiDefendNeeds(f)||[]).slice().sort((a,b)=>b.need-a.need);
  if(needs.length){const nd=needs[0];let best=null,bd=1e9,bR=null;

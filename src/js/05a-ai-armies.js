@@ -28,6 +28,12 @@ function armAiOps(f,enemies,tg){
  // besiegers hold their siege; they storm when the breach makes it a near-certain win
  for(const a of L){if(a.st!=='siege')continue;held.add(a.id);const s=siegeAt(a.loc);
   if(s&&s.a===a.id&&a.mp>0&&siegeLeft(s)>=2&&battleOdds({att:f,to:a.loc,army:a,kind:'assault'}).p>=BAL_B.aiStorm)siegeStorm(a.id);}
+ // the capital besieged or occupied: the strongest army that can get there marches to its relief, even from a siege
+ {const c=S.fac[f].cap,sg=c>=0&&siegeAt(c),lost=c>=0&&ctl(c)!==f&&atWar(f,ctl(c));
+  if(c>=0&&((sg&&sg.f!==f)||lost)){let best=null,bR=null,bd=1e9;
+   for(const a of L){if(!armyById(a.id)||a.mp<=0)continue;const own=a.st==='siege'&&siegeAt(a.loc);if(own&&own.a===a.id&&siegeLeft(own)<=1)continue;
+    const R0=armReach(a),d=R0.dist[c];if(d>0&&(d<bd||(d===bd&&a.n>best.n))){bd=d;best=a;bR=R0;}}
+   if(best){held.add(best.id);if(bd<=best.mp&&bR.term[c])armyMove(best.id,c);else armAiStep(best,bR,c);}}}
  // defence: the nearest army goes to the most urgent province D asks for
  const needs=(aiDefendNeeds(f)||[]).slice().sort((a,b)=>b.need-a.need);
  if(needs.length){const nd=needs[0];let best=null,bd=1e9,bR=null;
