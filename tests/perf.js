@@ -46,6 +46,13 @@ const L = require('./lib');
     check('2D idle: no rAF storm (<= 1 redraw in 3 s)', d1 - d0 <= 1, d1 - d0);
     const rafs = await page.evaluate(() => new Promise(res => { let n = 0; const t = performance.now(); const f = () => { n++; if (performance.now() - t < 1000) requestAnimationFrame(f); else res(n); }; requestAnimationFrame(f); }));
     check('page stays responsive (rAF runs)', rafs > 5, rafs);
+    // W2: a siege on screen animates its smoke for a few seconds only, then the 2D map idles again
+    await page.evaluate(() => { const K = window.__ke, S = K.S, i = K.PD.findIndex(d => d.key === 'istanbul'); S.sieges[i] = { i, f: 'OSM', a: null, t0: S.turn, prog: 1, need: 6 }; K.centerOn(K.PD[i].lx, K.PD[i].ly, 2.4); K.sg.hot(1500); });
+    await page.waitForFunction(() => !window.__ke.sg.isHot, null, { timeout: 30000 }); await page.waitForTimeout(500);
+    const s0 = await page.evaluate(() => window.__ke.stats.draws); await page.waitForTimeout(3000);
+    const s1 = await page.evaluate(() => window.__ke.stats.draws);
+    check('2D idle with a siege on screen: no rAF storm (<= 1 redraw in 3 s)', s1 - s0 <= 1, s1 - s0);
+    await page.evaluate(() => { window.__ke.S.sieges = {}; });
     await browser.close();
   }
   // --- boot default (no saved choice) ---
