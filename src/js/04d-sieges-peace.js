@@ -95,7 +95,7 @@ function siegeSally(s,a,df){const i=s.i,p=S.prov[i],n=Math.max(100,Math.round(p.
  if(win){s.prog=Math.max(0,+(s.prog-1).toFixed(2));a.morale=Math.max(BAL_B.moraleMin,+(a.morale-BAL_B.moraleLose/2).toFixed(2));if(w)w.sc[df]=(w.sc[df]||0)+BAL_S.scSally;}
  const rep={from:i,to:i,att:df,def:a.f,n,defT:a.n+bLoss,turn:S.turn,win,aLoss:gLoss,dLoss:bLoss,kind:'sally',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},army:a.id,destroyed:[]};
  if(a.n<100){rep.destroyed.push(a.id);armyRemove(a.id,'destroyed');}
- TURN_TRACE.push({k:'battle',f:df,from:i,to:i,path:[i],army:a.id,n,win,rep});
+ TURN_TRACE.push({k:'sally',f:df,from:i,to:i,path:[i],army:a.id,n,win,rep});
  armBattleEnd(rep);}
 /** The besieging army `id` storms the walls now (armAssault; the breach so far weakens the walls). -> rep or null */
 function siegeStorm(id){const a=armyById(id);if(!a||a.st!=='siege'||a.mp<=0)return null;const s=siegeAt(a.loc);if(!s||s.a!==a.id)return null;

@@ -88,7 +88,8 @@ function battleOdds(ctx){const arm=ctx.army!=null?(typeof ctx.army==='object'?ct
  const foes=armyAt(to).filter(x=>x.f!==f&&atWar(f,x.f));const kind=ctx.kind||(foes.length?'field':S.prov[to].fort>=1?'siege':'assault');
  if(kind==='siege'){const c={kind,def:ctl(to),...ctx,att:f,n},mods=battleMods(c);
   const a=modMul(n*mor,mods,'att'),d=modMul(defBase(to),mods,'def'),r=a/Math.max(d,1);
-  return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.12)),a,d,r,mods,kind,need:1,get turns(){return Math.max(1,Math.ceil(siegeNeed(to,f,n)/siegeRate(to,f,n)-1e-9));}};} // turns: computed only when asked (AI odds calls skip it)
+  const fo=S.prov[to].fort,shown=fo>0?[...mods,{l:lng(`Kale ${fo}`,`Walls ${fo}`),m:1+.15*fo*(S.fac[f]&&S.fac[f].cannon?BAL_B.cannonFort:1),side:'def',k:'fort',info:true}]:mods; // walls: shown for information (they set the siege length)
+  return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.12)),a,d,r,mods:shown,kind,need:1,get turns(){return Math.max(1,Math.ceil(siegeNeed(to,f,n)/siegeRate(to,f,n)-1e-9));}};} // turns: computed only when asked (AI odds calls skip it)
  if(kind==='field'&&foes.length){const big=foes.slice().sort((a,b)=>b.n-a.n)[0],c={kind,def:big.f,...ctx,att:f,n},mods=battleMods(c);
   const a=modMul(n*mor,mods,'att'),d=modMul(foes.reduce((s,x)=>s+x.n*x.morale,0),mods,'def'),r=a/Math.max(d,1);
   return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.045)),a,d,r,mods,kind,need:1};}

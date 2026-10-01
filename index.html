@@ -2619,7 +2619,8 @@ function battleOdds(ctx){const arm=ctx.army!=null?(typeof ctx.army==='object'?ct
  const foes=armyAt(to).filter(x=>x.f!==f&&atWar(f,x.f));const kind=ctx.kind||(foes.length?'field':S.prov[to].fort>=1?'siege':'assault');
  if(kind==='siege'){const c={kind,def:ctl(to),...ctx,att:f,n},mods=battleMods(c);
   const a=modMul(n*mor,mods,'att'),d=modMul(defBase(to),mods,'def'),r=a/Math.max(d,1);
-  return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.12)),a,d,r,mods,kind,need:1,get turns(){return Math.max(1,Math.ceil(siegeNeed(to,f,n)/siegeRate(to,f,n)-1e-9));}};} // turns: computed only when asked (AI odds calls skip it)
+  const fo=S.prov[to].fort,shown=fo>0?[...mods,{l:lng(`Kale ${fo}`,`Walls ${fo}`),m:1+.15*fo*(S.fac[f]&&S.fac[f].cannon?BAL_B.cannonFort:1),side:'def',k:'fort',info:true}]:mods; // walls: shown for information (they set the siege length)
+  return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.12)),a,d,r,mods:shown,kind,need:1,get turns(){return Math.max(1,Math.ceil(siegeNeed(to,f,n)/siegeRate(to,f,n)-1e-9));}};} // turns: computed only when asked (AI odds calls skip it)
  if(kind==='field'&&foes.length){const big=foes.slice().sort((a,b)=>b.n-a.n)[0],c={kind,def:big.f,...ctx,att:f,n},mods=battleMods(c);
   const a=modMul(n*mor,mods,'att'),d=modMul(foes.reduce((s,x)=>s+x.n*x.morale,0),mods,'def'),r=a/Math.max(d,1);
   return {p:1/(1+Math.exp(-Math.log(Math.max(r,1e-6))/.045)),a,d,r,mods,kind,need:1};}
@@ -3023,7 +3024,7 @@ function siegeSally(s,a,df){const i=s.i,p=S.prov[i],n=Math.max(100,Math.round(p.
  if(win){s.prog=Math.max(0,+(s.prog-1).toFixed(2));a.morale=Math.max(BAL_B.moraleMin,+(a.morale-BAL_B.moraleLose/2).toFixed(2));if(w)w.sc[df]=(w.sc[df]||0)+BAL_S.scSally;}
  const rep={from:i,to:i,att:df,def:a.f,n,defT:a.n+bLoss,turn:S.turn,win,aLoss:gLoss,dLoss:bLoss,kind:'sally',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},army:a.id,destroyed:[]};
  if(a.n<100){rep.destroyed.push(a.id);armyRemove(a.id,'destroyed');}
- TURN_TRACE.push({k:'battle',f:df,from:i,to:i,path:[i],army:a.id,n,win,rep});
+ TURN_TRACE.push({k:'sally',f:df,from:i,to:i,path:[i],army:a.id,n,win,rep});
  armBattleEnd(rep);}
 /** The besieging army `id` storms the walls now (armAssault; the breach so far weakens the walls). -> rep or null */
 function siegeStorm(id){const a=armyById(id);if(!a||a.st!=='siege'||a.mp<=0)return null;const s=siegeAt(a.loc);if(!s||s.a!==a.id)return null;
