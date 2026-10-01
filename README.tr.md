@@ -21,8 +21,9 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
   da kaybettiğini zarlarıyla gösterir.
 - **Kuşatma ve barış.** Surlu şehirler kuşatılmalı: surların önünde ordugâh kurulur, küçük bir taş şerit surların
   ne kadar ayakta olduğunu gösterir (Konstantiniyye topsuz altı mevsim kadar, Urban'ın toplarıyla iki mevsim
-  dayanır). Alınan şehir barışa kadar yalnızca işgal altındadır ve işgalcinin renginde taranır: **Barış
-  Masası**'nda savaş skoruna göre şehir ve altından bir sepet hazırlarsın. Uzun savaşlar devletleri yıpratır.
+  dayanır). Bir şehri alınca karar senin: hemen **ilhak et** ya da işgalde tut (senin renginde
+  taranır, vergisinin yarısı sana gelir) ve **Barış Masası**'nda pazarlık için kullan; masada savaş skoruna
+  göre şehir ve altından bir sepet hazırlarsın. Uzun savaşlar devletleri yıpratır.
 - **Yaşayan bir dünya.** Yapay zekâ devletleri sefer hedefi seçer, ordularını toplar, alabileceği şehirleri
   kuşatır ve barış yapar; fazla hızlı büyüyen devlet komşularını korkutup ittifaka iter.
 - **Komutanlar.** Paşalar, şehzadeler, hatta sultanın kendisi ordunun başına geçebilir; her birinin yıldızları ve

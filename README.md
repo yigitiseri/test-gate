@@ -22,8 +22,9 @@ The game is available in **English and Turkish** (switch on the start screen or 
   **battle card** shows why you won or lost, with its dice.
 - **Sieges and peace.** Walled cities must be besieged: a camp rises before the walls and a stone strip shows
   how much of the walls still stands (Constantinople holds for about six seasons without cannon, two with
-  Urban's guns). A taken city is only occupied, striped in the occupier's colour, until a treaty: at the
-  **Peace Table** you fill a basket with cities and gold, priced by your war score. Long wars wear realms down.
+  Urban's guns). When you take a city you choose: **annex** it at once, or keep it occupied (striped in
+  your colour, half its taxes yours) as a bargaining chip for the **Peace Table**, where you fill a basket
+  with cities and gold priced by your war score. Long wars wear realms down.
 - **A living world.** AI realms pick campaign goals, gather their armies, besiege what they can take and make
   peace; realms that grow too fast frighten their neighbours into coalitions.
 - **Commanders.** Pashas, princes and even the sultan himself can lead an army; each has skill stars and traits

@@ -208,7 +208,7 @@ function guideW2(t){
  <p>A town without walls does not need a siege: your army storms it at once, and if it wins, the town is occupied.</p>
  <h3>Occupied land</h3>
  <p>An occupied province does not yet belong to you. Half of its taxes come to you and your army may march through it, but its owner only gives it up <b>at the peace table</b>. Until then the enemy can win it back with a siege of its own.</p>
- <p>A realm whose every province is occupied has to surrender. A capital that stays occupied through a long war is taken outright. <b>Annexing:</b> hold an occupied province for four turns and you can make it yours for good, even while the war goes on: tap the province and press <b>Annex</b> (capitals excepted).</p>
+ <p>A realm whose every province is occupied has to surrender. A capital that stays occupied through a long war is taken outright. <b>Annexing:</b> when you take a city, the choice is yours: <b>Annex</b> makes it yours at once; <b>Keep it occupied</b> gives you half its taxes and a bargaining chip for the peace table. While the war lasts you can annex an occupied city at any time: tap it and press <b>Annex</b>. Every annexation makes your neighbours a little uneasy.</p>
  <h3>Relieving a siege</h3>
  <p>If an enemy army besieges one of your cities, attack it with an army of your own. Win the field battle and the besiegers fall back; the progress they made is lost.</p>
  <p class="tip"><b>The Vizier's counsel:</b> Never leave a besieging army alone. While your main army sits before a great city, keep a second army at home: the enemy likes to walk into lands left undefended. And do not begin a long siege at the start of winter.</p>`
@@ -223,7 +223,7 @@ function guideW2(t){
  <p>Surları olmayan bir kasaba kuşatılmaz: ordun hemen saldırır, kazanırsa kasaba işgal edilir.</p>
  <h3>İşgal altındaki topraklar</h3>
  <p>İşgal ettiğin eyalet henüz senin değildir. Vergisinin yarısı sana gelir ve ordun oradan geçebilir, ama sahibi onu ancak <b>barış masasında</b> bırakır. O zamana kadar düşman kendi kuşatmasıyla onu geri alabilir.</p>
- <p>Bütün eyaletleri işgal edilen devlet teslim olmak zorunda kalır. Uzun süren bir savaşta işgal altında kalan başkent de doğrudan alınır. <b>İlhak:</b> İşgal ettiğin bir eyaleti dört tur elinde tutarsan, savaş sürerken bile eyalete dokunup <b>İlhak et</b>'e basarak kalıcı olarak topraklarına katabilirsin (başkentler hariç).</p>
+ <p>Bütün eyaletleri işgal edilen devlet teslim olmak zorunda kalır. Uzun süren bir savaşta işgal altında kalan başkent de doğrudan alınır. <b>İlhak:</b> Bir şehri aldığında karar senin: <b>İlhak et</b> dersen şehir hemen senin olur; <b>İşgalde tut</b> dersen vergisinin yarısı sana gelir ve barışta pazarlık için kullanırsın. İşgaldeki bir şehri savaş sürdükçe istediğin an eyalete dokunup ilhak edebilirsin. Her ilhak komşularını biraz tedirgin eder.</p>
  <h3>Kuşatmayı kırmak</h3>
  <p>Düşman ordusu şehirlerinden birini kuşatıyorsa, kendi ordunla ona saldır. Meydan muharebesini kazanırsan kuşatanlar geri çekilir ve o ana kadarki emekleri boşa gider.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Kuşatan orduyu yalnız bırakma. Ana ordun büyük bir şehrin önündeyken memlekette ikinci bir ordu tut: düşman boş kalan topraklara girmeyi sever. Kışın başında da uzun bir kuşatmaya girişme.</p>`;
