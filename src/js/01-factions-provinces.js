@@ -178,6 +178,8 @@ const PROVS=[
 const LANES=[['istanbul','izmit'],['gelibolu','biga'],['palermo','kalabriya'],['katanya','kalabriya'],['hanya','mistra'],['kandiye','rodos'],
  ['rodos','mentese'],['rodos','bodrum'],['kibris','icel'],['magosa','trablus'],['midilli','karesi'],['sakiz','izmir'],['korfu','yanya'],['korfu','avlonya'],
  ['egriboz','atina'],['egriboz','izdin'],['otranto','avlonya'],['bari','drac'],['kefe','kuban'],['ankona','zadar'],['silivri','istanbul']];
+/** Land roads the map partition misses (desert coasts): adjacency only, no sea lane. Sirte-Barca: the coast road around the Gulf of Sidra. */
+const LAND_LINKS=[['sirt','barka']];
 
 /** English province names by key, used when EN (PD[i].name). Turkish names stay the reference for tests. */
 const PROV_EN={

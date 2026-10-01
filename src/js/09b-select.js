@@ -19,6 +19,7 @@ function mapClick(sx,sy){
  if(a&&a.f===S.player&&id!==a.loc){const c=armyCanMove(a.id,id);
   if(c.ok){tgt=id;sel=a.loc;SND.play('select');renderPanel();req();return;}
   if(c.path&&c.cost<=a.mpMax){toast(c.reason);return;} // in range in principle, but not this season
+  if(PD[a.loc].adj.includes(id)&&c.reason)toast(c.reason); // a neighbour the army cannot enter: say why, then show its panel
  }
  if(id===sel&&tgt>=0){tgt=-1;renderPanel();req();return;}
  if(id===sel){clearSel();return;}

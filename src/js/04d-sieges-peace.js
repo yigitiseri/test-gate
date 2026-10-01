@@ -29,7 +29,8 @@ const BAL_S={
  gold:25,release:.6,claim:.5,      // 25 gold = 1 point; releasing a nation costs 60% of its land; the war goal province half price
  goalWar:24,goalEx:40,              // an AI ahead in its war holds out for its war goal for 24 turns (or until exhaustion 40)
  truce:12,
- naval:['VEN','GEN','OSM','RHO','ARA','CYP'],
+ naval:['VEN','GEN','OSM','RHO','ARA','CYP','NAP'],
+ ship:1,shipMin:2,                 // a realm without a fleet (the player only) hires ships: 1 gold per 1,000 men per crossing, at least 2
  straits:[['istanbul','izmit'],['gelibolu','biga']],
 };
 /** Controller of province i: the occupier, else the owner. */
@@ -227,7 +228,8 @@ let armLaneSet=null;
 /** u-v is a sea lane (not a land border). */
 function armLane(u,v){if(!armLaneSet){armLaneSet=new Set();PD.forEach(d=>d.lanes.forEach(j=>{armLaneSet.add(d.i*1024+j);armLaneSet.add(j*1024+d.i);}));}return armLaneSet.has(u*1024+v);}
 /** May an army of f cross from u to v? Land: always. Sea lanes: seafaring realms, or anyone at the straits. */
-function armLaneOk(f,u,v){if(!armLane(u,v))return true;if(BAL_S.naval.includes(f))return true;const a=PD[u].key,b=PD[v].key;
+function armLaneOk(f,u,v){if(!armLane(u,v))return true;if(BAL_S.naval.includes(f)||(S&&f===S.player))return true; // the player may hire ships (armShipCost)
+const a=PD[u].key,b=PD[v].key;
  return BAL_S.straits.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a));}
 
 /* ---------------- economy rows: occupation ---------------- */

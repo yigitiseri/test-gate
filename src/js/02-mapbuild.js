@@ -77,6 +77,7 @@ function buildMap(){
   if(x<W-1){const b=idMap[i+1];if(b>=0&&b!==a)addc(a,b);}if(y<H-1){const b=idMap[i+W];if(b>=0&&b!==a)addc(a,b);}}
  cnt.forEach((v,k)=>{if(v<3)return;const a=k>>10,b=k&1023;PD[a].adj.push(b);PD[b].adj.push(a);});
  LANES.forEach(([a,b])=>{const A=PK[a],B=PK[b];if(A==null||B==null)return;if(!PD[A].adj.includes(B)){PD[A].adj.push(B);PD[B].adj.push(A);PD[A].lanes.push(B);}});
+ LAND_LINKS.forEach(([a,b])=>{const A=PK[a],B=PK[b];if(A==null||B==null)return;if(!PD[A].adj.includes(B)){PD[A].adj.push(B);PD[B].adj.push(A);}});
  // pixel lists
  const count=new Int32Array(NP+1);for(let i=0;i<N;i++)if(idMap[i]>=0)count[idMap[i]+1]++;
  provStart=new Int32Array(NP+1);for(let k=0;k<NP;k++)provStart[k+1]=provStart[k]+count[k+1];

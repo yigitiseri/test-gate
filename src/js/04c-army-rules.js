@@ -37,14 +37,20 @@ function armyCanMove(id,to){const a=armyById(id);
  const foes=armFoesAt(to,a.f).length>0,hostile=o!==a.f&&atWar(a.f,o),kind=foes?'battle':hostile?(S.prov[to].fort>=1?'siege':'assault'):'move',cost=path.length;
  if(kind==='siege'){const s=siegeAt(to);if(s&&s.f!==a.f&&siegeValid(s))return {ok:false,reason:lng(`${FAC[s.f].s} orada kuşatma yürütüyor.`,`${FAC[s.f].s} is already besieging it.`),cost,path,kind};
   if(s&&s.a===a.id)return {ok:false,reason:lng('Ordu zaten bu surları kuşatıyor.','The army is already besieging these walls.'),cost,path,kind};}
+ const ship=armShipCost(a,[a.loc,...path]);
+ if(ship>0&&S.fac[a.f].gold<ship)return {ok:false,reason:lng(`Gemi kiralamak için ${ship} altın gerekiyor; hazinede yeterli altın yok.`,`Hiring ships costs ${ship} gold; the treasury cannot pay it.`),cost,path,kind,ship};
  if(a.mp<=0)return {ok:false,reason:lng('Bu ordu bu mevsim yürüyüşünü tamamladı.','This army has finished its march for the season.'),cost,path,kind};
  if(cost>a.mp)return {ok:false,reason:lng(`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,`Too far: this army can march at most ${a.mp} ${a.mp===1?'province':'provinces'} this season (the road is ${cost}).`),cost,path,kind};
- return {ok:true,reason:'',cost,path,kind};}
+ return {ok:true,reason:'',cost,path,kind,ship};}
+/** Gold a realm without a fleet pays to ship army a along the provinces of `full` (0 for seafaring realms and land roads). */
+function armShipCost(a,full){if(BAL_S.naval.includes(a.f))return 0;let n=0;for(let k=0;k+1<full.length;k++)if(armLane(full[k],full[k+1]))n++;
+ return n?n*Math.max(BAL_S.shipMin,Math.ceil(a.n/1000)*BAL_S.ship):0;}
 /** Move army `id` to `to` under the rules (player and AI alike). Entering a hostile province or a province with
  an enemy army ends the move with a field battle ('battle'), a siege ('siege', walls >= 1) or a storm ('assault',
  no walls). Leaving a siege lifts it. Pushes TURN_TRACE with the full path. -> {kind:'move'|'battle'|'siege'|'assault'|'none', rep?, siege?, reason?} */
 function armyMove(id,to){const c=armyCanMove(id,to);if(!c.ok)return {kind:'none',reason:c.reason};
  const a=armyById(id),f=a.f,from0=a.loc,full=[from0,...c.path];if(a.st==='siege'){a.st='idle';siegeClean();}
+ if(c.ship>0){S.fac[f].gold-=c.ship;if(f===S.player)toast(lng(`Gemiler kiralandı: ${c.ship} altın.`,`Ships hired: ${c.ship} gold.`));}
  if(c.kind==='move'){a.loc=to;a.mp-=c.cost;a.st='idle';polDirty=true;
   TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:a.n});return {kind:'move'};}
  if(c.kind==='siege'){const n0=a.n;a.mp=0;TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:n0});const s=siegeBegin(a,to);return {kind:'siege',siege:s};}

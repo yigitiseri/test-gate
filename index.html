@@ -1172,6 +1172,8 @@ const PROVS=[
 const LANES=[['istanbul','izmit'],['gelibolu','biga'],['palermo','kalabriya'],['katanya','kalabriya'],['hanya','mistra'],['kandiye','rodos'],
  ['rodos','mentese'],['rodos','bodrum'],['kibris','icel'],['magosa','trablus'],['midilli','karesi'],['sakiz','izmir'],['korfu','yanya'],['korfu','avlonya'],
  ['egriboz','atina'],['egriboz','izdin'],['otranto','avlonya'],['bari','drac'],['kefe','kuban'],['ankona','zadar'],['silivri','istanbul']];
+/** Land roads the map partition misses (desert coasts): adjacency only, no sea lane. Sirte-Barca: the coast road around the Gulf of Sidra. */
+const LAND_LINKS=[['sirt','barka']];
 
 /** English province names by key, used when EN (PD[i].name). Turkish names stay the reference for tests. */
 const PROV_EN={
@@ -1346,6 +1348,7 @@ function buildMap(){
   if(x<W-1){const b=idMap[i+1];if(b>=0&&b!==a)addc(a,b);}if(y<H-1){const b=idMap[i+W];if(b>=0&&b!==a)addc(a,b);}}
  cnt.forEach((v,k)=>{if(v<3)return;const a=k>>10,b=k&1023;PD[a].adj.push(b);PD[b].adj.push(a);});
  LANES.forEach(([a,b])=>{const A=PK[a],B=PK[b];if(A==null||B==null)return;if(!PD[A].adj.includes(B)){PD[A].adj.push(B);PD[B].adj.push(A);PD[A].lanes.push(B);}});
+ LAND_LINKS.forEach(([a,b])=>{const A=PK[a],B=PK[b];if(A==null||B==null)return;if(!PD[A].adj.includes(B)){PD[A].adj.push(B);PD[B].adj.push(A);}});
  // pixel lists
  const count=new Int32Array(NP+1);for(let i=0;i<N;i++)if(idMap[i]>=0)count[idMap[i]+1]++;
  provStart=new Int32Array(NP+1);for(let k=0;k<NP;k++)provStart[k+1]=provStart[k]+count[k+1];
@@ -2904,14 +2907,20 @@ function armyCanMove(id,to){const a=armyById(id);
  const foes=armFoesAt(to,a.f).length>0,hostile=o!==a.f&&atWar(a.f,o),kind=foes?'battle':hostile?(S.prov[to].fort>=1?'siege':'assault'):'move',cost=path.length;
  if(kind==='siege'){const s=siegeAt(to);if(s&&s.f!==a.f&&siegeValid(s))return {ok:false,reason:lng(`${FAC[s.f].s} orada kuşatma yürütüyor.`,`${FAC[s.f].s} is already besieging it.`),cost,path,kind};
   if(s&&s.a===a.id)return {ok:false,reason:lng('Ordu zaten bu surları kuşatıyor.','The army is already besieging these walls.'),cost,path,kind};}
+ const ship=armShipCost(a,[a.loc,...path]);
+ if(ship>0&&S.fac[a.f].gold<ship)return {ok:false,reason:lng(`Gemi kiralamak için ${ship} altın gerekiyor; hazinede yeterli altın yok.`,`Hiring ships costs ${ship} gold; the treasury cannot pay it.`),cost,path,kind,ship};
  if(a.mp<=0)return {ok:false,reason:lng('Bu ordu bu mevsim yürüyüşünü tamamladı.','This army has finished its march for the season.'),cost,path,kind};
  if(cost>a.mp)return {ok:false,reason:lng(`Çok uzak: bu ordu bu mevsim en fazla ${a.mp} eyalet yürüyebilir (yol ${cost} eyalet).`,`Too far: this army can march at most ${a.mp} ${a.mp===1?'province':'provinces'} this season (the road is ${cost}).`),cost,path,kind};
- return {ok:true,reason:'',cost,path,kind};}
+ return {ok:true,reason:'',cost,path,kind,ship};}
+/** Gold a realm without a fleet pays to ship army a along the provinces of `full` (0 for seafaring realms and land roads). */
+function armShipCost(a,full){if(BAL_S.naval.includes(a.f))return 0;let n=0;for(let k=0;k+1<full.length;k++)if(armLane(full[k],full[k+1]))n++;
+ return n?n*Math.max(BAL_S.shipMin,Math.ceil(a.n/1000)*BAL_S.ship):0;}
 /** Move army `id` to `to` under the rules (player and AI alike). Entering a hostile province or a province with
  an enemy army ends the move with a field battle ('battle'), a siege ('siege', walls >= 1) or a storm ('assault',
  no walls). Leaving a siege lifts it. Pushes TURN_TRACE with the full path. -> {kind:'move'|'battle'|'siege'|'assault'|'none', rep?, siege?, reason?} */
 function armyMove(id,to){const c=armyCanMove(id,to);if(!c.ok)return {kind:'none',reason:c.reason};
  const a=armyById(id),f=a.f,from0=a.loc,full=[from0,...c.path];if(a.st==='siege'){a.st='idle';siegeClean();}
+ if(c.ship>0){S.fac[f].gold-=c.ship;if(f===S.player)toast(lng(`Gemiler kiralandı: ${c.ship} altın.`,`Ships hired: ${c.ship} gold.`));}
  if(c.kind==='move'){a.loc=to;a.mp-=c.cost;a.st='idle';polDirty=true;
   TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:a.n});return {kind:'move'};}
  if(c.kind==='siege'){const n0=a.n;a.mp=0;TURN_TRACE.push({k:'move',f,from:from0,to,path:full,army:id,n:n0});const s=siegeBegin(a,to);return {kind:'siege',siege:s};}
@@ -3087,7 +3096,8 @@ const BAL_S={
  gold:25,release:.6,claim:.5,      // 25 gold = 1 point; releasing a nation costs 60% of its land; the war goal province half price
  goalWar:24,goalEx:40,              // an AI ahead in its war holds out for its war goal for 24 turns (or until exhaustion 40)
  truce:12,
- naval:['VEN','GEN','OSM','RHO','ARA','CYP'],
+ naval:['VEN','GEN','OSM','RHO','ARA','CYP','NAP'],
+ ship:1,shipMin:2,                 // a realm without a fleet (the player only) hires ships: 1 gold per 1,000 men per crossing, at least 2
  straits:[['istanbul','izmit'],['gelibolu','biga']],
 };
 /** Controller of province i: the occupier, else the owner. */
@@ -3285,7 +3295,8 @@ let armLaneSet=null;
 /** u-v is a sea lane (not a land border). */
 function armLane(u,v){if(!armLaneSet){armLaneSet=new Set();PD.forEach(d=>d.lanes.forEach(j=>{armLaneSet.add(d.i*1024+j);armLaneSet.add(j*1024+d.i);}));}return armLaneSet.has(u*1024+v);}
 /** May an army of f cross from u to v? Land: always. Sea lanes: seafaring realms, or anyone at the straits. */
-function armLaneOk(f,u,v){if(!armLane(u,v))return true;if(BAL_S.naval.includes(f))return true;const a=PD[u].key,b=PD[v].key;
+function armLaneOk(f,u,v){if(!armLane(u,v))return true;if(BAL_S.naval.includes(f)||(S&&f===S.player))return true; // the player may hire ships (armShipCost)
+const a=PD[u].key,b=PD[v].key;
  return BAL_S.straits.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a));}
 
 /* ---------------- economy rows: occupation ---------------- */
@@ -5758,6 +5769,7 @@ function mapClick(sx,sy){
  if(a&&a.f===S.player&&id!==a.loc){const c=armyCanMove(a.id,id);
   if(c.ok){tgt=id;sel=a.loc;SND.play('select');renderPanel();req();return;}
   if(c.path&&c.cost<=a.mpMax){toast(c.reason);return;} // in range in principle, but not this season
+  if(PD[a.loc].adj.includes(id)&&c.reason)toast(c.reason); // a neighbour the army cannot enter: say why, then show its panel
  }
  if(id===sel&&tgt>=0){tgt=-1;renderPanel();req();return;}
  if(id===sel){clearSel();return;}
@@ -6063,7 +6075,7 @@ PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0&&!!armyById(selArmy),
  const f=c.f,a=armyById(selArmy),mv=armyCanMove(a.id,tgt),td=PD[tgt],kind=mv.kind||'move';
  const title=kind==='battle'?lng('Meydan muharebesi','Field battle'):kind==='siege'?lng('Kuşatma','Siege'):kind==='assault'?lng('Hücum','Assault'):lng('Yürüyüş','March');
  let h=`<div class="sec orders" data-sheet="action"><h3>${title} → ${esc(td.name)}</h3>
-  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>${lng('Yol','Route')} <b>${mv.cost||0} ${lng('eyalet',(mv.cost||0)===1?'province':'provinces')}</b></span>${kind==='battle'?`<span>${lng('Düşman ordusu','Enemy army')} <b>${fmtK(armFoesAt(tgt,f).reduce((s,x)=>s+x.n,0))}</b></span>`:''}${kind==='assault'||kind==='siege'?`<span>${lng('Garnizon','Garrison')} <b>${fmtK(S.prov[tgt].t)}</b>${S.prov[tgt].ctl?'':' + '+lng('milis','militia')}</span>`:''}${kind==='siege'?`<span>${lng('Kale','Walls')} <b>${S.prov[tgt].fort}</b></span>`:''}</div>`;
+  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>${lng('Yol','Route')} <b>${mv.cost||0} ${lng('eyalet',(mv.cost||0)===1?'province':'provinces')}</b></span>${mv.ship?`<span>${lng('Gemi kirası','Ships')} <b>${mv.ship} ${lng('altın','gold')}</b></span>`:''}${kind==='battle'?`<span>${lng('Düşman ordusu','Enemy army')} <b>${fmtK(armFoesAt(tgt,f).reduce((s,x)=>s+x.n,0))}</b></span>`:''}${kind==='assault'||kind==='siege'?`<span>${lng('Garnizon','Garrison')} <b>${fmtK(S.prov[tgt].t)}</b>${S.prov[tgt].ctl?'':' + '+lng('milis','militia')}</span>`:''}${kind==='siege'?`<span>${lng('Kale','Walls')} <b>${S.prov[tgt].fort}</b></span>`:''}</div>`;
  if(kind==='siege'){const od=battleOdds({att:f,to:tgt,army:a}),t=od.turns,risky=S.prov[tgt].t>=a.n*BAL_S.sallyRatio;
   h+=`<div class="odds sgodds"><span>${lng('Tahmini kuşatma süresi','Expected length of the siege')}</span><b>${lng(`~${t} tur`,`~${t} ${t===1?'turn':'turns'}`)}</b></div>`;
   const ms=od.mods.map(armModText);if(S.fac[f].cannon)ms.push(lng('Toplar surları daha hızlı yıkar','Cannon bring the walls down faster'));if(armMtn(tgt)||S.prov[tgt].fort>=3)ms.push(lng('Dağ kalesi ya da güçlü surlar: kuşatma daha uzun sürer','A mountain fortress or strong walls: the siege takes longer'));if(risky)ms.push(lng('Garnizon güçlü: surlardan çıkış yapabilir','The garrison is strong: it may sally out'));
@@ -6658,7 +6670,7 @@ function guideBody(t){
  <p>Haritadaki <b>sancaklar</b> ordulardır: üstünde devletin arması, altında asker sayısı, kırmızı mühürde komutanın baş harfleri. Altın çerçeve senin, kırmızı çerçeve savaştığın düşmanın ordusudur. Küçük <b>kule levhaları</b> ise garnizonlardır; yakınlaştırınca ya da eyaleti seçince görünür.</p>
  <h3>Nasıl saldırılır?</h3>
  <ol><li>Ordunun sancağına dokun ya da eyaletini seçip panelden orduyu seç.</li><li>Gideceği eyalete dokun; yol haritada altın kesik çizgiyle görünür.</li><li>Paneldeki tahmine bak ve <b>Yürü</b> ya da <b>Saldır</b>'a bas.</li></ol>
- <p>Bir ordu her mevsim sınırlı yol alır; sancağın altındaki altın noktalar kalan hareketini gösterir. Haritadaki kesik mavi çizgiler gemiyle geçilen deniz yollarıdır. Orduları birleştirebilir, bölebilir ya da dağıtabilirsin.</p>
+ <p>Bir ordu her mevsim sınırlı yol alır; sancağın altındaki altın noktalar kalan hareketini gösterir. Haritadaki kesik mavi çizgiler gemiyle geçilen deniz yollarıdır. Donanması olan devletler (Osmanlı, Venedik, Ceneviz, Rodos, Aragon, Napoli, Kıbrıs) bu yollardan rahatça geçer; donanman yoksa gemi kiralarsın: her 1.000 asker için 1 altın, emir panelinde yazar. Orduları birleştirebilir, bölebilir ya da dağıtabilirsin.</p>
  <p><b>Komutanlar:</b> Her ordunun başında bir paşa, şehzade ya da hükümdarın kendisi olabilir; yıldızları ne kadar çoksa muharebede o kadar işe yarar. Orduyu seçip <b>Komutanı değiştir</b>'e basarak boştaki bir paşayı atayabilir ya da başka bir ordunun komutanını buraya alabilirsin. Komutanı ölen ya da esir düşen orduya, boşta paşan varsa tur sonunda o geçer.</p>
  <p class="tip"><b>Kısayol:</b> Üst çubukta <b>Ordu</b>'ya dokununca ordularını, <b>Eyalet</b>'e dokununca eyaletlerini sırayla gösterir; haritanın bir köşesinde unuttuğun bir ada ya da ordu hep bir dokunuş uzağındadır.</p>
  <p>Tur sonunda <b>Sefer haberleri</b> bu mevsimin yürüyüşlerini ve muharebelerini haritada kısaca oynatır; <b>Geç</b> ile atlayabilirsin. Menü → Görüntü'den kapatabilir ya da hızlandırabilirsin.</p>
@@ -6751,7 +6763,7 @@ function guideBodyEn(t,half){
  <p>The <b>banners</b> on the map are armies: the realm's arms on top, the number of troops below, and the commander's initials on a red seal. A gold frame means the army is yours; a red frame marks an enemy you are at war with. The small <b>tower plaques</b> are garrisons; they appear when you zoom in or select a province.</p>
  <h3>How to attack</h3>
  <ol><li>Tap the army's banner, or select its province and pick the army in the panel.</li><li>Tap the province you want to go to; the route appears on the map as a dashed gold line.</li><li>Look at the estimate in the panel and press <b>March</b> or <b>Attack</b>.</li></ol>
- <p>An army can only travel so far each season; the gold dots under its banner show how much movement it has left. The dashed blue lines on the map are sea routes crossed by ship. You can merge armies, split them or disband them.</p>
+ <p>An army can only travel so far each season; the gold dots under its banner show how much movement it has left. The dashed blue lines on the map are sea routes crossed by ship. Seafaring realms (the Ottomans, Venice, Genoa, Rhodes, Aragon, Naples, Cyprus) cross them freely; without a fleet you hire ships: 1 gold for every 1,000 men, shown in the order panel. You can merge armies, split them or disband them.</p>
  <p><b>Commanders:</b> Each army can be led by a pasha, a prince or the ruler himself; the more stars he has, the more he helps in battle. Select an army and press <b>Change commander</b> to appoint a free general or bring over the commander of another army. If a commander dies or is taken prisoner, a free general takes his place at the end of the turn.</p>
  <p class="tip"><b>Shortcut:</b> Tap <b>Army</b> in the top bar to jump through your armies, or <b>Provinces</b> to jump through your provinces one by one. A forgotten island or a lost army is always one tap away.</p>
  <p>At the end of each turn, <b>Campaign news</b> briefly replays the season's marches and battles on the map; press <b>Skip</b> to pass over it. You can turn it off or speed it up under Menu → Display.</p>
