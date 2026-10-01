@@ -277,7 +277,7 @@ const CH_XEN={'Hunyadi Yanoş':'John Hunyadi','Yanoş':'János','Matyas Korvin':
  'Aleksander Jagiełło':'Alexander Jagiellon','II. Zygmunt August':'Sigismund II Augustus','Zygmunt August':'Sigismund Augustus',
  'Szilágyi Mihály':'Mihály Szilágyi','Kinizsi Pál':'Pál Kinizsi','Báthory István':'István Báthory','Tomori Pál':'Pál Tomori',
  'Herceg Stjepan Kosača':'Stjepan Vukčić Kosača','Seyyid Ahmed':'Sayyid Ahmad','Ahmed Han':'Akhmat Khan','Ebû Amr Osman':'Abu Amr Uthman',
- 'Ebû Zekeriyyâ Yahyâ':'Abu Zakariya Yahya','Cihan Şah':'Jahan Shah','Uğurlu Mehmed':'Ughurlu Muhammad'};
+ 'Ebû Zekeriyyâ Yahyâ':'Abu Zakariya Yahya','Cihan Şah':'Jahan Shah','Uğurlu Mehmed':'Ughurlu Muhammad','Szapolyai János':'John Zápolya'};
 /** Given names of numbered rulers ("II. Süleyman" -> "Suleiman II"). */
 const CH_REGEN={Süleyman:'Suleiman',Konstantinos:'Constantine',Ioannes:'John',Yuannis:'John',Mikhael:'Michael',Theodoros:'Theodore',
  Giorgi:'George',Aleksandre:'Alexander',Konstantine:'Constantine',Davit:'David',Friedrich:'Frederick',Albrecht:'Albert',Philipp:'Philip',
@@ -295,6 +295,6 @@ const CH_WEN={'Paşa':'Pasha','Han':'Khan','Şah':'Shah','Kaid':'Qaid','Hacı':'
  'Rüstem':'Rustam','Elvend':'Alvand','Cihangir':'Jahangir','Kılıç':'Kilij','Uğurlu':'Ughurlu','Ştefan':'Stephen','Şehsuvar':'Shahsuvar',
  'György':'George','İskender':'Iskandar'};
 /** Epithets and dynasties. */
-const CH_EP_EN={'Fatih':'the Conqueror','Kurtarıcı':'the Deliverer'};
+const CH_EP_EN={'Fatih':'the Conqueror','Kurtarıcı':'the Deliverer','Yavuz':'the Grim'};
 const CH_DYN_EN={'Osmanoğlu':'House of Osman','Karamanoğlu':'Karamanids','Candaroğlu':'Jandarids','Dulkadiroğlu':'Dulkadirids',
  'Bayındır':'Bayandur','Hafsî':'Hafsids','Safevî':'Safavids','Muşat':'Mușat','Jagiello':'Jagiellon'};
