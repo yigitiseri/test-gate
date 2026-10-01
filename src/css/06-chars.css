@@ -19,3 +19,7 @@
 .mis.locked{opacity:.55}
 .mis-br h3{margin-top:10px}
 @media (max-width:760px){.ch-gens{grid-template-columns:1fr}.ch-row{flex-direction:column;gap:2px}.ch-row>b{text-align:left}}
+/* portraits (Track A portraitSVG) in the dynasty card and commander cards */
+.ch-crown .a-pt{width:56px;height:68px;font-size:0}
+.ch-gen>.a-pt{float:left;width:40px;height:48px;margin:0 9px 2px 0}
+.ch-gen::after{content:"";display:block;clear:both}

@@ -410,6 +410,10 @@ input[type=range]{accent-color:var(--brass)}
 .mis.locked{opacity:.55}
 .mis-br h3{margin-top:10px}
 @media (max-width:760px){.ch-gens{grid-template-columns:1fr}.ch-row{flex-direction:column;gap:2px}.ch-row>b{text-align:left}}
+/* portraits (Track A portraitSVG) in the dynasty card and commander cards */
+.ch-crown .a-pt{width:56px;height:68px;font-size:0}
+.ch-gen>.a-pt{float:left;width:40px;height:48px;margin:0 9px 2px 0}
+.ch-gen::after{content:"";display:block;clear:both}
 /* commander choice in the army panel (03e-commanders) */
 .cmd-sec .cmd-tog{width:100%;justify-content:center}
 .cmd-none{margin:4px 0 6px;color:var(--muted);font-size:14px}
@@ -2042,6 +2046,8 @@ function chTitle0(c){const sd=CH_SEED[c.f]||{};
 /** Name with the role title where it reads naturally ("Şehzade Bayezid", "II. Mehmed", "Mahmud Paşa"). */
 function chLabel(c){if(!c)return '';if(c.role==='ruler')return chName(c);if(c.role==='gen')return chDisp(c.n,c.f);const t=chTitle(c);return (t&&c.role!=='claimant'?t+' ':'')+chDisp(c.n,c.f);}
 /** Portrait spec for Track A (W2): deterministic from the character. */
+/** Portrait miniature (Track A's portraitSVG) or '' when the renderer is absent. */
+function chPt(c,sz){return c&&typeof portraitSVG==='function'?portraitSVG(chPortraitSpec(c),{size:sz,label:chName(c)}):'';}
 function chPortraitSpec(c){const sd=CH_SEED[c.f]||{};const cul=sd.cul||'tr';
  const hat={tr:'kavuk',tk:'sarık',mm:'sarık',ar:'sarık',tt:'börk',gr:'taç',sr:'taç',ro:'kalpak',hu:'kalpak',de:'taç',pl:'kalpak',it:'bere',es:'taç',fr:'bere',ka:'taç',sq:'kalpak',pp:'mitre'}[cul];
  return {seed:c.id,f:c.f,cul,hat:c.role==='ruler'?hat:(cul==='pp'?'bere':hat),age:chAge(c),fem:!!c.fem,role:c.role,col:FAC[c.f].c,traits:c.traits.slice()};}
@@ -2288,20 +2294,20 @@ STATE_SECTIONS.push({id:'dynasty',order:30,html(f){if(!S.c)return '';const r=chR
  const past=(S.c.past[f]||[]).slice().reverse();
  const ep=e=>EN?` ${esc(chEp(e))}`:` “${esc(e)}”`,yrs=Math.floor((S.turn-(r.acc||0))/4);
  return `<div class="sec ch-dyn"><h3>${lng('Hanedan','Dynasty')}${r.dyn?` · ${esc(chDyn(r.dyn))}`:''}</h3>
-  <div class="ch-card"><div class="ch-crown">♛</div><div><b>${esc(chName(r))}</b>${r.ep?` <em>${ep(r.ep).slice(1)}</em>`:''}<small>${esc(chTitle(r))} · ${chAgeS(chAge(r))} · ${lng(`${yrs} yıldır tahtta`,yrs===1?'1 year on the throne':`${yrs} years on the throne`)}</small>
+  <div class="ch-card"><div class="ch-crown">${chPt(r,56)||'♛'}</div><div><b>${esc(chName(r))}</b>${r.ep?` <em>${ep(r.ep).slice(1)}</em>`:''}<small>${esc(chTitle(r))} · ${chAgeS(chAge(r))} · ${lng(`${yrs} yıldır tahtta`,yrs===1?'1 year on the throne':`${yrs} years on the throne`)}</small>
    <div class="ch-trs">${chTraitChips(r)||`<span class="hint">${lng('Belirgin bir huyu yok.','No notable traits.')}</span>`}</div></div></div>
   ${reg?`<div class="hint ch-warn">${lng(`Hükümdar çocuk yaşta; ${rg-S.turn} tur daha naip yönetiyor (vergilerin %10'u kayıp).`,`The ruler is still a child; a regent governs for ${rg-S.turn} more turns (10% of taxes lost).`)}</div>`:''}
   <div class="ch-row"><span>${lng('Veliaht','Heir')}</span><b>${h?`${esc(chLabel(h))} (${chAge(h)})`:`<span class="neg">${lng('Yok: hükümdar ölürse taht boşluğu çıkar','None: if the ruler dies, the throne will stand empty')}</span>`}</b></div>
   ${kin.length?`<div class="ch-row"><span>${lng('Aile','Family')}</span><b>${kin.map(c=>`${esc(chDisp(c.n,c.f))} (${chAge(c)})`).join(', ')}</b></div>`:''}
   <h3 style="margin-top:10px">${lng('Komutanlar','Commanders')}</h3>
-  <div class="ch-gens">${gens.length?gens.map(g=>`<div class="ch-gen"><b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${chGenStatus(g)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div>`).join(''):`<div class="hint">${lng('Henüz tanınmış bir komutan yok. Yeni ordular kurdukça beyler öne çıkar.','No renowned commander yet. As you raise new armies, capable nobles will step forward.')}</div>`}</div>
+  <div class="ch-gens">${gens.length?gens.map(g=>`<div class="ch-gen">${chPt(g,40)}<b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${chGenStatus(g)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div>`).join(''):`<div class="hint">${lng('Henüz tanınmış bir komutan yok. Yeni ordular kurdukça beyler öne çıkar.','No renowned commander yet. As you raise new armies, capable nobles will step forward.')}</div>`}</div>
   ${past.length?`<div class="ch-row ch-past"><span>${lng('Önceki hükümdarlar','Previous rulers')}</span><b>${past.map(p=>`${esc(chDisp(p.n,f))}${p.ep?ep(p.ep):''} (${START_YEAR+Math.floor(p.t0/4)}–${START_YEAR+Math.floor(p.t1/4)})`).join(' · ')}</b></div>`:''}
  </div>`;}});
 /** "40 yaşında" / "age 40". */
 function chAgeS(a){return lng(`${a} yaşında`,`age ${a}`);}
 PANEL_SECTIONS.push({id:'general',order:35,when:c=>{if(selArmy==null||!S.c)return false;const a=armyById(selArmy);return !!a&&a.loc===c.i&&a.gen!=null&&chLive(S.chars[a.gen]);},
  html(c){const a=armyById(selArmy),g=S.chars[a.gen];const bonus=Math.round(BAL_C.genMul*Math.max(1,g.skill)*100);
-  return `<div class="sec ch-cmd"><h3>${lng('Komutan','Commander')}</h3><div class="ch-gen"><b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${lng(`Muharebede +${bonus}%`,`+${bonus}% in battle`)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div></div>`;}});
+  return `<div class="sec ch-cmd"><h3>${lng('Komutan','Commander')}</h3><div class="ch-gen">${chPt(g,40)}<b>${esc(chName(g))}</b>${chStars(g.skill)}<small>${lng(`Muharebede +${bonus}%`,`+${bonus}% in battle`)} · ${chAgeS(chAge(g))}</small><div class="ch-trs">${chTraitChips(g)}</div></div></div>`;}});
 REPORT_SECTIONS.push({id:'dynasty',order:40,html(){const L=chRep;if(!L.length)return '';
  return `<div class="sec"><h3>${lng('Hanedanlar','Dynasties')}</h3><div class="logl">${L.slice(0,8).map(x=>`<div><time>${esc(FAC[x.f].s)}</time><span>${esc(x.m)}</span></div>`).join('')}</div></div>`;}});
 DIPLO_ROW.push({id:'dyn',order:20,meta(f){if(!S.c)return '';const r=chRuler(f);if(!r)return '';const h=chHeir(f);
