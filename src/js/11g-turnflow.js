@@ -26,8 +26,14 @@ function uiFlowRender(){const box=$('#uiFlow');if(!box)return;const on=S&&S.play
   bi.setAttribute('aria-label',bi.querySelector('.t').textContent);}
  bd.hidden=!idle.length;if(idle.length){const t=idle.length===1?lng(`${armName(idle[0])} emir bekliyor`,`The ${armName(idle[0])} awaits orders`):lng(`${idle.length} ordu emir bekliyor`,`${idle.length} armies await orders`);
   bd.querySelector('.t').textContent=t;bd.setAttribute('aria-label',t);bd.dataset.tip='idle';}
- box.hidden=!inb.length&&!idle.length;
+ box.hidden=!inb.length&&!idle.length;uiFlowPlace();
  if(et){if(idle.length&&!busy)et.dataset.idle=idle.length;else delete et.dataset.idle;}}
+/** Keep the chips clear of the province panel when it stands at the top right (desktop). */
+function uiFlowPlace(){const box=$('#uiFlow'),pn=$('#panel');if(!box)return;let r='';
+ if(pn&&!pn.hidden&&!uiPhone()){const q=pn.getBoundingClientRect();if(q.width&&q.top<topH()+120)r=Math.round(innerWidth-q.left+10)+'px';}
+ box.style.right=r;}
+new MutationObserver(uiFlowPlace).observe($('#panel'),{attributes:true,attributeFilter:['hidden','class','style']});
+addEventListener('resize',uiFlowPlace);
 ACTS['ui-idle']=()=>{const L=uiIdleArmies(S.player);if(!L.length){uiFlowRender();return;}const a=L[uiFlowIdx++%L.length];uiFocusProv(a.loc,a.id);};
 ACTS['ui-inbox']=()=>{if(uiInbox().length)showReport();else uiFlowRender();};
 TIPS.idle=()=>{const L=uiIdleArmies(S.player);return `<b class="tt">${lng('Emir bekleyen ordular','Armies awaiting orders')}</b>${L.slice(0,6).map(a=>`<div>${esc(armName(a))} · ${esc(PD[a.loc].name)} · ${fmtK(a.n)}</div>`).join('')}<p>${lng('Savaştayız ama bu ordular bu mevsim yürümedi. Dokun, sırayla göstereyim. Beklemeleri gerekiyorsa turu yine de bitirebilirsin.','We are at war, yet these armies have not marched this season. Tap and I will show them one by one. If they are meant to wait, you may still end the turn.')}</p>`;};
