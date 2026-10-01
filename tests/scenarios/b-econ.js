@@ -1,7 +1,7 @@
 'use strict';
 // Track B economy (G1, B5, B6): every faction starts with net income >= +3; the ledger shows the garrison and
 // small-realm rows; tribute uses plain development (barracks do not inflate gold); a province pays loot only
-// on its first capture in a war; Kroya starts with a level-4 fort.
+// on its first occupation in a war; Kroya starts with a level-4 fort.
 module.exports = {
   name: 'b-econ',
   fac: null,
@@ -23,12 +23,13 @@ module.exports = {
     check('devRaw ignores barracks (B5)', b5.raw === b5.d0, b5);
     const b6 = await E(() => { const K = window.__ke, S = K.S, PD = K.PD;
       const j = S.prov.findIndex((p, i) => p.o === 'ALB' && S.fac.ALB.cap !== i), s = PD[j].adj.find(x => S.prov[x].o === 'OSM');
+      S.prov[j].fort = 0; S.prov[j].t = 100; // no walls: the army storms and occupies at once
       const g0 = S.fac.OSM.gold; const a = K.armyCreate('OSM', s, 30000, { mp: 2 }); K.armyMove(a.id, j);
-      const g1 = S.fac.OSM.gold, took = S.prov[j].o === 'OSM';
+      const g1 = S.fac.OSM.gold, took = S.prov[j].ctl === 'OSM';
       // hand it back and take it again: no second loot in the same war
-      S.prov[j].o = 'ALB'; S.prov[j].t = 100; const b = K.S.armies.find(x => x.id === a.id); if (b) { b.loc = s; b.mp = 2; }
+      delete S.prov[j].ctl; S.prov[j].t = 100; const b = K.S.armies.find(x => x.id === a.id); if (b) { b.loc = s; b.mp = 2; }
       if (b) K.armyMove(b.id, j); const g2 = S.fac.OSM.gold; K.armTidy();
-      return { took, first: g1 - g0, second: g2 - g1, dev: S.prov[j].dev, again: S.prov[j].o === 'OSM' }; });
+      return { took, first: g1 - g0, second: g2 - g1, dev: S.prov[j].dev, again: S.prov[j].ctl === 'OSM' }; });
     check('capture loot paid once per province per war (B6)', b6.took && b6.again && b6.first === b6.dev * 2 && b6.second === 0, b6);
   },
 };

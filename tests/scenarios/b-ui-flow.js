@@ -65,11 +65,12 @@ module.exports = {
     await L.clickProv(page, info.src);
     if (!(await E(id => !!document.querySelector(`#panel .arm.on[data-id="${id}"]`), info.army))) await click(`#panel .arm[data-id="${info.army}"]`);
     await L.clickProv(page, info.ist);
-    check('attack order opens with odds', await E(() => !!document.querySelector('#panel [data-sheet="action"] [data-tip="odds"]') && !!document.querySelector('#panel [data-act="amove"]')));
+    check('siege order opens with the expected length', await E(() => !!document.querySelector('#panel [data-sheet="action"] .sgodds') && !!document.querySelector('#panel [data-act="amove"]')));
     const nb0 = await E(() => window.__ke.S.battles.length);
     await click('#panel [data-act="amove"]');
     await page.waitForTimeout(300);
     await L.closeModals(page);
-    check('the attack fought a battle', (await E(() => window.__ke.S.battles.length)) > nb0);
+    check('the march laid siege to the walls', await E(ist => { const s = window.__ke.S.sieges[ist]; return !!s && s.f === 'OSM'; }, info.ist));
+    check('the siege panel shows progress and an assault button', await E(() => !!document.querySelector('#panel .sgsec .sgbar') && !!document.querySelector('#panel [data-act="astorm"]')));
   },
 };
