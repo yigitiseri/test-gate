@@ -4870,9 +4870,9 @@ PANEL_SECTIONS.push({id:'siege',order:28,when:c=>!!(siegeAt(c.i)||c.p.ctl),html(
    :c.mine?lng('İşgal altındaki eyalet vergi ve asker vermez. Ordunla surları kuşatıp geri alabilir ya da barışta geri isteyebilirsin.','An occupied province yields neither taxes nor troops. Besiege the walls with your army to take it back, or win it back at the peace table.')
    :lng(`${esc(FAC[p.o].s)} topraklarında bir ${esc(FAC[oc].s)} işgali.`,`${esc(FAC[oc].s)} holds this land of ${esc(FAC[p.o].s)}.`)}</div>`;}
  if(s){const a=armyById(s.a),mineS=s.f===f;h+=`<h3>${lng('Kuşatma','Siege')}</h3><div class="sgrow">${shield(s.f)}<span>${mineS?esc(a?armName(a):FAC[f].s):lng(`${esc(FAC[s.f].s)} ordusu`,`Army of ${esc(FAC[s.f].s)}`)} <b>${fmtK(a?a.n:0)}</b></span></div>${armSiegeBar(s)}`;
-  if(mineS&&a){const od=battleOdds({att:f,to:c.i,army:a,kind:'assault'}),[w,cl]=armOddsWord(od.p),pc=Math.round(od.p*100);
+  if(mineS&&a){const od=battleOdds({att:f,to:c.i,army:a,kind:'assault'}),[w]=armOddsWord(od.p),pc=Math.round(od.p*100);
    h+=`<div class="hint">${lng('Her tur surlar biraz daha yıkılır; kuşatan ordu da hastalık ve firarla asker yitirir. Garnizon güçlüyse çıkış yapabilir.','Every turn the walls crumble a little more, and the besiegers lose men to sickness and desertion. A strong garrison may sally out.')}</div>
-   <div class="acts"><button class="btn danger" data-act="astorm" data-id="${a.id}" ${a.mp>0?'':'disabled'}>${lng('Hücum et','Assault')} <span class="c" style="color:${cl}">${w} · ${lng('%'+pc,pc+'%')}</span></button></div>
+   <div class="acts"><button class="btn danger" data-act="astorm" data-id="${a.id}" ${a.mp>0?'':'disabled'}>${lng('Hücum et','Assault')} <span class="c">${w} · ${lng('%'+pc,pc+'%')}</span></button></div>
    ${a.mp>0?'':`<div class="hint">${lng('Ordu bu mevsim yeni vardı; hücum gelecek mevsim mümkün.','The army has just arrived this season; it can assault next season.')}</div>`}`;}
   else if(p.o===f||p.ctl===f)h+=`<div class="hint">${lng('Kuşatmayı kırmak için bir orduyla saldır: meydan muharebesini kazanırsan kuşatanlar geri çekilir.','To break the siege, attack with an army: win the field battle and the besiegers fall back.')}</div>`;}
  return h+'</div>';}});
