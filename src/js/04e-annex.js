@@ -25,8 +25,8 @@ function annexAsk(){if(!S||!S.player||S.over)return;annexStamp();
   queueModal(()=>eventModal({t:lng(`${PD[i].name} Alındı`,`${PD[i].name} Is Taken`),e:dateStr(S.turn),
    d:lng(`Ordumuz ${PD[i].name} şehrine girdi; şehir şimdilik işgalimizde. Onu hemen topraklarımıza katabilir ya da işgal altında tutup barışta pazarlık için kullanabiliriz.${cap?` Burası ${FAC[old].s} başkenti; ilhak etmek onları derinden sarsar.`:''}`,
     `Our army has entered ${PD[i].name}; for now the city is under our occupation. We can make it part of our realm at once, or keep it occupied and use it as a bargaining chip at the peace table.${cap?` This is the capital of ${FAC[old].s}; annexing it will shake them deeply.`:''}`),
-   ch:[{l:lng('İlhak et: şehir hemen bizim olsun','Annex: make the city ours now'),f:()=>annexDo(i)},
-       {l:lng('İşgalde tut: vergisinin yarısı bize, kararı sonra veririz','Keep it occupied: half its taxes are ours, we decide later')}]}));}}
+   ch:[{l:lng('İşgalde tut: vergisinin yarısı bize, kararı sonra veririz','Keep it occupied: half its taxes are ours, we decide later')},
+       {l:lng('İlhak et: şehir hemen bizim olsun','Annex: make the city ours now'),f:()=>annexDo(i)}]}));}}
 hook('roundEnd',()=>annexStamp(),99);
 hook('newTurn',()=>annexAsk(),95);
 // actions during the player's turn (a storm, a march into an unwalled town): ask right after the click

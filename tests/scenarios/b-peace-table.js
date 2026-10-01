@@ -52,6 +52,9 @@ module.exports = {
     // envoys: terms shown, one report only, gone after 2 turns
     await E(() => { const K = window.__ke, S = K.S; K.declareWar('OSM', 'VEN'); S.fac.VEN.nextOffer = S.turn + 20; S.offers.push({ f: 'VEN', type: 'peace', wt: S.war['OSM|VEN'].t }); });
     await L.endTurn(page);
+    // decrees that come before the report (e.g. "annex or keep occupied?"): keep occupied
+    for (let k = 0; k < 6 && await E(() => !!document.querySelector('#modal:not([hidden]) [data-act="ev"]')); k++) { await page.click('#modal [data-act="ev"][data-k="0"]'); await page.waitForTimeout(150); }
+    await page.waitForFunction(() => !document.getElementById('modal').hidden, null, { timeout: 5000 }).catch(() => {});
     const rep1 = await E(() => { const m = document.getElementById('modal'); const row = m.querySelector('[data-act="off"][data-f="VEN"]'); const t = m.querySelector('.row.offer .terms'); return { row: !!row, terms: t && t.textContent, t0: window.__ke.S.offers.map(o => o.t0) }; });
     check('the season report shows the envoy with its terms', rep1.row && !!rep1.terms, rep1);
     await L.closeModals(page);

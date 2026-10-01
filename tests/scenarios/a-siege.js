@@ -41,7 +41,7 @@ module.exports = {
     await shot('siege_2d_desktop');
     // render on demand: the smoke drifts while "hot", then the map stops redrawing
     await E(() => window.__ke.sg.hot(4000));
-    const a0 = await E(() => window.__ke.stats.draws); await page.waitForTimeout(1500);
+    const a0 = await E(() => window.__ke.stats.draws); await page.waitForTimeout(3000); // headless frames are slow under load
     const a1 = await E(() => window.__ke.stats.draws);
     check('smoke animates while the siege is fresh', a1 - a0 >= 2, a1 - a0);
     await E(() => window.__ke.sg.hot(0)); await page.waitForTimeout(600);

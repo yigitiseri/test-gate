@@ -12,12 +12,12 @@ module.exports = {
     await page.waitForSelector('#modal:not([hidden]) [data-act="ev"]', { timeout: 30000 }).catch(() => {});
     const m = await E(() => ({ t: (document.querySelector('#modal h2') || {}).textContent, n: document.querySelectorAll('#modal [data-act="ev"]').length }));
     check('taking a city asks: annex or keep occupied', m.n === 2 && /Alındı/.test(m.t || ''), m);
-    await page.click('#modal [data-act="ev"][data-k="0"]'); await page.waitForTimeout(200);
+    await page.click('#modal [data-act="ev"][data-k="1"]'); await page.waitForTimeout(200);
     check('"annex" makes the city ours at once', await E(t => { const p = window.__ke.S.prov[t]; return p.o === 'OSM' && !p.ctl; }, two[0]));
     // keep the second one occupied, then annex it later from the panel
     await E(t => { const K = window.__ke, S = K.S; S.prov[t].ctl = 'OSM'; S.armies = S.armies.filter(a => a.loc !== t); K.annex.ask(); }, two[1]);
-    await page.waitForSelector('#modal:not([hidden]) [data-act="ev"][data-k="1"]', { timeout: 30000 }).catch(() => {});
-    await page.click('#modal [data-act="ev"][data-k="1"]'); await page.waitForTimeout(200);
+    await page.waitForSelector('#modal:not([hidden]) [data-act="ev"][data-k="0"]', { timeout: 30000 }).catch(() => {});
+    await page.click('#modal [data-act="ev"][data-k="0"]'); await page.waitForTimeout(200);
     check('"keep occupied" leaves the occupation', await E(t => { const p = window.__ke.S.prov[t]; return p.o === 'BYZ' && p.ctl === 'OSM'; }, two[1]));
     check('it is not asked twice', await E(() => { window.__ke.annex.ask(); return document.getElementById('modal').hidden; }));
     await E(t => { const K = window.__ke; K.centerOn(K.PD[t].lx, K.PD[t].ly, 2.4); }, two[1]); await page.waitForTimeout(300);
