@@ -239,7 +239,7 @@ ECON_ROWS.push(f=>{let s=0,n=0;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.ctl=
 hook('migrate',s=>{const keep=S;S=s;try{
  if(!s.sieges||typeof s.sieges!=='object')s.sieges={};
  for(const k of Object.keys(s.sieges)){const v=s.sieges[k],a=v&&(s.armies||[]).find(x=>x.id===v.a);if(!v||!a||a.loc!==+k){delete s.sieges[k];}}
- for(const a of s.armies||[])if(a.st==='siege'&&!Object.values(s.sieges).some(v=>v.a===a.id))a.st='idle';
+ for(const a of s.armies||[])if(a.st==='siege'&&!Object.values(s.sieges).some(v=>v.a===a.id||(v.f===a.f&&v.i===a.loc)))a.st='idle'; // helpers in the camp keep besieging
  for(const p of s.prov)if('ctl' in p&&(!p.ctl||p.ctl===p.o||!s.war[key(p.o,p.ctl)]))delete p.ctl;
  for(const o of s.offers||[])if(o.t0==null)o.t0=s.turn;
  if(s.b&&s.b.pc&&typeof s.b.pc!=='object')delete s.b.pc;
