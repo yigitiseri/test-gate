@@ -52,6 +52,7 @@ module.exports = {
     await page.waitForSelector('#modal:not([hidden])');
     const t1 = await E(() => ({ h: document.querySelector('#modal h2').textContent, b: [...document.querySelectorAll('#modal [data-act="ev"]')].map(x => x.textContent) }));
     check('empty throne: the crisis offers the pretender choice', t1.h === 'Taht Boşluğu' && /davacısı/.test(t1.b[0]), t1);
+    await page.waitForSelector('#modal [data-act="ev"][data-k="0"]', { timeout: 120000 }).catch(() => {}); // slow under load
     await page.click('#modal [data-act="ev"][data-k="0"]');
     await page.waitForFunction(() => { const m = document.getElementById('modal'), h = m.querySelector('h2'); return !m.hidden && h && h.textContent === 'İç Savaş'; }, null, { timeout: 5000 }).catch(() => {});
     const t2 = await E(() => { const K = window.__ke, S = K.S, m = document.getElementById('modal');

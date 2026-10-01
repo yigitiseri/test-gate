@@ -19,6 +19,12 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
 - **Muharebe.** Meydan muharebesinde ordular çarpışır; hücumda surlar, garnizon ve yerel milis karşına çıkar.
   Kale, dağ, kış, komutan ve biraz talih hesaba girer. Muharebeden sonra **muharebe kartı** neden kazandığını ya
   da kaybettiğini zarlarıyla gösterir.
+- **Kuşatma ve barış.** Surlu şehirler kuşatılmalı: surların önünde ordugâh kurulur, küçük bir taş şerit surların
+  ne kadar ayakta olduğunu gösterir (Konstantiniyye topsuz altı mevsim kadar, Urban'ın toplarıyla iki mevsim
+  dayanır). Alınan şehir barışa kadar yalnızca işgal altındadır ve işgalcinin renginde taranır: **Barış
+  Masası**'nda savaş skoruna göre şehir ve altından bir sepet hazırlarsın. Uzun savaşlar devletleri yıpratır.
+- **Yaşayan bir dünya.** Yapay zekâ devletleri sefer hedefi seçer, ordularını toplar, alabileceği şehirleri
+  kuşatır ve barış yapar; fazla hızlı büyüyen devlet komşularını korkutup ittifaka iter.
 - **Komutanlar.** Paşalar, şehzadeler, hatta sultanın kendisi ordunun başına geçebilir; her birinin yıldızları ve
   özellikleri vardır (akıncı bir bey daha uzağa yürür). Komutanı ordu panelinden atar ya da başka ordudan
   alırsın; komutanı ölen ya da esir düşen ordunun başına tur sonunda boştaki bir paşa geçer.
@@ -30,6 +36,9 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
   maaş ödersin.
 - **Diplomasi.** Savaş ilan et, barış ya da haraç iste, ittifak kur, hediye gönder. Müttefikler savunma
   savaşlarında yardıma gelir. Yapay zekâ devletlerinin kişiliği vardır ve yaptıklarını unutmazlar.
+- **1529'a kadar tarih.** 1453, Belgrad, Otlukbeli, Cem Sultan, Otranto, Çaldıran, Mercidabık ve Ridaniye, Rodos,
+  Mohaç (ve Macaristan'ın Habsburglara geçişi) ile Viyana zincirleri; boş kalan tahtlar taht davacısının iç
+  savaşını getirebilir; vakayiname büyük muharebeleri adlarıyla anar.
 - **Hedefler ve tarih.** Her devletin tarihî hedefleri (Konstantiniyye'nin fethi, Belgrad kuşatması, Kroya
   direnişi, Tebriz …) ve olay zincirleri var: 1453, Belgrad 1456, Otlukbeli 1473, Cem Sultan 1481, Urban'ın
   topları, 1501'de Safevîlerin doğuşu, veba, kervanlar, ayaklanmalar, paralı askerler.

@@ -1,0 +1,10 @@
+{
+  "note": "Wave 2 merged (sieges/peace B, operational AI D, chains C, siege visuals A). World-passive HAF x320, OSM ai x200.",
+  "runs": [
+    {"sim": "HAF passive seed 1", "aliveEnd": 11, "warsMeanAfter80": 4.77, "pingPongMax": 2, "istFallTurn": 12, "turnMsAvg": 30.6},
+    {"sim": "HAF passive seed 2", "aliveEnd": 14, "warsMeanAfter80": 3.54, "pingPongMax": 2, "istFallTurn": 15, "turnMsAvg": 32.8},
+    {"sim": "HAF passive seed 3", "aliveEnd": 10, "warsMeanAfter80": 3.54, "pingPongMax": 2, "istFallTurn": 33, "turnMsAvg": 34.7},
+    {"sim": "OSM ai seed 1 x200", "aliveEnd": 19, "playerProvsEnd": 69, "pingPongMax": 3, "istFallTurn": 12, "turnMsAvg": 20.1}
+  ],
+  "vsW1": "aliveEnd 24-28 -> 10-14 (target 8-16); pingPongMax 4-7 -> 2; Constantinople 19-158 -> 12-33"
+}

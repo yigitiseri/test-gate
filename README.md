@@ -20,6 +20,12 @@ The game is available in **English and Turkish** (switch on the start screen or 
 - **Battles.** Field battles are fought between armies; assaults hit the walls, the garrison and the local
   militia. Fortresses, mountains, winter, commanders and a little luck all count. After a battle the
   **battle card** shows why you won or lost, with its dice.
+- **Sieges and peace.** Walled cities must be besieged: a camp rises before the walls and a stone strip shows
+  how much of the walls still stands (Constantinople holds for about six seasons without cannon, two with
+  Urban's guns). A taken city is only occupied, striped in the occupier's colour, until a treaty: at the
+  **Peace Table** you fill a basket with cities and gold, priced by your war score. Long wars wear realms down.
+- **A living world.** AI realms pick campaign goals, gather their armies, besiege what they can take and make
+  peace; realms that grow too fast frighten their neighbours into coalitions.
 - **Commanders.** Pashas, princes and even the sultan himself can lead an army; each has skill stars and traits
   (an akıncı raider marches further). Appoint or move commanders from the army panel; an army that loses its
   commander in battle or to captivity gets a free replacement at the end of the round.
@@ -31,6 +37,9 @@ The game is available in **English and Turkish** (switch on the start screen or 
   soldiers every season.
 - **Diplomacy.** Declare war, make peace or demand tribute, form alliances, send gifts. Allies come to help in
   defensive wars. AI realms have personalities and remember what you did.
+- **History to 1529.** Event chains for 1453, Belgrade, Otlukbeli, Prince Cem, Otranto, Chaldiran, Marj Dabiq
+  and Ridaniya, Rhodes, Mohács (and the Habsburg inheritance of Hungary) and Vienna; empty thrones can bring a
+  pretender's civil war; the chronicle names great battles.
 - **Missions and history.** Every realm has historical missions (the conquest of Constantinople, the siege of
   Belgrade, the defiance of Krujë, Tabriz …) and event chains: 1453, Belgrade 1456, Otlukbeli 1473, Prince Cem
   1481, Urban's great guns, the rise of the Safavids in 1501, plague, caravans, revolts and mercenaries.
