@@ -55,16 +55,9 @@ module.exports = {
     check('TURN_TRACE carries siege / siegeFell entries', sawTrace);
     const occ = await E(ist => { const K = window.__ke, S = K.S, p = S.prov[ist], rows = K.econRows('OSM'), a = S.armies.find(x => x.id === window.__A);
       return { o: p.o, ctl: p.ctl, occ: rows.some(r => r.id === 'occ' && r.v > 0), loc: a && a.loc, st: a && a.st, rec: !!K.armRecruit('BYZ', ist, 1000).to, fetih: !!S.flags.fetih }; }, info.ist);
-    check('occupied, not annexed: owner BYZ, controller OSM, no fetih yet', occ.o === 'BYZ' && occ.ctl === 'OSM' && !occ.fetih, occ);
-    check('the occupier collects half the taxes (economy row)', occ.occ);
-    check('the owner cannot recruit in the occupied city', !occ.rec);
+    // the 1453 chain (06c) makes Constantinople fall outright to an Ottoman siege; ordinary towns are only occupied (below)
+    check('Constantinople falls outright to the Ottomans (1453 rule): owner OSM, fetih, capital moves', occ.o === 'OSM' && !occ.ctl && occ.fetih, occ);
     check('the army entered the city and stopped besieging', occ.loc === info.ist && occ.st === 'idle', occ);
-
-    // an occupied capital is annexed once the war is 20 turns old
-    await E(() => { const S = window.__ke.S; S.war['BYZ|OSM'].t = S.turn - 25; S.armies = S.armies.filter(a => a.f !== 'BYZ' && a.f !== 'VEN'); });
-    await L.endTurn(page); await L.closeModals(page);
-    const ann = await E(ist => { const S = window.__ke.S; return { o: S.prov[ist].o, ctl: S.prov[ist].ctl || null, fetih: !!S.flags.fetih, cap: S.fac.OSM.cap === ist }; }, info.ist);
-    check('capital annexed after 20 turns of war: Constantinople is Ottoman (fetih, capital moves)', ann.o === 'OSM' && !ann.ctl && ann.fetih && ann.cap, ann);
 
     // storm: a weak walled town, the assault button in the siege panel
     const sm = await E(() => { const K = window.__ke, S = K.S, PD = K.PD;
@@ -80,6 +73,10 @@ module.exports = {
         await page.click('#panel [data-act="astorm"]'); await page.waitForTimeout(150);
         const r = await E(t => { const S = window.__ke.S; return { ctl: S.prov[t].ctl || null, siege: !!S.sieges[t], last: S.battles[S.battles.length - 1] && S.battles[S.battles.length - 1].kind }; }, sm.t);
         check('the assault took the town (occupied) and ended the siege', r.ctl === 'OSM' && !r.siege && r.last === 'assault', r);
+        const oc = await E(t => { const K = window.__ke, S = K.S; return { o: S.prov[t].o, occ: K.econRows('OSM').some(x => x.id === 'occ' && x.v > 0), rec: !!K.armRecruit('BYZ', t, 1000).to }; }, sm.t);
+        check('occupied, not annexed: the owner keeps the town until peace', oc.o === 'BYZ', oc);
+        check('the occupier collects half the taxes (economy row)', oc.occ, oc);
+        check('the owner cannot recruit in the occupied town', !oc.rec, oc);
       }
     }
 

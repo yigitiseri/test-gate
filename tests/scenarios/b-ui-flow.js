@@ -62,6 +62,8 @@ module.exports = {
     const alive = await E(id => { const a = window.__ke.S.armies.find(x => x.id === id); return a ? a.loc : null; }, info.army);
     check('the army is still next to Konstantiniyye', alive === info.src, alive);
     if (alive !== info.src) return;
+    // D's AI garrisons its capital with a field army: clear it so this march lays siege (a field battle is covered above)
+    await E(ist => { const S = window.__ke.S; S.armies = S.armies.filter(a => !(a.loc === ist && a.f !== 'OSM')); }, info.ist);
     await L.clickProv(page, info.src);
     if (!(await E(id => !!document.querySelector(`#panel .arm.on[data-id="${id}"]`), info.army))) await click(`#panel .arm[data-id="${info.army}"]`);
     await L.clickProv(page, info.ist);

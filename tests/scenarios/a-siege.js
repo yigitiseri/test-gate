@@ -15,7 +15,7 @@ const FIX = `(()=>{const K=window.__ke,S=K.S,PD=K.PD,P=n=>PD.findIndex(d=>d.name
  S.prov[sil].ctl='OSM';K.sg.repaint();K.centerOn(PD[ist].lx,PD[ist].ly,2.4);
  return {ist,sil,army:a.id};})()`;
 const CLEAN = `(()=>{const K=window.__ke,S=K.S;S.sieges={};S.prov.forEach(p=>{delete p.ctl;});S.armies.forEach(a=>{if(a.st==='siege')a.st='idle';});
- for(let k=S.armies.length-1;k>=0;k--){const a=S.armies[k];if(S.prov[a.loc].o!==a.f)S.armies.splice(k,1);}delete S.chars[9902];K.sg.repaint();})()`;
+ for(let k=S.armies.length-1;k>=0;k--){const a=S.armies[k];if(S.prov[a.loc].o!==a.f)S.armies.splice(k,1);}S.armies.forEach(a=>{if(a.gen===9902)a.gen=null;});delete S.chars[9902];K.sg.repaint();})()`;
 const overlaps = L => { const out = []; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { if (!/[gn]/.test(L[i].k + L[j].k)) continue; const a = L[i].r, b = L[j].r; if (a[0] < b[2] - 1 && a[2] > b[0] + 1 && a[1] < b[3] - 1 && a[3] > b[1] + 1) out.push([L[i].k + L[j].k, a, b]); } return out; };
 module.exports = {
   name: 'a-siege',
@@ -71,7 +71,8 @@ module.exports = {
     await E(() => { window.__sgfx.on = true; window.__sgfx.trace = true; window.__ke.endTurn(); });
     await page.waitForSelector('#card.a-sc:not([hidden])', { timeout: 120000 }).catch(() => {});
     const card = await E(() => { const el = document.getElementById('card'); return { sc: el.classList.contains('a-sc'), hidden: el.hidden, txt: el.innerText, segs: el.querySelectorAll('.a-sc-segs i').length, pt: !!el.querySelector('.a-sc-cmd .a-pt'), pic: !!el.querySelector('svg.a-sc-pic'), info: window.__ke.sgCard }; });
-    check('end of turn: the siege card opens for the player\'s siege', card.sc && !card.hidden && /Konstantiniyye Kuşatması/.test(card.txt), card);
+    // with real sieges the AI may also besiege one of the player's towns that turn; the card shows the most important one
+    check('end of turn: the siege card opens for a siege of the player', card.sc && !card.hidden && /Kuşatması/.test(card.txt), card);
     check('siege card: wall picture, one stone per turn needed, commander portrait', card.pic && card.segs >= 1 && card.pt, card);
     check('siege card text is Turkish and plain (no formulas)', /Sur sağlamlığı/.test(card.txt) && !/[=*/]\s*\d/.test(card.txt), card.txt.slice(0, 300));
     await shot('siege_card_desktop');

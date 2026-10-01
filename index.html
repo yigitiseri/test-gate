@@ -1019,7 +1019,8 @@ const FAC={
  CYP:{n:'Kıbrıs Krallığı',s:'Kıbrıs',c:'#8fbf6a',r:'II. Jean',rel:'Katolik',cap:'kibris',m:1,dif:3,d:'Lüzinyan hanedanının ada krallığı. Magosa Cenevizlilerin elinde.'},
  RHO:{n:'Rodos Şövalyeleri',s:'Rodos',c:'#6b1f2a',r:'Jean de Lastic',rel:'Katolik',cap:'rodos',m:1.3,dif:3,d:'Hospitalier şövalyelerinin kale adası. Sayıca az, surları çok güçlü.'},
  HAF:{n:'Hafsîler',s:'Hafsî',c:'#a7b86a',r:'Ebû Amr Osman',rel:'İslam',cap:'trablusgarp',m:1,dif:3,d:'Tunus merkezli hanedanın doğu uç beyliği Trablusgarp.'},
- SAF:{n:'Safevîler',s:'Safevî',c:'#1d7a52',r:'Şah İsmail',rel:'İslam',cap:'tebriz',m:1.2,dif:9,d:''}
+ SAF:{n:'Safevîler',s:'Safevî',c:'#1d7a52',r:'Şah İsmail',rel:'İslam',cap:'tebriz',m:1.2,dif:9,d:''},
+ CLM:{n:'Taht Davacıları',s:'Davacı',c:'#5a4f46',r:'Taht davacısı',rel:'İslam',cap:'edirne',m:1,dif:9,d:''}
 };
 /** English realm texts (n long name, s short name, r ruler at start, d description); merged into FAC when EN. */
 const FAC_EN={
@@ -1050,7 +1051,8 @@ const FAC_EN={
  CYP:{n:'Kingdom of Cyprus',s:'Cyprus',r:'John II',d:'The island kingdom of the Lusignan dynasty. Famagusta is in Genoese hands.'},
  RHO:{n:'Knights of Rhodes',s:'Rhodes',r:'Jean de Lastic',d:'The island fortress of the Knights Hospitaller. Few in number, but their walls are very strong.'},
  HAF:{n:'Hafsids',s:'Hafsids',r:'Abu Amr Uthman',d:'Tripoli, the eastern march of the dynasty that rules from Tunis.'},
- SAF:{n:'Safavids',s:'Safavids',r:'Shah Ismail',d:''}
+ SAF:{n:'Safavids',s:'Safavids',r:'Shah Ismail',d:''},
+ CLM:{n:'The Pretenders',s:'Pretender',r:'Pretender',d:''}
 };
 if(EN)for(const f in FAC_EN)Object.assign(FAC[f],FAC_EN[f]);
 /** FAC[f].rel stays the Turkish key ('İslam', 'Ortodoks', 'Katolik') that game logic compares; show it with relName(f). */
@@ -1229,7 +1231,7 @@ const ARMS={OSM:['#b3261e','crescent','#f4efe3'],BYZ:['#5b2166','tetra','#e6b53c
  CAN:['#b07a2e','star8','#3a2412'],DUL:['#6d7a3a','crescent','#f4efe3'],MAM:['#d9ad2a','crescent','#8e1a12'],AKK:['#6d9ec7','sheep','#f7f3ea'],
  KKY:['#d8cdb4','sheep','#1a1612'],TRB:['#7d2a6e','eagle','#e6b53c'],GEO:['#f4efe3','georgian','#b3261e'],HAB:['#b3261e','fess','#f4efe3'],
  POL:['#b3261e','eagle','#f4efe3'],GH:['#b8913a','tamga','#2a1a0c'],ARA:['#e6b53c','pallets','#b3261e'],PAP:['#b3261e','keys','#e6b53c'],
- CYP:['#f4efe3','cyp','#2b5aa0'],RHO:['#b3261e','cross','#f4efe3'],HAF:['#5e7a36','crescent','#f4efe3'],SAF:['#1d7a52','sun','#e6b53c']};
+ CYP:['#f4efe3','cyp','#2b5aa0'],RHO:['#b3261e','cross','#f4efe3'],HAF:['#5e7a36','crescent','#f4efe3'],SAF:['#1d7a52','sun','#e6b53c'],CLM:['#3a3330','star6','#c9a24a']};
 const starPts=(cx,cy,R,r,n)=>{let s='';for(let k=0;k<n*2;k++){const a=k*Math.PI/n-Math.PI/2,q=k%2?r:R;s+=`${(cx+Math.cos(a)*q).toFixed(1)},${(cy+Math.sin(a)*q).toFixed(1)} `;}return s;};
 const EAG='M50 40L30 30L10 24L15 34L8 40L17 46L10 54L23 56L18 64L35 62L43 70L39 90L46 100L50 94L54 100L61 90L57 70L65 62L82 64L77 56L90 54L83 46L92 40L85 34L90 24L70 30Z';
 const LION='M38 104L44 80L36 72L33 58L25 50L29 41L38 45L43 36L39 26L48 21L59 25L63 34L58 41L67 43L75 35L80 41L71 51L64 55L66 67L75 75L71 82L62 75L58 86L64 104L56 104L52 88L48 104Z';

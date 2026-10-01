@@ -81,7 +81,10 @@ module.exports = {
     await page.click('#tutBub [data-act="tut-skip"]'); await W(200);
     s = await st();
     check('skip turns the lessons off', !s.active && (await E(() => window.__ke.S.tut.off === true)) && !(await ui()).bub, s);
-    check('migrate stays idempotent', await E(() => { const K = window.__ke, a = JSON.stringify(K.S); K.migrate(K.S); return JSON.stringify(K.S) === a; }));
+    { const mg = await E(() => { const K = window.__ke, a = JSON.parse(JSON.stringify(K.S)); K.migrate(K.S); const b = JSON.parse(JSON.stringify(K.S)), out = [];
+      const walk = (x, y, p) => { if (JSON.stringify(x) === JSON.stringify(y) || out.length > 8) return; if (x && y && typeof x === 'object' && typeof y === 'object') { for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) walk(x[k], y[k], p + '.' + k); } else out.push(p + ': ' + String(JSON.stringify(x)).slice(0, 80) + ' -> ' + String(JSON.stringify(y)).slice(0, 80)); };
+      walk(a, b, 'S'); return out; });
+    check('migrate stays idempotent', mg.length === 0, mg); }
     // a new game after finishing starts without lessons
     await E(() => window.__ke.beginGame('HUN')); await L.closeModals(page); await W(200);
     check('next new game starts without lessons', await E(() => window.__ke.S.tut === null && window.__ke.tut().active === false));
