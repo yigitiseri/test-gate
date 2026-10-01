@@ -2,12 +2,16 @@
    MOVE REPLAY (Track A, A2): before the season report, this turn's army moves and battles (TURN_TRACE)
    play on the map: at most 12 marches (the player's own, then enemies at war, then neighbours), booms on
    battles, 4 s at most, skippable with "Geç" (or Esc). Replaces the core 'fx' presenter (removed by id).
-   Trace entries: {k:'move'|'battle'|…, f, from, to, path?, army?, n, win?, rep?}; every field may be missing.
+   Trace entries: {k:'move'|'battle'|'siege'|'siegeFell'|…, f, from, to, path?, army?, n, win?, rep?}; every field may be missing.
+   W2 prioritisation (real army traces): the player's moves, then moves against the player's provinces, falls of
+   besieged towns, enemies at war, neighbours; rear-area shuffles last; at most 4 items per other realm.
+   Siege ticks do not replay (the camp is on the map); a siegeFell is a stop with a "Fallen" boom.
    ===================================================================== */
 {const k=PRESENTERS.findIndex(p=>p.id==='fx');if(k>=0)PRESENTERS.splice(k,1);}
-const A_RP={max:12,budget:3700,step:560,pause:430,gap:240,fade:380,booms:14,pan:420};
+const A_RP={max:12,budget:3700,step:560,pause:430,gap:240,fade:380,booms:14,pan:420,perFac:4};
 const aRp={on:false,items:[],byArmy:{},t0:0,T:0,timer:0,done:null,pan:null,bar:null};
-KE.replay={get on(){return aRp.on;},get lastMs(){return aRp.lastMs;},get shown(){return aRp.items.length;},skip:()=>aRpFinish(true),opt:aOpt};
+KE.replay={get on(){return aRp.on;},get lastMs(){return aRp.lastMs;},get shown(){return aRp.items.length;},get plan(){return aRp.lastPlan||[];},skip:()=>aRpFinish(true),opt:aOpt,build:()=>aRpBuild(),rank:()=>{const a=aRpBuild();return a.length?aRpPlan(a).shown.map(aRpSum):[];}};
+const aRpSum=it=>({f:it.f,army:it.army,pr:Math.round(it.pr),mine:it.mine,threat:!!it.threat,fell:it.evs.some(e=>e.fell),battles:it.evs.filter(e=>e.rep).length,pts:it.pts.length});
 
 /** Build replay items from TURN_TRACE: one item per army (its moves chained), or per army-less battle. */
 function aRpBuild(){const pl=S.player,items=[],byId={};
@@ -17,8 +21,12 @@ function aRpBuild(){const pl=S.player,items=[],byId={};
   let it=e.army!=null?byId[e.army]:null;
   if(!it){it={army:e.army!=null?e.army:null,f,n:e.n||(r&&r.n)||0,pts:[path[0]],evs:[],idx,mine:false};items.push(it);if(e.army!=null)byId[e.army]=it;}
   for(const j of path[0]===it.pts[it.pts.length-1]?path.slice(1):path)if(j!==it.pts[it.pts.length-1])it.pts.push(j);
-  if(e.k==='battle'||r){const win=e.win!=null?!!e.win:!!(r&&r.win);it.evs.push({at:it.pts.length-1,p:e.to!=null&&PD[e.to]?e.to:it.pts[it.pts.length-1],win,att:(r&&r.att)||f,def:r&&r.def,rep:r});}
-  if(f===pl||(r&&(r.def===pl||r.att===pl)))it.mine=true;});
+  const at=e.to!=null&&PD[e.to]?e.to:it.pts[it.pts.length-1];
+  if(e.k==='siegeFell'){if(!it.evs.some(v=>v.fell&&v.p===at))it.evs.push({at:it.pts.length-1,p:at,fell:true,win:true,att:f,def:S.prov[at].o,rep:null});}
+  else if(e.k==='siege')it.sieging=true;
+  else if(e.k==='battle'||r){const win=e.win!=null?!!e.win:!!(r&&r.win);it.evs.push({at:it.pts.length-1,p:at,win,att:(r&&r.att)||f,def:r&&r.def,rep:r});}
+  if(f===pl||(r&&(r.def===pl||r.att===pl)))it.mine=true;
+  else if(pl&&e.to!=null&&PD[e.to]&&(S.prov[e.to].o===pl||aCtl(e.to)===pl))it.threat=true;});
  for(const it of items){const a=it.army!=null&&typeof armyById==='function'?armyById(it.army):null;
   if(a){it.live=true;if(PD[a.loc]&&a.loc!==it.pts[it.pts.length-1])it.pts.push(a.loc);}   // retreat / final position
   else{it.live=false;const ev=it.evs[it.evs.length-1];if(ev&&!ev.win&&ev.at>0&&it.pts.length===ev.at+1)it.pts.push(it.pts[ev.at-1]);} // repulsed: fall back, then fade
@@ -28,8 +36,12 @@ function aRpBuild(){const pl=S.player,items=[],byId={};
 const aOnScreen=i=>{const q=pj(PD[i].lx,PD[i].ly);return q[2]&&q[0]>=8&&q[1]>=topH()+8&&q[0]<=vw-8&&q[1]<=vh-8;};
 /** Pick at most A_RP.max items (visible or the player's), schedule them in trace order within the time budget. */
 function aRpPlan(all){const pl=S.player,nb=new Set(pl?nbrs(pl):[]);
- for(const it of all){it.vis=it.pts.some(aOnScreen);it.pr=(it.mine?1000:0)+(pl&&it.f!==pl&&atWar(pl,it.f)?300:0)+(nb.has(it.f)?150:0)+(it.vis?80:0)+(it.evs.length?40:0)+Math.min(30,it.n/2000);}
- const shown=all.filter(it=>it.vis||it.mine).sort((a,b)=>b.pr-a.pr).slice(0,A_RP.max).sort((a,b)=>a.idx-b.idx);
+ for(const it of all){it.vis=it.pts.some(aOnScreen);const fell=it.evs.some(e=>e.fell),bat=it.evs.some(e=>e.rep),rear=!it.evs.length&&it.pts.every(i=>S.prov[i].o===it.f);
+  it.pr=(it.mine?1000:0)+(it.threat?600:0)+(pl&&it.f!==pl&&atWar(pl,it.f)?300:0)+(fell?250:0)+(nb.has(it.f)?150:0)+(it.vis?80:0)+(bat?60:0)+(it.sieging?40:0)+Math.min(30,it.n/2000)-(rear&&!it.mine?200:0);}
+ const per={},shown=[];
+ for(const it of all.filter(it=>it.vis||it.mine||it.threat).sort((a,b)=>b.pr-a.pr)){if(shown.length>=A_RP.max)break;
+  if(!it.mine&&!it.threat&&(per[it.f]||0)>=A_RP.perFac)continue;per[it.f]=(per[it.f]||0)+1;shown.push(it);}
+ shown.sort((a,b)=>a.idx-b.idx);
  const sp=aOpt.speed||1,step=A_RP.step/sp,pause=A_RP.pause/sp,gap=A_RP.gap/sp,fade=A_RP.fade/sp;let T=0;
  shown.forEach((it,k)=>{let t=k*gap;it.start=t;it.segs=[];
   const evAt=new Map(it.evs.map(e=>[e.at,e]));if(evAt.has(0)){evAt.get(0).t=t;t+=pause;}
@@ -66,15 +78,17 @@ function aRpTrails(c,now,g3){if(!aRp.on)return false;
  if(aRp.bar){const i=aRp.bar.querySelector('.a-rppg i');if(i)i.style.width=Math.round(clamp(t/aRp.T,0,1)*100)+'%';}
  return true;}
 
-function aBoomLabel(ev){const pl=S.player;if(!ev.rep)return {label:'',good:false};
+function aBoomLabel(ev){const pl=S.player;
+ if(ev.fell)return ev.att===pl?{label:lng('Alındı','Taken'),good:true}:{label:lng('Düştü','Fallen'),good:false};
+ if(!ev.rep)return {label:'',good:false};
  if(ev.def===pl)return {label:ev.win?lng('Kaybedildi','Lost'):lng('Savunuldu','Held'),good:!ev.win};if(ev.att===pl)return {label:ev.win?lng('Zafer','Victory'):lng('Bozgun','Rout'),good:ev.win};return {label:'',good:false};}
 /** Replay off (or nothing visible): only booms on visible battles, no waiting. */
-function aRpQuick(){let k=0;for(const e of TURN_TRACE){if(k>=12)break;if(!e||e.k!=='battle'||e.to==null||!PD[e.to]||!aOnScreen(e.to))continue;
- const r=e.rep||{},lb=aBoomLabel({rep:r,def:r.def,att:r.att||e.f,win:e.win!=null?e.win:r.win});addFx({type:'boom',p:e.to,dur:1300,delay:k*140,seed:k*1.7,label:lb.label,good:lb.good});k++;}}
+function aRpQuick(){let k=0;for(const e of TURN_TRACE){if(k>=12)break;if(!e||(e.k!=='battle'&&e.k!=='siegeFell')||e.to==null||!PD[e.to]||!aOnScreen(e.to))continue;
+ const r=e.rep||{},lb=e.k==='siegeFell'?aBoomLabel({fell:true,att:e.f}):aBoomLabel({rep:r,def:r.def,att:r.att||e.f,win:e.win!=null?e.win:r.win});addFx({type:'boom',p:e.to,dur:1300,delay:k*140,seed:k*1.7,label:lb.label,good:lb.good});k++;}}
 
 function aRpStart(shown,T,next){const pl=S.player,now=performance.now();let lead=0;
  // camera nudge: only when none of the player's moves is on screen
- const mine=shown.filter(it=>it.mine);
+ const mine=shown.filter(it=>it.mine||it.threat);
  if(mine.length&&!mine.some(it=>it.vis)){const it=mine[0],p=PD[it.evs.length?it.evs[0].p:it.pts[it.pts.length-1]];lead=A_RP.pan;
   if(G3.on)G3.center(p.lx,p.ly,G3.s,0,topH());else{const c0={x:cam.x,y:cam.y};centerOn(p.lx,p.ly,cam.s);aRp.pan={x0:c0.x,y0:c0.y,x1:cam.x,y1:cam.y,t0:now,d:lead*.9};cam.x=c0.x;cam.y=c0.y;}}
  Object.assign(aRp,{on:true,items:shown,byArmy:{},t0:now+lead,T,done:next,w0:now});
@@ -101,8 +115,9 @@ function aRpFinish(skipped){if(!aRp.on)return;aRp.on=false;aRp.lastMs=performanc
 PRESENTERS.push({id:'replay',order:20,run(next){
  if(!S||!S.player){next();return;}
  let plan=null;try{const all=aRpBuild();plan=all.length?aRpPlan(all):null;}catch(e){console.error('replay',e);plan=null;}
+ aRp.lastPlan=plan?plan.shown.map(aRpSum):[];
  if(!aOpt.replay||!plan||!plan.shown.length||document.hidden){aRpQuick();next();return;}
- let lead=0;const mine=plan.shown.filter(it=>it.mine);if(mine.length&&!mine.some(it=>it.vis))lead=A_RP.pan;
+ let lead=0;const mine=plan.shown.filter(it=>it.mine||it.threat);if(mine.length&&!mine.some(it=>it.vis))lead=A_RP.pan;
  const bud=A_RP.budget-lead;if(plan.T>bud)aScale(plan.shown,bud/plan.T);
  aRpStart(plan.shown,Math.min(plan.T,bud),next);}});
 ACTS['a-skip']=()=>aRpFinish(true);

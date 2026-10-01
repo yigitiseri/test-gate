@@ -2,12 +2,14 @@
    3D VIEW (Three.js)
    ===================================================================== */
 const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[],
- dirty:true,hot:0,armyDirty:false,armyItems:[],armySig:''}; // render-on-demand: dirty (camera/scene changed), hot (animate water/ships until)
+ dirty:true,hot:0,armyDirty:false,armyItems:[],armySig:'',sgItems:[],sgDirty:false}; // render-on-demand: dirty (camera/scene changed), hot (animate water/ships until)
+/** Regiment level of detail by zoom: 0 far (one standard-bearer per army), 1 middle (at most 4 figures), 2 near (full block). */
+G3.lod=()=>G3.s<1.15?0:G3.s<1.9?1:2;
 /** Mark the 3D view as changed and keep water/ships animating for 3 s (throttled to ~20 fps). */
 G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
 (function(){
-  let R=null,scene,camera,tex,texCv,water,sun,v3,ray,ndc,plane,I={},A={},lastR=0;
- const ACAP=1536;
+  let R=null,scene,camera,tex,texCv,water,sun,v3,ray,ndc,plane,I={},A={},SG={},lastR=0,puffTex=null;
+ const ACAP=1536,SGCAP=40,sgPuffs=[];
  /** Quality tier: 'low' (no shadows), 'mid' (1024 shadows, phones), 'high' (desktop). aOpt.q3d overrides 'auto'. */
  const qTier=()=>{const q=aOpt.q3d||'auto';return q==='auto'?(aMobile()?'mid':'high'):q;};
  const qPR=()=>{const q=qTier();return Math.min(window.devicePixelRatio||1,q==='low'?1:q==='mid'?1.5:1.75);};
@@ -71,6 +73,12 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
   A.shield=mkI(new THREE.CylinderGeometry(.34,.34,.08,10).rotateZ(Math.PI/2).translate(-.36,.85,0),std(0xffffff,{roughness:.55}),ACAP);
   A.base=mkI(new THREE.CylinderGeometry(1,1,.25,20).translate(0,.12,0),std(0xffffff,{roughness:.9}),ACAP/4);
   {const wc=new THREE.Color(1,1,1);for(const m of [A.body,A.shield,A.base])m.setColorAt(0,wc);for(const m of Object.values(A))m.count=0;} // create instanceColor before the first compile
+  // siege camps (W2): tents in the besieger's colour, a ring of stakes, two bombards on carriages; smoke is sprites
+  SG.tent=mkI(new THREE.ConeGeometry(.95,1.5,4).rotateY(Math.PI/4).translate(0,.75,0),std(0xffffff,{roughness:.85}),SGCAP*6);
+  SG.stake=mkI(new THREE.CylinderGeometry(.09,.13,1,4).translate(0,.5,0),std(0x4a3420),SGCAP*28);
+  SG.gun=mkI(new THREE.CylinderGeometry(.24,.34,2.3,8).rotateZ(Math.PI/2).translate(0,.66,0),std(0x3a3128,{metalness:.55,roughness:.45}),SGCAP*2);
+  SG.car=mkI(new THREE.BoxGeometry(2,.42,1.05).translate(0,.21,0),std(0x5a3a1e),SGCAP*2);
+  {SG.tent.setColorAt(0,new THREE.Color(1,1,1));for(const m of Object.values(SG))m.count=0;}
   return true;
  };
  const ROUTES=[[[25.2,40.2],[25.8,38.9],[25.3,37.4],[24.4,36.4],[23.9,37.5],[24.6,39.3]],[[13.4,44.6],[15.0,43.3],[17.0,42.3],[18.8,41.3],[17.9,42.3],[15.5,43.6]],
@@ -126,18 +134,42 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
  /** Regiment blocks for G3.armyItems=[{f,n,wx,wy,dir?}] (map coords): figures log-scaled with size, ranks of four on a faction-coloured base. */
  function armySync(){
   const M=M4(),Q=new THREE.Quaternion(),Pv=new THREE.Vector3(),Sc=new THREE.Vector3(),C=new THREE.Color(),UP=UPV();
-  let k=0,b=0;
-  for(const it of G3.armyItems){if(!FAC[it.f])continue;const nf=tokFigures(it.n),cols=Math.min(4,nf),rows=Math.ceil(nf/cols);if(k+nf>ACAP)break;
+  let k=0,b=0;const lod=G3.lod(),fs=lod===0?2.6:2.05;
+  for(const it of G3.armyItems){if(!FAC[it.f])continue;const nf=aLodFig(it.n,lod),cols=Math.min(4,nf),rows=Math.ceil(nf/cols);if(k+nf>ACAP)break;
    const ry=it.dir!=null?-it.dir+Math.PI/2:.35,cs=Math.cos(ry),sn=Math.sin(ry);C.copy(lin(FAC[it.f].c));
    for(let j=0;j<nf;j++){const r=Math.floor(j/cols),c=j%cols,inRow=r===rows-1?nf-r*cols:cols,ox=(c-(inRow-1)/2)*2.1,oz=(r-(rows-1)/2)*2.3;
     const x=it.wx+ox*cs+oz*sn,z=it.wy-ox*sn+oz*cs,h=Math.max(surf(x,z),.5)-.05;
-    Pv.set(x-W/2,h,z-H/2);Q.setFromAxisAngle(UP,ry);Sc.set(2.05,2.05,2.05);M.compose(Pv,Q,Sc);
+    Pv.set(x-W/2,h,z-H/2);Q.setFromAxisAngle(UP,ry);Sc.set(fs,fs,fs);M.compose(Pv,Q,Sc);
     for(const m of [A.body,A.head,A.helm,A.spear,A.shield])m.setMatrixAt(k,M);A.body.setColorAt(k,C);A.shield.setColorAt(k,C);k++;}
    if(b<ACAP/4){const rad=Math.max(cols*2.1,rows*2.3)*.6+1.1,h=Math.max(surf(it.wx,it.wy),.5)-.1;Pv.set(it.wx-W/2,h,it.wy-H/2);Q.set(0,0,0,1);Sc.set(rad,1,rad*.8);M.compose(Pv,Q,Sc);
     A.base.setMatrixAt(b,M);A.base.setColorAt(b,C.multiplyScalar(.55));b++;}}
   for(const m of [A.body,A.head,A.helm,A.spear,A.shield]){m.count=k;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
   A.base.count=b;A.base.instanceMatrix.needsUpdate=true;if(A.base.instanceColor)A.base.instanceColor.needsUpdate=true;
+  KE.stats.fig=k;KE.stats.lod=lod;
  }
+ /** Siege camps for G3.sgItems=[{i,f,lx,ly,u,ang,tents,wall}] (set by 07f): stakes ring, tents, bombards, smoke puffs. */
+ function sgSync(){
+  const M=M4(),Q=new THREE.Quaternion(),Pv=new THREE.Vector3(),Sc=new THREE.Vector3(),C=new THREE.Color(),UP=UPV();let t=0,k=0,gn=0,np=0;
+  const put=(m,j,x,z,sx,sy,sz,ry,dy=0)=>{Pv.set(x-W/2,Math.max(surf(x,z),.5)-.06+dy,z-H/2);Q.setFromAxisAngle(UP,ry||0);Sc.set(sx,sy,sz);M.compose(Pv,Q,Sc);m.setMatrixAt(j,M);};
+  if(!puffTex&&G3.sgItems.length){const c=mk(64,64),g=c.getContext('2d');for(const [x,y,r] of [[32,34,24],[22,28,14],[42,26,15],[30,20,12]]){const gr=g.createRadialGradient(x,y,1,x,y,r);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.55,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+   puffTex=new THREE.CanvasTexture(c);}
+  for(const it of G3.sgItems){if(!FAC[it.f])continue;const r=it.u*2.25+2.6;C.copy(lin(FAC[it.f].c));
+   for(let q=0;q<28&&k<SGCAP*28;q++){const a=q/28*Math.PI*2;put(SG.stake,k++,it.lx+Math.cos(a)*r,it.ly+Math.sin(a)*r,1.5,1.7+(q%2)*.5,1.5,a);}
+   for(let q=0;q<it.tents&&t<SGCAP*6;q++){const a=it.ang+(it.tents>1?(q/(it.tents-1)-.5)*2.1:0),rr=r+3+(q%2)*2.4,sc=q===Math.floor(it.tents/2)?3:2.3;
+    put(SG.tent,t,it.lx+Math.cos(a)*rr,it.ly+Math.sin(a)*rr,sc,sc,sc,a);SG.tent.setColorAt(t,C);t++;}
+   for(const sd of [-1,1]){if(gn>=SGCAP*2)break;const a=it.ang+sd*.42,x=it.lx+Math.cos(a)*(r+1.4),z=it.ly+Math.sin(a)*(r+1.4),ry=Math.atan2(-(it.ly-z),it.lx-x);put(SG.car,gn,x,z,1.7,1.7,1.7,ry);put(SG.gun,gn,x,z,1.7,1.7,1.7,ry,.15);gn++;}
+   const npf=it.wall<.5?8:5,h0=Math.max(surf(it.lx,it.ly),.5)+it.u*1.6;
+   for(let q=0;q<npf;q++){let sp=sgPuffs[np];if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:puffTex,color:0x6a5e52,transparent:true,depthWrite:false,opacity:0}));scene.add(sp);sgPuffs.push(sp);}
+    sp.visible=true;sp.material.color.copy(lin(it.wall<.5?0x3a3029:0x5a5046));sp.userData={x:it.lx-W/2+(q%3-1)*it.u*.7,z:it.ly-H/2+((q>>1)%2-.5)*it.u*.5,h0,ph:q/npf+hash(it.i,q)*.3,sc:clamp(it.u/2.2,1,1.9),int:it.wall<.5?.95:.85};np++;}}
+  for(let q=np;q<sgPuffs.length;q++)sgPuffs[q].visible=false;
+  SG.tent.count=t;SG.stake.count=k;SG.gun.count=gn;SG.car.count=gn;
+  for(const m of Object.values(SG)){m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;}
+  KE.stats.sgTents=t;KE.stats.sgPuffs=np;
+ }
+ G3.sgDebug=()=>sgPuffs.map(p=>[p.visible,p.position.toArray().map(Math.round),+p.scale.x.toFixed(1),+p.material.opacity.toFixed(2)]);
+ /** Smoke drift: puffs rise, swell and fade on a loop (only advances when a frame is rendered). */
+ function sgSmoke(now){const t=now/1000;for(const p of sgPuffs){if(!p.visible)continue;const d=p.userData,u=(t*.17+d.ph)%1,s=(2.6+u*8)*d.sc;
+  p.position.set(d.x+u*u*5,d.h0+u*15,d.z-u*1.2);p.scale.set(s,s,1);p.material.opacity=d.int*Math.min(1,u/.12)*(1-u*u);}}
  function camUpdate(){
   const t=clamp((Math.log(G3.s)-Math.log(fitS*.85))/(Math.log(6)-Math.log(fitS*.85)),0,1),pitch=(66-30*t)*Math.PI/180;
   const d=vh/(2*G3.s*Math.tan(fov*Math.PI/360)),tx=G3.mx-W/2,tz=G3.my-H/2;
@@ -151,12 +183,14 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
   if(G3.texDirty){const c=texCv.getContext('2d');c.drawImage(base3C,0,0);c.drawImage(polC,0,0);c.drawImage(hlC,0,0);tex.needsUpdate=true;G3.texDirty=false;}
   if(G3.objDirty){sync();G3.objDirty=false;}
   if(G3.armyDirty){armySync();G3.armyDirty=false;}
+  if(G3.sgDirty){sgSync();G3.sgDirty=false;}
+  if(sgPuffs.length)sgSmoke(now);
   camUpdate();water.material.normalMap.offset.set(now*.000012,now*.000007);moveShips(now);
   for(const k in flags){const m=flags[k];if(m.visible)m.rotation.y=.5+Math.sin(now/650+ +k)*.2;}
   R.render(scene,camera);G3.dirty=false;lastR=now;KE.stats.frames++;
  };
  /** Render-on-demand: only when something changed, or ~20 fps while the view is "hot" (3 s after the last interaction). */
- G3.needs=now=>G3.dirty||G3.texDirty||G3.objDirty||G3.armyDirty||(now<G3.hot&&now-lastR>=48);
+ G3.needs=now=>G3.dirty||G3.texDirty||G3.objDirty||G3.armyDirty||G3.sgDirty||(now<G3.hot&&now-lastR>=48);
  G3.proj=(mx,my,h=0)=>{v3.set(mx-W/2,Math.max(surf(mx,my),.5)+h,my-H/2).project(camera);return [(v3.x+1)/2*vw,(1-v3.y)/2*vh,v3.z<1&&v3.z>-1];};
  function ground(sx,sy){ndc.set(sx/vw*2-1,-(sy/vh)*2+1);ray.setFromCamera(ndc,camera);const hit=new THREE.Vector3();return ray.ray.intersectPlane(plane,hit)?[hit.x+W/2,hit.z+H/2]:null;}
  G3.clamp=()=>{G3.s=clamp(G3.s,fitS*.85,6);G3.mx=clamp(G3.mx,-W*.2,W*1.2);G3.my=clamp(G3.my,-H*.2,H*1.2);};
@@ -173,7 +207,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
  G3.set=(on,persist)=>{
   if(on&&!G3.init()){on=false;G3.fail=true;}
   if(on===G3.on){G3.label();return G3.on;}
-  if(on){G3.s=cam.s;const c=[(vw/2-cam.x)/cam.s,(vh/2-cam.y)/cam.s];G3.mx=c[0];G3.my=c[1];G3.on=true;G3.resize();G3.clamp();G3.texDirty=true;G3.objDirty=true;G3.armySig='';G3.armyDirty=true;G3.touch();}
+  if(on){G3.s=cam.s;const c=[(vw/2-cam.x)/cam.s,(vh/2-cam.y)/cam.s];G3.mx=c[0];G3.my=c[1];G3.on=true;G3.resize();G3.clamp();G3.texDirty=true;G3.objDirty=true;G3.armySig='';G3.armyDirty=true;G3.sgDirty=true;G3.touch();}
   else{G3.on=false;cam.s=clamp(G3.s,fitS*.85,5);cam.x=vw/2-G3.mx*cam.s;cam.y=vh/2-G3.my*cam.s;clampCam();}
   document.getElementById('gl').hidden=!G3.on;if(persist){try{localStorage.setItem('ke-3d',G3.on?'1':'0');}catch(e){}}
   G3.label();
@@ -190,6 +224,8 @@ function aSoftGL(){try{const c=document.createElement('canvas'),g=c.getContext('
  const l=g.getExtension('WEBGL_lose_context');if(l)l.loseContext();return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(r);}catch(e){return true;}}
 /** Phone-class device: small screen or coarse pointer. */
 function aMobile(){return Math.min(innerWidth,innerHeight)<700||!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);}
+/** Figures in a regiment at a level of detail (G3.lod): far 1, middle up to 4, near the full log-scaled block. */
+function aLodFig(n,lod){const f=tokFigures(n);return lod===0?1:lod===1?Math.min(4,f):f;}
 function curS(){return G3.on?G3.s:cam.s;}
 function pj(x,y,h=0){if(G3.on)return G3.proj(x,y,h);return [cam.x+x*cam.s,cam.y+y*cam.s,true];}
 function panBy(dx,dy){if(G3.on)G3.panBy(dx,dy);else{cam.x+=dx;cam.y+=dy;clampCam();}req();}
