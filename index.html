@@ -671,6 +671,25 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
   .pick .ph h2{font-size:19px}
   .pick p{font-size:14.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }
+
+/* ---------- turn flow (#hud): envoys waiting, armies awaiting orders (11g) ---------- */
+.ui-flow{position:fixed;top:calc(var(--toph,60px) + 8px);right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:min(360px,calc(100vw - 24px))}
+.ui-flow .fl{display:flex;align-items:center;gap:8px;min-height:44px;max-width:100%;padding:6px 15px 6px 12px;border-radius:24px;cursor:pointer;
+  background:var(--leather);border:1px solid var(--gold);color:#f3e3bb;font:600 14.5px/1.2 var(--body);text-align:left;box-shadow:0 6px 16px rgba(0,0,0,.42)}
+.ui-flow .fl .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui-flow .fl .ic{font-size:17px;line-height:1;color:#f0cf7a}
+.ui-flow .fl-idle{border-color:#e0795f}.ui-flow .fl-idle .ic{color:#ff9b82}
+.ui-flow .fl:hover{border-color:#f0cf7a}
+.ui-flow .fl:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#endTurn[data-idle]{position:relative}
+#endTurn[data-idle]::after{content:attr(data-idle);position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:10px;
+  background:#e35a41;color:#fff;font:700 12px/20px var(--body);text-align:center;box-shadow:0 0 0 2px #2a1a0e;pointer-events:none}
+/* aggressive expansion meter in the State Ledger */
+.ui-ae .ae-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:15px}
+.ui-ae .bar{height:10px;background:rgba(110,77,39,.16);border:1px solid #a88452;border-radius:2px;overflow:hidden}
+.ui-ae .bar i{display:block;height:100%;background:linear-gradient(90deg,#c99a3b,#8e1f14)}
+.ui-ae .hint{margin:8px 0 0;font-size:14px;color:#4a3520}
+@media (max-width:760px){.ui-flow{right:8px;top:calc(var(--toph,60px) + 6px)}.ui-flow .fl{font-size:13.5px}}
 /* language switch (00b-i18n) */
 .langsw{display:inline-flex;border:1px solid rgba(74,53,32,.45);border-radius:8px;overflow:hidden;vertical-align:middle}
 .langsw .btn{border:0;border-radius:0;min-height:44px;padding:6px 12px;font-size:14px;margin:0;background:transparent}
@@ -3307,12 +3326,15 @@ const BAL_D={
  gainNudge:40,        // per turn per unit of nudge prio
  calmTarget:6, calmW:1, // fewer wars than calmTarget in the world -> desire grows faster
  minWar:6,            // a one-sided wish for peace is heard only after this many turns of war
- warLen:14, warLenP:.15, warLongP:.4, // AI-AI wars older than warLen turns end with this chance per turn (twice as old: warLongP)
- mercyProvs:4, mercyP:.6,            // an AI lets a foe with this few provinces off (peace) with this chance
- satisfied:5, satisfiedP:.5,        // an AI ahead by this war score takes its gains and makes peace with this chance
+ firstPeace:4,        // no peace at all in the first 4 turns of a war (sieges need time); envoys to the player too
+ allyW:.8, warLoad:.5, // declaring: the target's allies count 80%, each enemy we already fight ties down half its strength of ours
+ soreTurns:12, seaMul:.5, // after ceding land no new war for 12 turns; realms reached only by sea tempt half as much
+ warLen:20, warLenP:.12, warLongP:.35, // AI-AI wars older than warLen turns end with this chance per turn (twice as old: warLongP)
+ mercyProvs:4, mercyP:.1,            // an AI lets a foe with this few provinces off (peace) with this chance
+ satisfied:8, satisfiedP:.25,       // an AI ahead by this war score takes its gains and makes peace with this chance
  bigProvs:45,                          // above this many provinces war desire shrinks (overextension)
- lastProvs:2, annexWar:6,             // a foe down to this many provinces is only finished off in a war this old
- smallProvs:3, smallMul:.4, bullyRatio:4, bullyMul:.7, // prey far weaker than us tempts less (keeps the map varied)          // desire against tiny realms grows slower (keeps the map varied)
+ lastProvs:1, annexWar:2,             // a foe down to this many provinces is only finished off in a war this old
+ smallProvs:3, smallMul:.9, bullyRatio:4, bullyMul:.7, // prey far weaker than us tempts less (keeps the map varied)          // desire against tiny realms grows slower (keeps the map varied)
  minRatio:1.15, minRatioPl:1.45, minRatioNudge:.9, rivalRatio:.4, // a burning desire lowers the ratio needed by up to rivalRatio
  reachP:.3,           // an attack from some border province must have at least this win chance
  reachPNudge:.05,     // history nudges only need a border and a sliver of a chance
@@ -3320,12 +3342,28 @@ const BAL_D={
  desireMax:300,
  maxWars:1, maxWarsBig:2, bigStr:70000,
  graceTurns:3, gracePlayer:6,
- rivalEvery:40, allyP:.03
+ rivalEvery:40, allyP:.03,
+ /* Wave 2: campaign goals, aggressive expansion (AE), coalitions, crusades, treaties */
+ goalEvery:8, goalTgt:3, siegeTgt:4, capThreat:2, // goal re-thought every 8 turns; target weights for the goal / our sieges; capital defence weight
+ goalDist:1.2, goalSiege:.8, goalLib:2, // goal cost per step of marching / per turn of siege (in "province values"); freeing our own land x2
+ aeProv:2, aeDev:.4, aeCap:6,         // AE for taking a province: 2 + 0.4 per development (+6 for a capital)
+ aeSameRel:1.5, aePeace:.8,           // x1.5 when the victim shares the conqueror's faith; cessions at the peace table count 80%
+ aeDecay:.975, aeFloor:.25,           // AE fades 2.5% plus 0.25 points every turn
+ aeOp:3,                              // neighbours of the taken province think this much less of the conqueror
+ coalAE:60, coalEnd:25, coalOp:10,    // a coalition forms above 60 AE among neighbours with opinion < 10; disbands below 25
+ coalPow:.55, coalMin:2,              // members' strength must reach 55% of the target's; at least 2 members
+ coalLock:8, coalMaxT:40, coalCd:24,  // members make no separate peace for 8 turns; a coalition lasts <= 40 turns; 24-turn cooldown
+ crusEvery:24, crusAE:30, crusCd:60, crusLen:20, // the Papacy may call a crusade every 24 turns against a Muslim realm with AE >= 30
+ peaceOcc:6, peaceOccP:.3, siegeEx:50,           // an AI holding enemy land settles after 6 turns with this chance per turn; no peace while besieging below 50 exhaustion
 };
+/* Before Track B's sieges (walls taken by assault, land changes hands at once) conquest runs much faster:
+   the Wave-1 brakes on finishing off small realms stay on. Resolved once at load (04d loads before this file). */
+const AI_SIEGES=typeof siegeAt==='function';
+if(!AI_SIEGES)Object.assign(BAL_D,{mercyP:.45,smallMul:.6,lastProvs:2,annexWar:6});
 /** Personalities: agg scales war desire, merc makes peace easier, crus = crusade caller/answerer. */
-const AI_PERS={OSM:{agg:1.5},AKK:{agg:1.3},KKY:{agg:1.3},SAF:{agg:1.5},MAM:{agg:1.1},KRM:{agg:1.2},GH:{agg:1.1},KAR:{agg:1.1},
- HUN:{agg:1.1,crus:1},POL:{agg:1,crus:.5},HAB:{agg:.9,crus:.5},PAP:{agg:.4,crus:1.5},VEN:{agg:.6,merc:1},GEN:{agg:.6,merc:1},
- ARA:{agg:.9,crus:.5},RHO:{agg:.5,crus:1},BYZ:{agg:.6},TRB:{agg:.6},CYP:{agg:.5,merc:.5}};
+const AI_PERS={OSM:{agg:1.6},AKK:{agg:1.3},KKY:{agg:1.1},SAF:{agg:1.5},MAM:{agg:.8},KRM:{agg:1.2},GH:{agg:1.1},KAR:{agg:1.1},
+ HUN:{agg:.9,crus:1},POL:{agg:1,crus:.5},HAB:{agg:.9,crus:.5},PAP:{agg:.4,crus:1.5},VEN:{agg:.6,merc:1},GEN:{agg:.6,merc:1},
+ ARA:{agg:.6,crus:.5},RHO:{agg:.5,crus:1},BYZ:{agg:.6},TRB:{agg:.6},CYP:{agg:.5,merc:.5}};
 const aiPers=f=>AI_PERS[f]||{};
 const aiState=f=>S.ai[f]||(S.ai[f]=newAi());
 /** Local attacking force f could bring against province j (field armies within 3 steps, else
@@ -3347,18 +3385,26 @@ function aiClaims(f,g){const ms=typeof MIS==='object'&&MIS[f];if(!ms)return 0;le
 /** Active nudges of f (expired ones are dropped). */
 function aiNudges(f){const A=aiState(f);if(A.nudges.length)A.nudges=A.nudges.filter(n=>n.until==null||n.until>=S.turn);return A.nudges;}
 const aiWarCount=()=>Object.keys(S.war).length;
+/** Do f and g share a land border (not only a sea lane)? */
+function aiLandBorder(f,g){for(let i=0;i<NP;i++){if(S.prov[i].o!==f)continue;for(const j of PD[i].adj)if(S.prov[j].o===g&&!PD[i].lanes.includes(j)&&!PD[j].lanes.includes(i))return true;}return false;}
+/** Occupier of province i (Track B's ctl once sieges exist, else the owner). */
+const aiCtl=i=>typeof ctl==='function'?ctl(i):(S.prov[i].ctl||S.prov[i].o);
 KE.aiWhy={cap:0,rng:0,ratio:0,reach:0,decl:0}; // why candidates above the threshold did not declare (tuning aid)
 KE.aiDecl=[]; // test log of AI declarations: {t,f,g,p,j}
 
 function aiDiplo(f){
  const my=strength(f),A=aiState(f),P=aiPers(f);
  warsOf(f).forEach(g=>{
-  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
-  else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(S.turn-S.war[key(f,g)].t>=BAL_D.minWar&&aiWantsPeace(f,g)&&R()<.25+.15*(P.merc||0)))makePeace(f,g);
+  const dur0=S.turn-S.war[key(f,g)].t;if(dur0<BAL_D.firstPeace)return;
+  if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&warScore(f,g)<=0&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
+  else if(aiCoalLock(f,g)||aiBesieging(f,g)||aiBesieging(g,f))return;
+  else if(aiWantsPeace(f,g)&&aiWantsPeace(g,f)||(S.turn-S.war[key(f,g)].t>=BAL_D.minWar&&aiWantsPeace(f,g)&&R()<.25+.15*(P.merc||0)))aiSettle(f,g);
+  else if(aiPeaceSides(f,g)[0]!==f&&aiOccupied(g,f).length)return; // nobody volunteers to cede land it still hopes to free
   else{const dur=S.turn-S.war[key(f,g)].t,ng=facProvs(g).length;
-   if(dur>=BAL_D.warLen&&R()<(dur>=2*BAL_D.warLen?BAL_D.warLongP:BAL_D.warLenP)*(1+(P.merc||0)))makePeace(f,g);
-   else if(warScore(f,g)>=BAL_D.satisfied&&R()<BAL_D.satisfiedP)makePeace(f,g);
-   else if(dur>=3&&ng<=BAL_D.mercyProvs&&warScore(f,g)>0&&R()<BAL_D.mercyP)makePeace(f,g);}
+   if(dur>=BAL_D.warLen&&R()<(dur>=2*BAL_D.warLen?BAL_D.warLongP:BAL_D.warLenP)*(1+(P.merc||0)))aiSettle(f,g);
+   else if(warScore(f,g)>=BAL_D.satisfied&&R()<BAL_D.satisfiedP)aiSettle(f,g);
+   else if(dur>=BAL_D.peaceOcc&&aiOccupied(f,g).length&&!aiSiegesOf(f,g).length&&R()<BAL_D.peaceOccP)aiSettle(f,g);
+   else if(dur>=3&&ng<=BAL_D.mercyProvs&&warScore(f,g)>0&&R()<BAL_D.mercyP)aiSettle(f,g);}
  });
  // desire bookkeeping
  const nb=new Set(nbrs(f)),D=A.desire,nud=aiNudges(f),wars=aiWarCount();
@@ -3373,22 +3419,26 @@ function aiDiplo(f){
   gain+=Math.min(3,aiClaims(f,g))*BAL_D.gainClaim;
   if(P.crus&&FAC[g].rel==='İslam'&&FAC[f].rel!=='İslam'&&warsOf(g).some(h=>FAC[h].rel!=='İslam'))gain+=BAL_D.gainCrusade*P.crus;
   if(facProvs(g).length<=BAL_D.smallProvs)gain*=BAL_D.smallMul;
+  if(gain>0&&!aiLandBorder(f,g))gain*=BAL_D.seaMul;
   if(gain>0)gain*=over;
   gain*=calm;
   if(g===S.player&&S.turn<BAL_D.gracePlayer)gain=Math.min(gain,0);
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
- if(S.turn<BAL_D.graceTurns)return;
+ if(S.turn<BAL_D.graceTurns){aiOps(f);return;}
  // declare war on the most desired reachable neighbour
  const nw0=warsOf(f).length,cap=my>BAL_D.bigStr?BAL_D.maxWarsBig:BAL_D.maxWars;
  const cands=Object.keys(D).filter(g=>D[g]>=BAL_D.thresh).sort((a,b)=>D[b]-D[a]);
- for(const g of cands){const nudged=nud.some(n=>n.war===g);if(nw0>=cap+(nudged?1:0)){KE.aiWhy.cap++;continue;}if(R()>BAL_D.declP){KE.aiWhy.rng++;break;}
-  let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*.5;});const ratio=my/Math.max(th,1);
+ const occ=cands.length&&(facProvs(f).some(i=>aiCtl(i)!==f)||(A.sore||0)>S.turn); // enemies stand in our land, or we just ceded some: no new adventures
+ const busy=warsOf(f).reduce((s,e)=>s+strength(e)*BAL_D.warLoad,0);
+ for(const g of cands){const nudged=nud.some(n=>n.war===g);if(nw0>=cap+(nudged?1:0)){KE.aiWhy.cap++;continue;}if(occ&&!nudged){KE.aiWhy.occ=(KE.aiWhy.occ||0)+1;break;}if(R()>BAL_D.declP){KE.aiWhy.rng++;break;}
+  let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*BAL_D.allyW;});const ratio=Math.max(my-busy,0)/Math.max(th,1);
   if(ratio<(nudged?BAL_D.minRatioNudge:g===S.player?BAL_D.minRatioPl:BAL_D.minRatio-BAL_D.rivalRatio*clamp((D[g]-BAL_D.thresh)/(BAL_D.desireMax-BAL_D.thresh),0,1))){KE.aiWhy.ratio++;continue;}
   const r=aiReach(f,g,nudged?BAL_D.reachPNudge:BAL_D.reachP);if(!r.ok){KE.aiWhy.reach++;continue;}KE.aiWhy.decl++;
   KE.aiDecl.push({t:S.turn,f,g,p:+r.p.toFixed(2),j:r.j,nudged});if(KE.aiDecl.length>200)KE.aiDecl.shift();
   declareWar(f,g);D[g]=0;break;}
  if(R()<BAL_D.allyP){const c=nbrs(f).concat(FK).find(g=>g!==f&&alive(g)&&g!==S.player&&!isAlly(f,g)&&!atWar(f,g)&&getOp(f,g)>=45);if(c){S.ally[key(f,c)]=true;addLog(lng(`${fname(f)} ile ${fname(c)} ittifak kurdu.`,`${fname(f)} and ${fname(c)} formed an alliance.`));}}
+ aiOps(f); // the campaign layer (05c) moves armies before Track B's armAiOps
 }
 
 /** Strategic targets of AI faction f: [{i:province,prio}] (higher prio = more attractive).
@@ -3401,20 +3451,30 @@ function aiTargets(f){const out=[],seen=new Map(),A=aiState(f),nud=aiNudges(f);
  const cnt={};for(let i=0;i<NP;i++){const o=S.prov[i].o;cnt[o]=(cnt[o]||0)+1;}
  const spare=g=>cnt[g]<=BAL_D.lastProvs&&S.turn-S.war[key(f,g)].t<BAL_D.annexWar;
  const add=(j,far)=>{const q=S.prov[j];if(spare(q.o))return;let pr=(q.dev+(S.fac[q.o].cap===j?5:0)+1)/(defPower(j,f)+800);
-  if(S.fac[q.o].cap===j)pr*=1.3;if(mis.has(j))pr*=1.4;if(nudT.has(j))pr*=1+nudT.get(j);if(A.goal&&A.goal.target===j)pr*=1.5;if(far)pr*=.5;
+  if(S.fac[q.o].cap===j)pr*=1.3;if(mis.has(j))pr*=1.4;if(nudT.has(j))pr*=1+nudT.get(j);if(A.goal&&A.goal.i===j)pr*=BAL_D.goalTgt;if(far)pr*=.5;
+  const sg=typeof siegeAt==='function'&&siegeAt(j);if(sg&&sg.f===f)pr*=BAL_D.siegeTgt; // finish what we started
+  if(A.goal&&A.goal.stage!=null&&A.goal.stage>=0&&PD[j].adj.includes(A.goal.stage))pr*=1.2;
   if(!seen.has(j)||seen.get(j).prio<pr){if(seen.has(j))seen.get(j).prio=pr;else{const e={i:j,prio:pr};seen.set(j,e);out.push(e);}}};
  for(let i=0;i<NP;i++){if(S.prov[i].o!==f)continue;
-  for(const j of PD[i].adj){const q=S.prov[j];if(q.o===f||!atWar(f,q.o))continue;add(j,false);}}
- for(const g of warsOf(f)){const c=S.fac[g].cap;if(c>=0&&S.prov[c]&&S.prov[c].o===g&&!seen.has(c))add(c,true);}
+  const c=aiCtl(i);if(c!==f&&atWar(f,c)&&!seen.has(i)){const e={i,prio:(S.prov[i].dev+(S.fac[f].cap===i?8:2))/800,own:true};seen.set(i,e);out.push(e);} // retake our occupied land
+  for(const j of PD[i].adj){const q=S.prov[j];if(q.o===f||!atWar(f,q.o)||aiCtl(j)===f)continue;add(j,false);}}
+ for(const g of warsOf(f)){const c=S.fac[g].cap;if(c>=0&&S.prov[c]&&S.prov[c].o===g&&aiCtl(c)!==f&&!seen.has(c))add(c,true);}
+ if(A.goal&&A.goal.i!=null&&S.prov[A.goal.i]&&atWar(f,S.prov[A.goal.i].o)&&aiCtl(A.goal.i)!==f&&!seen.has(A.goal.i))add(A.goal.i,true);
  for(const j of nudT.keys())if(S.prov[j]&&S.prov[j].o!==f&&atWar(f,S.prov[j].o)&&!seen.has(j))add(j,true);
  return out;}
-/** Provinces AI faction f must defend: [{i,need}] (need = troops missing, largest first). The capital
- counts double. Threat = the largest enemy force (garrison + field armies) next to the province. */
+/** Provinces AI faction f must defend: [{i,need,siege}] (need = troops missing, largest first). Threat = the
+ largest enemy field army next to the province (garrisons never attack); for the capital also two marches
+ away, and its need counts double. A city of ours under siege needs a relief army (siege:true). */
 function aiDefendNeeds(f){const out=[],en=new Set(warsOf(f));if(!en.size)return out;const cap=S.fac[f].cap;
- const armAt=new Map();if(S.armies)for(const a of S.armies)if(en.has(a.f))armAt.set(a.loc,(armAt.get(a.loc)||0)+a.n);
+ const armAt=new Map();if(S.armies)for(const a of S.armies)if(en.has(a.f)&&a.st!=='siege')armAt.set(a.loc,(armAt.get(a.loc)||0)+a.n);
+ const capNear=new Set();if(cap>=0)for(const j of PD[cap].adj){capNear.add(j);for(const k of PD[j].adj)capNear.add(k);}
  for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o!==f)continue;let th=0;
-  for(const j of PD[i].adj){const q=S.prov[j];if(!en.has(q.o)&&!armAt.has(j))continue;th=Math.max(th,(en.has(q.o)?q.t:0)+(armAt.get(j)||0));}
-  if(!th)continue;const dp=defPower(i,[...en][0]);let need=th*1.1-dp;if(i===cap)need*=2;if(need>0)out.push({i,need:Math.round(need/100)*100});}
+  for(const j of PD[i].adj)if(armAt.has(j))th=Math.max(th,armAt.get(j)); // garrisons never attack: only field armies threaten
+  if(i===cap)for(const j of capNear)if(armAt.has(j))th=Math.max(th,armAt.get(j)*.9); // an enemy army two marches from the capital
+  const sg=typeof siegeAt==='function'&&siegeAt(i);let relief=0;
+  if(sg&&en.has(sg.f)){const b=armyById(sg.a);relief=b?b.n*1.2:0;} // lift the siege of our own city
+  if(!th&&!relief)continue;const dp=defPower(i,[...en][0]);let need=Math.max(th*1.1-dp,relief);if(i===cap)need*=BAL_D.capThreat;
+  if(need>0)out.push({i,need:Math.round(need/100)*100,siege:!!relief});}
  return out.sort((a,b)=>b.need-a.need);}
 /** Push a strategic nudge to AI faction f: spec={war?:faction, target?:province, prio?:1, until?:turn}.
  A war nudge adds strong war desire against that faction every turn (still needs a reachable target);
@@ -3431,6 +3491,194 @@ hook('migrate',s=>{for(const f in s.ai)if(s.ai[f]&&!('riv' in s.ai[f]))s.ai[f].r
 /* opinions drift back toward their historical base; rivalries refresh (roundEnd slot 50) */
 hook('roundEnd',()=>{for(let a=0;a<FK.length;a++)for(let b=a+1;b<FK.length;b++){const k=key(FK[a],FK[b]),bo=baseOp(FK[a],FK[b]),v=S.op[k]||0;if(v<bo)S.op[k]=v+1;else if(v>bo)S.op[k]=v-1;}
  if(S.turn>0&&S.turn%BAL_D.rivalEvery===0)aiSeedRivals();},50);
+
+/* =====================================================================
+   WAVE 2 (Track D): treaties between AIs, campaign goals, aggressive expansion, coalitions, crusades.
+   Sieges, occupation (ctl) and the peace basket are Track B's (04d); every call is guarded so this
+   runs before and after B's merge. Assumed contract (W2 brief): basket={prov:[i],gold,release:[f]} is
+   what the LOSER gives; aiAcceptBasket(giver,taker,basket) -> bool; makePeace(a,b,terms) cedes terms.prov
+   to the side that does not own them (the occupier) and clears ctl.
+   ===================================================================== */
+/** Provinces of l that w holds under occupation (empty before B's sieges: captures change owner at once). */
+function aiOccupied(w,l){const out=[];for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===l&&p.ctl===w)out.push(i);}return out;}
+/** Sieges f is running against g's provinces. */
+function aiSiegesOf(f,g){const out=[];if(!S.sieges)return out;for(const k in S.sieges){const s=S.sieges[k],i=s&&s.i!=null?s.i:+k;if(s&&s.f===f&&S.prov[i]&&S.prov[i].o===g)out.push(s);}return out;}
+/** f keeps its sieges against g going (no peace) unless its war exhaustion is high (Track B's warEx). */
+function aiBesieging(f,g){if(!aiSiegesOf(f,g).length)return false;return !(typeof warEx==='function'&&warEx(f,g)>=BAL_D.siegeEx);}
+/** Who is winning the war between a and b: occupied land first, then war score. -> [winner, loser] */
+function aiPeaceSides(a,b){const va=aiOccupied(a,b).reduce((s,i)=>s+S.prov[i].dev+1,0),vb=aiOccupied(b,a).reduce((s,i)=>s+S.prov[i].dev+1,0);
+ if(va!==vb)return va>vb?[a,b]:[b,a];return warScore(a,b)>=0?[a,b]:[b,a];}
+/** The winner's demand: every province it occupies (richest first), or some gold if it holds none. */
+function aiTreatyBasket(w,l){const prov=aiOccupied(w,l).sort((x,y)=>S.prov[y].dev-S.prov[x].dev);
+ const gold=prov.length?0:Math.max(0,Math.min(Math.floor(S.fac[l].gold*.5),Math.max(0,warScore(w,l))*15));
+ return {prov,gold,release:[]};}
+/** Make peace between two AIs on the best terms the loser accepts (Track B's peace table when present,
+ a plain peace otherwise). -> the basket used, or null for a plain peace. */
+function aiSettle(a,b){
+ if(typeof aiAcceptBasket!=='function'||typeof peaceValue!=='function'){makePeace(a,b);return null;}
+ const [w,l]=aiPeaceSides(a,b),bk=aiTreatyBasket(w,l);
+ for(let g=0;g<40;g++){if(!bk.prov.length&&!bk.gold)break;
+  let ok=false;try{ok=aiAcceptBasket(l,w,bk);}catch(e){console.error('aiAcceptBasket',e);break;}
+  if(ok){makePeace(w,l,bk);return bk;}
+  if(bk.prov.length)bk.prov.pop();else bk.gold=0;}
+ makePeace(a,b,{prov:[],gold:0,release:[]});return null;}
+
+/* ---------- aggressive expansion (S.ae[f] points) ---------- */
+const aeOf=f=>(S.ae&&S.ae[f])||0;
+let aiAeSeen=new Set(); // province+taker already counted this turn (capture and peace cession of the same land)
+/** f took province i from g: the world grows wary. Same faith as the victim counts 1.5x; a capital more. */
+function aiAeAdd(f,i,g,mul=1){if(!S.ae||!f||!g||f===g||!S.fac[f])return;const k=S.turn+':'+i+':'+f;if(aiAeSeen.has(k))return;aiAeSeen.add(k);
+ const p=S.prov[i];let v=(BAL_D.aeProv+p.dev*BAL_D.aeDev+(S.fac[g]&&S.fac[g].cap===i?BAL_D.aeCap:0))*mul;
+ if(FAC[f].rel&&FAC[f].rel===FAC[g].rel)v*=BAL_D.aeSameRel;
+ S.ae[f]=Math.round(((S.ae[f]||0)+v)*10)/10;
+ const seen=new Set([f]);for(const j of PD[i].adj){const o=S.prov[j].o;if(seen.has(o))continue;seen.add(o);if(alive(o))addOp(o,f,-BAL_D.aeOp);}}
+hook('capture',(i,f,old)=>{if(old&&old!==f)aiAeAdd(f,i,old);},60);
+hook('peace',(a,b,t)=>{if(t&&t.giver&&t.prov&&t.prov.length&&S.ai&&S.ai[t.giver])aiState(t.giver).sore=S.turn+BAL_D.soreTurns;
+ if(!t||!Array.isArray(t.prov))return;for(const i of t.prov){const o=S.prov[i].o,g=o===a?b:a;if(o!==g)aiAeAdd(o,i,g,BAL_D.aePeace);}},60);
+hook('turnStart',()=>{aiAeSeen=new Set();});
+
+/* ---------- coalitions: S.coal[target]={t,m:[members],war,cd} (m empty = only a cooldown is kept) ---------- */
+const aiCoal=f=>S.coal&&S.coal[f]&&S.coal[f].m&&S.coal[f].m.length?S.coal[f]:null;
+/** Coalition members stay in the war together for the first coalLock turns. */
+function aiCoalLock(a,b){for(const [t,m] of [[a,b],[b,a]]){const C=aiCoal(t);if(C&&C.m.includes(m)&&S.turn-C.t<BAL_D.coalLock)return true;}return false;}
+function aiCoalitions(){if(!S.coal)return;
+ for(const f of FK){const C=S.coal[f];
+  if(C&&C.m&&C.m.length){C.m=C.m.filter(g=>alive(g));
+   if(!alive(f)||!C.m.length||(aeOf(f)<BAL_D.coalEnd&&!C.m.some(g=>atWar(g,f)))||S.turn-C.t>BAL_D.coalMaxT){
+    const inv=f===S.player;S.coal[f]={t:C.t,m:[],war:false,cd:S.turn+BAL_D.coalCd};
+    if(alive(f)){const msg=lng(`${fname(f)} karşıtı koalisyon dağıldı.`,`The coalition against ${fname(f)} has broken up.`);inv?news(msg,'good'):addLog(msg);}}
+   continue;}
+  if(!alive(f)||aeOf(f)<BAL_D.coalAE||(C&&C.cd>S.turn))continue;
+  const nb=new Set(nbrs(f)),my=strength(f);
+  const cands=FK.filter(g=>g!==f&&g!==S.player&&alive(g)&&(nb.has(g)||atWar(g,f))&&!isAlly(g,f)&&!(inTruce(g,f)&&!atWar(g,f))&&getOp(g,f)<BAL_D.coalOp)
+   .sort((x,y)=>strength(y)-strength(x));
+  const pow=cands.reduce((s,g)=>s+strength(g),0);
+  if(cands.length<BAL_D.coalMin||pow<my*BAL_D.coalPow)continue;
+  S.coal[f]={t:S.turn,m:cands,war:true,cd:0};
+  for(const g of cands){if(!atWar(g,f))declareWar(g,f);aiState(g).goal=null;}
+  const names=cands.map(fname).join(', ');
+  const msg=f===S.player?lng(`Koalisyon! ${names} yayılmandan korkup sana karşı birleşti ve savaş ilan etti.`,`Coalition! Fearing your expansion, ${names} have joined forces and declared war on you.`)
+   :lng(`${fname(f)} karşısında koalisyon: ${names} birlikte savaş ilan etti.`,`Coalition against ${fname(f)}: ${names} declared war together.`);
+  if(f===S.player){news(msg,'war');toast(msg,'war');}else addLog(msg,'war');
+  runHooks('coalition',f,cands);}}
+
+/* ---------- the Papacy's crusade call: S.d.crus={t,target,cd} ---------- */
+const aiChristian=g=>FAC[g].rel==='Katolik'||FAC[g].rel==='Ortodoks';
+function aiCrusade(){const d=S.d;if(!d||!alive('PAP')||S.turn<8)return;if(d.crus&&d.crus.cd>S.turn)return;
+ const cand=FK.filter(m=>alive(m)&&FAC[m].rel==='İslam'&&aeOf(m)>=BAL_D.crusAE&&nbrs(m).some(aiChristian)).sort((x,y)=>aeOf(y)-aeOf(x))[0];if(!cand)return;
+ d.crus={t:S.turn,target:cand,cd:S.turn+BAL_D.crusCd};const ans=[];
+ for(const g of FK){if(g===S.player||!alive(g)||!aiChristian(g)||isAlly(g,cand)||inTruce(g,cand))continue;const P=aiPers(g);
+  const near=nbrs(g).includes(cand);if(!near&&!(P.crus>0))continue;
+  aiNudge(g,{war:cand,prio:near?1:.5*(P.crus||1),until:S.turn+BAL_D.crusLen,why:'crusade'});ans.push(g);}
+ const msg=lng(`Papa, ${fname(cand)} karşısında Haçlı Seferi çağrısı yaptı. ${ans.length} Hristiyan devlet çağrıya kulak veriyor.`,`The Pope has called a crusade against ${fname(cand)}. ${ans.length} Christian realms heed the call.`);
+ (cand===S.player||(S.player&&aiChristian(S.player)))?news(msg,'war'):addLog(msg,'war');
+ if(cand===S.player)toast(msg,'war');
+ runHooks('crusade',cand,ans);}
+hook('roundEnd',()=>{if(S.turn%2===0)aiCoalitions();if(S.turn>0&&S.turn%BAL_D.crusEvery===0)aiCrusade();
+ if(S.ae)for(const f in S.ae){const v=S.ae[f]*BAL_D.aeDecay-BAL_D.aeFloor;if(v<=0||!alive(f))delete S.ae[f];else S.ae[f]=Math.round(v*10)/10;}},55);
+
+/* ---------- campaign goal: S.ai[f].goal={g,i,stage,t,prep} ---------- */
+/** Choose f's campaign: the enemy province worth most for its cost (march distance, walls, siege time).
+ At peace, the best province of the most desired neighbour becomes a staging plan (prep:true). */
+function aiPickGoal(f){const A=aiState(f),en=warsOf(f);let foes=en,prep=false;
+ if(!foes.length){const D=A.desire||{},g=Object.keys(D).filter(x=>alive(x)&&D[x]>=BAL_D.thresh*.6).sort((x,y)=>D[y]-D[x])[0];if(!g)return null;foes=[g];prep=true;}
+ const fs=new Set(foes),arm=S.armies?armyList(f).sort((x,y)=>y.n-x.n)[0]:null,from=arm?arm.loc:S.fac[f].cap;if(from==null||from<0)return null;
+ const dist=armDistFrom(from);
+ const mis=new Set();const ms=typeof MIS==='object'&&MIS[f];if(ms)for(const m of ms)for(const k of (m.own||[])){const i=PK[k];if(i!=null)mis.add(i);}
+ const nudT=new Map();for(const n of aiNudges(f))if(n.target!=null)nudT.set(n.target,(nudT.get(n.target)||0)+(n.prio||1));
+ let best=null,bs=0;
+ for(let j=0;j<NP;j++){const q=S.prov[j],lib=q.o===f&&fs.has(aiCtl(j));if(!(fs.has(q.o)||lib)||aiCtl(j)===f||dist[j]<0)continue;
+  let stage=-1,sd=1e9;for(const i of PD[j].adj)if(S.prov[i].o===f&&aiCtl(i)===f&&dist[i]>=0&&dist[i]<sd){sd=dist[i];stage=i;}
+  if(stage<0&&prep)continue;const g0=lib?aiCtl(j):q.o;
+  const cap=S.fac[q.o].cap===j,v=(q.dev+1+(cap?6:0)+(mis.has(j)?3:0)+(nudT.get(j)||0)*4)*(lib?BAL_D.goalLib:1);
+  const turns=typeof siegeNeed==='function'&&q.fort>0?siegeNeed(j,f):0;
+  const cost=1+defPower(j,f)/4000+dist[j]*BAL_D.goalDist/2+turns*BAL_D.goalSiege;
+  const sc=v/cost;if(sc>bs){bs=sc;best={g:g0,i:j,stage,t:S.turn,prep,lib};}}
+ return best;}
+/** Current goal of f, re-evaluated every goalEvery turns or when it no longer fits the wars. */
+function aiGoal(f){const A=aiState(f),G=A.goal;
+ const bad=!G||G.i==null||S.turn-G.t>=BAL_D.goalEvery||!S.prov[G.i]||aiCtl(G.i)===f||(G.lib?aiCtl(G.i)!==G.g:S.prov[G.i].o!==G.g)||!alive(G.g)||(G.prep?warsOf(f).length>0:!atWar(f,G.g));
+ if(bad)A.goal=aiPickGoal(f);return A.goal;}
+KE.aiGoal=f=>aiGoal(f);KE.aiCoal=()=>S.coal;KE.aiAE=()=>S.ae;
+
+/* schema (Track D): S.ae {f:points}, S.coal {f:{t,m,war,cd}}, S.d {crus:null|{t,target,cd}} */
+hook('newGame',S=>{if(!S.ae)S.ae={};if(!S.coal)S.coal={};if(!S.d)S.d={crus:null};},25);
+hook('migrate',s=>{if(!s.ae||typeof s.ae!=='object')s.ae={};if(!s.coal||typeof s.coal!=='object')s.coal={};if(!s.d||typeof s.d!=='object')s.d={crus:null};if(!('crus' in s.d))s.d.crus=null;},55);
+/* =====================================================================
+   AI OPERATIONS (Track D, Wave 2): the campaign layer on top of Track B's army moves.
+   Runs from aiDiplo(f) at the start of aiTurn(f), so Track B's armAiOps (05a) only handles the armies
+   this layer leaves free. Per AI faction:
+    1. treasury plan: a rich treasury is spent on markets, development, barracks and border walls;
+    2. defence: an army marches home when the capital (or a besieged city) needs it;
+    3. campaign: every other army gathers at the goal's staging province (aiGoal, 05b), armies that
+       meet merge, and the gathered army strikes (assault, or siege once Track B's sieges exist) when
+       it is strong enough; armies waiting for a partner hold their ground (mp spent, no rule bent).
+   At peace a goal with prep:true moves the main army to the border it will attack from.
+   Armies that are besieging (st 'siege') are never touched: the siege is Track B's.
+   ===================================================================== */
+const BAL_O={
+ rich:700, keep:450,       // a treasury above 700 gold is spent down to 450
+ devMax:12, fortMax:3,     // development cap (same as the player's), border walls raised to 3
+ attackP:.55,              // an assault needs this win chance (Track B's own AI uses .6)
+ siegeRatio:1.5, siegeMin:3000, // a siege needs this multiple of the garrison, and at least 3,000 men
+ joinReach:4,              // a partner army this many marches away is worth waiting for
+ guardShare:.35,           // an army is sent home when the capital needs more than 35% of it
+ moves:true,               // campaign moves on (off: only the treasury plan runs; tuning aid)
+};
+/** Is army a besieging (Track B)? */
+function aiOpBusy(a){if(a.st==='siege')return true;const s=typeof siegeAt==='function'&&siegeAt(a.loc);return !!(s&&s.a===a.id);}
+/** Move army a toward province `to` along its reach tree as far as it can this season, never ending on hostile ground. */
+function aiOpStep(a,R0,to){if(to==null||to<0||R0.dist[to]<=0)return false;const path=armPathFrom(R0,to);if(!path)return false;
+ const steps=R0.term[to]?path.slice(0,-1):path,k=Math.min(a.mp,steps.length);if(k<=0)return false;return armyMove(a.id,steps[k-1]).kind==='move';}
+/** Can army a strike province t from where it stands (t is a terminal step within its reach this season)? -> 'siege'|'assault'|'' */
+function aiOpStrike(f,a,R0,t){const d=R0.dist[t];if(d<=0||d>a.mp||!R0.term[t])return '';
+ const foes=armFoesAt(t,f),p=S.prov[t];
+ if(!foes.length&&p.fort>0&&typeof siegeAt==='function'&&typeof siegeNeed==='function'){ // Track B: walls are besieged, not stormed
+  let near=0;for(const j of PD[t].adj)for(const b of armFoesAt(j,f))near+=b.n;
+  return a.n>=Math.max(BAL_O.siegeMin,p.t*BAL_O.siegeRatio)&&a.n>=near*.9?'siege':'';}
+ return battleOdds({att:f,to:t,army:a}).p>=BAL_O.attackP?'assault':'';}
+/** Spend a rich treasury the way a player would: markets, then development, barracks and walls on the border. */
+function aiOpSpend(f){const F=S.fac[f];if(F.gold<=BAL_O.rich)return;const mine=facProvs(f);if(!mine.length)return;
+ const border=mine.filter(i=>PD[i].adj.some(j=>S.prov[j].o!==f));
+ for(let g=0;g<24&&F.gold>BAL_O.keep;g++){
+  const mk=mine.filter(i=>!S.prov[i].mkt).sort((x,y)=>S.prov[y].dev-S.prov[x].dev)[0];
+  if(mk!=null&&F.gold-60>=BAL_O.keep){S.prov[mk].mkt=1;F.gold-=60;continue;}
+  const bk=border.filter(i=>!S.prov[i].brk).sort((x,y)=>S.prov[y].dev-S.prov[x].dev)[0];
+  if(bk!=null&&F.gold-50>=BAL_O.keep&&R()<.3){S.prov[bk].brk=1;F.gold-=50;continue;}
+  const ft=border.filter(i=>S.prov[i].fort<BAL_O.fortMax).sort((x,y)=>S.prov[y].dev-S.prov[x].dev)[0];
+  if(ft!=null&&R()<.3){const c=40*(S.prov[ft].fort+1);if(F.gold-c>=BAL_O.keep){S.prov[ft].fort++;F.gold-=c;continue;}}
+  const dv=mine.filter(i=>S.prov[i].dev<BAL_O.devMax&&!(S.prov[i].un>0)).sort((x,y)=>S.prov[x].dev-S.prov[y].dev||y-x)[0];
+  if(dv==null)break;const c=25*S.prov[dv].dev;if(F.gold-c<BAL_O.keep)break;S.prov[dv].dev++;F.gold-=c;}}
+function aiOps(f){if(!S||!alive(f))return;
+ aiOpSpend(f);
+ if(!S.armies||!BAL_O.moves)return;
+ const G=aiGoal(f);let L=armyList(f).filter(a=>a.mp>0&&!aiOpBusy(a)).sort((x,y)=>y.n-x.n);if(!L.length)return;
+ const used=new Set();
+ // defence: the capital (or one of our besieged cities) first
+ const nd=(aiDefendNeeds(f)||[]).find(n=>n.i===S.fac[f].cap||n.siege);
+ if(nd){let best=null,bd=1e9,bR=null;
+  for(const a of L){if(nd.need<a.n*BAL_O.guardShare&&a!==L[0])continue;const R0=armReach(a),d=a.loc===nd.i?0:R0.dist[nd.i];if(d>=0&&d<bd){bd=d;best=a;bR=R0;}}
+  if(best){used.add(best.id);if(bd===0)best.mp=0;else if(bR.term[nd.i]){if(best.mp>=bd)armyMove(best.id,nd.i);}else aiOpStep(best,bR,nd.i);}}
+ if(!G)return;
+ const t=G.i,stage=G.stage;
+ L=L.filter(a=>!used.has(a.id)&&armyById(a.id));if(!L.length)return;
+ if(G.prep){const a=L[0];if(stage>=0&&a.loc!==stage){const R0=armReach(a);aiOpStep(a,R0,stage);}return;}
+ const reach=new Map(L.map(a=>[a.id,armReach(a)]));
+ // 1) strike the goal with the largest army that can
+ for(const a of L){const k=aiOpStrike(f,a,reach.get(a.id),t);if(k){used.add(a.id);armyMove(a.id,t);G.hit=S.turn;break;}}
+ // 2) an army that can strike some other target this season is left to Track B's opportunistic AI
+ const tg=(aiTargets(f)||[]).filter(x=>x.i!==t);
+ L=L.filter(a=>!used.has(a.id)&&armyById(a.id)&&!tg.some(x=>aiOpStrike(f,a,reach.get(a.id),x.i)));if(!L.length)return;
+ // 3) the rest gathers at the staging province; an army there waits for a partner on its way
+ const meet=stage>=0&&S.prov[stage].o===f?stage:L[0].loc;
+ for(const a of L){const R0=reach.get(a.id);if(a.loc!==meet){if(R0.dist[meet]>0)aiOpStep(a,R0,meet);continue;}
+  const coming=L.some(b=>b!==a&&armyById(b.id)&&b.loc!==meet&&(d=>d>0&&d<=BAL_O.joinReach*b.mpMax)(reach.get(b.id).dist[meet]));
+  if(coming)a.mp=0;}
+ // 4) armies standing together merge (Track B's stack limit); the gathered army may strike at once
+ const here=armyList(f).filter(a=>a.loc===meet&&!aiOpBusy(a)).sort((x,y)=>y.n-x.n);
+ for(let k=1;k<here.length;k++)if(armyById(here[0].id)&&armyById(here[k].id)&&here[0].n+here[k].n<=BAL_B.aiMaxStack)armyMerge(here[0],here[k]);
+ const m=here[0];if(m&&armyById(m.id)&&m.mp>0&&aiOpStrike(f,m,armReach(m),t)){armyMove(m.id,t);G.hit=S.turn;}}
+KE.aiOps=f=>aiOps(f);KE.BAL_O=BAL_O;KE.BAL_D=BAL_D;
 /* =====================================================================
    TURN FLOW (frozen core pipeline; only the orchestrator edits this file)
    endTurn: turnStart -> [preAI(f), aiTurn(f)] for every AI in random order -> endRound
@@ -5128,7 +5376,7 @@ PANEL_SECTIONS.push({id:'advisor',order:90,when:c=>c.tgt<0&&c.mine&&uiAdvOn,html
 KE.uiAdvice=()=>{const r=uiAdvPick();return r?r.a.id:null;};
 /* =====================================================================
    TUTORIAL ENGINE (Track D): coach marks driven by TUT_STEPS, state in S.tut={step,done,off}.
-   Step: {id, text, sel?:'css selector' | at?():[screenX,screenY] (map point), done(S,x):bool,
+   Step: {id, text, sel?:'css selector' | at?():[screenX,screenY] (map point), done(S,x):bool, only?(S):bool (realm filter),
           need?(S):null|{text,sel?,at?} (what to show while the step's context is missing),
           panel?:true (target lives in the province sheet: open it far enough to be seen)}
    x = {seen:Set of data-acts clicked this session, turn0: S.turn when the step became current}.
@@ -5139,26 +5387,68 @@ const tutSeen=new Set();let tutTurn0=null,tutIdx=-1,tutTimer=0,tutKey='';
 const tutCap=()=>S.fac[S.player].cap;
 const tutAtProv=i=>()=>{const d=PD[i];const p=pj(d.lx,d.ly);return p[2]===false?null:[p[0],p[1]];};
 const tutOwnSel=()=>sel>=0&&S.prov[sel]&&S.prov[sel].o===S.player;
+const tutOsm=S=>S.player==='OSM';
+const tutNotOsm=S=>S.player!=='OSM';
 TUT_STEPS.push(
- {id:'select',text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
+ {id:'select',only:tutNotOsm,text:lng('Hoş geldin Sultanım. Önce başkentine dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my lord. First, tap your capital: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
   done:()=>tutOwnSel()},
- {id:'recruit',panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
+ {id:'recruit',only:tutNotOsm,panel:true,sel:'#panel [data-act="rec1"]',text:lng('Buradan asker toplarsın. Her 1.000 asker biraz altın ve insan gücü ister. Şimdi bir alay topla.','Here you raise troops. Every thousand men costs some gold and manpower. Raise a regiment now.'),
   need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
   done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
- {id:'diplo',sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
+ {id:'diplo',only:tutNotOsm,sel:'#navTabs [data-act="diplo"]',text:lng('Divan-ı Hümayun: savaş ilan eder, barış ister, ittifak kurarsın. Bir göz at.','The Imperial Divan: here you declare war, sue for peace and make alliances. Take a look.'),
   done:(S,x)=>x.seen.has('diplo')},
- {id:'end',sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
+ {id:'end',only:tutNotOsm,sel:'#endTurn',text:lng('Hazırsan turu bitir. Diğer devletler hamlelerini yapar, mevsim değişir ve vezirin sana raporunu sunar.','When you are ready, end the turn. The other realms make their moves, the season changes and your vizier brings you his report.'),
   done:(S,x)=>S.turn>x.turn0}
 );
+/* ---------- "Fetih": the Ottoman lesson, from Edirne to the peace table (about six seasons) ---------- */
+const tutIst=()=>PK.istanbul;
+const tutBy='BYZ';
+/** The Ottoman army to guide: the selected one, else the one closest to Constantinople (then the largest). */
+function tutArmy(){const L=S.armies?S.armies.filter(a=>a.f===S.player&&a.st!=='siege'):[];const s=selArmy!=null&&L.find(a=>a.id===selArmy);if(s)return s;
+ const d=a=>{const p=armyPath(a.id,tutIst());return p?p.length:99;};return L.sort((x,y)=>d(x)-d(y)||y.n-x.n)[0]||null;}
+const tutArmySel=()=>{const a=selArmy!=null&&armyById(selArmy);return !!(a&&a.f===S.player);};
+/** One of our armies stands next to (or inside) Constantinople. */
+const tutAtWalls=()=>{const i=tutIst();return !!(S.armies&&S.armies.some(a=>a.f===S.player&&(a.loc===i||PD[i].adj.includes(a.loc))));};
+/** The siege of Constantinople has begun (Track B), or the city was attacked or taken (before sieges existed). */
+const tutSieged=()=>{const i=tutIst(),sg=typeof siegeAt==='function'&&siegeAt(i),c=S.prov[i].ctl||S.prov[i].o;
+ return !!(sg&&sg.f===S.player)||c===S.player||S.battles.some(b=>b.att===S.player&&b.to===i);};
+/** Next stop of our army on the road to Constantinople this season (the city itself when it is in reach). */
+function tutWaypoint(){const a=tutArmy(),i=tutIst();if(!a)return i;const p=armyPath(a.id,i);if(!p||!p.length)return i;return p[Math.max(0,Math.min(a.mp||0,p.length)-1)];}
+/** Shared hints: select an army first; an army that has marched waits for the next season. */
+function tutArmyNeed(){if(!tutArmySel())return {text:lng('Önce ordunu seç (halka şehre en yakın orduyu gösteriyor): haritadaki sancağına ya da eyaletin panelindeki orduya dokun.','First select your army (the ring shows the one closest to the city): tap its banner on the map, or the army in the province panel.'),at:()=>{const a=tutArmy();return a?tutAtProv(a.loc)():null;}};
+ const a=armyById(selArmy);if(a&&a.mp<=0&&a.st!=='siege')return {text:lng('Bu ordu bu mevsimlik yolunu yürüdü. Turu bitir; yeni mevsimde yürüyüşe devam eder.','This army has marched as far as it can this season. End the turn; it marches on in the new season.'),sel:'#endTurn'};
+ return null;}
+TUT_STEPS.push(
+ {id:'f-select',only:tutOsm,text:lng('Hoş geldin Sultanım. Yıl 1451, taht Edirne\'de. Önce başkentin Edirne\'ye dokun: eyaletin bilgileri ve emirlerin açılır.','Welcome, my Sultan. The year is 1451 and the throne stands in Adrianople. First tap your capital, Adrianople: its details and your orders will open.'),at:()=>tutAtProv(tutCap())(),
+  done:()=>tutOwnSel()},
+ {id:'f-recruit',only:tutOsm,panel:true,sel:'#panel [data-act="rec1"]',text:lng('Konstantiniyye surları büyük bir ordu ister. Buradan asker topla: yeni alaylar bu eyaletteki orduya katılır.','The walls of Constantinople call for a great army. Raise troops here: new regiments join the army standing in this province.'),
+  need:()=>tutOwnSel()?null:{text:lng('Asker toplamak için kendi eyaletlerinden birine dokun.','To raise troops, tap one of your own provinces.'),at:tutAtProv(tutCap())},
+  done:(S,x)=>x.seen.has('rec1')||x.seen.has('rec5')},
+ {id:'f-war',only:tutOsm,panel:true,sel:'#panel [data-act="dwar"]',text:lng('Şimdi Bizans\'a savaş ilan et. Emin misin diye sorarım: düğmeye iki kez bas.','Now declare war on Byzantium. I will ask whether you are sure: press the button twice.'),
+  need:()=>sel===tutIst()?null:{text:lng('Konstantiniyye\'ye dokun: Bizans\'ın başkenti ve bin yıllık surları orada.','Tap Constantinople: the capital of Byzantium and its thousand-year-old walls are there.'),at:()=>tutAtProv(tutIst())()},
+  done:()=>atWar(S.player,tutBy)||!alive(tutBy)},
+ {id:'f-march',only:tutOsm,text:lng('Ordunu surlara yürüt: halkadaki eyalete dokun, sonra paneldeki Yürü düğmesine bas. Düşman toprağına giren ordu o mevsim orada durur.','March your army to the walls: tap the province in the ring, then press March in the panel. An army that enters enemy land stops there for the season.'),
+  at:()=>tutAtProv(tutWaypoint())(),need:()=>tutArmyNeed(),
+  done:()=>tutAtWalls()||tutSieged()||!alive(tutBy)},
+ {id:'f-siege',only:tutOsm,text:lng('Konstantiniyye\'ye dokun ve Kuşat\'a bas. Ordun şehrin önüne kamp kurar; surlar her mevsim biraz daha yıkılır.','Tap Constantinople and press Besiege. Your army camps before the city, and every season the walls crumble a little more.'),
+  at:()=>tutAtProv(tutIst())(),need:()=>tutArmyNeed(),
+  done:()=>tutSieged()||!alive(tutBy)},
+ {id:'f-hold',only:tutOsm,sel:'#endTurn',text:lng('Kuşatma sürüyor. Şehrin üstündeki halka dolunca surlar düşer ve şehir senin işgaline girer. Toplar işi hızlandırır; kışın ise ordu hastalıktan erir. Turu bitir ve sabret.','The siege goes on. When the ring over the city fills, the walls fall and the city is yours to occupy. Cannon speed the work; in winter the army wastes away from sickness. End the turn and be patient.'),
+  done:(S,x)=>S.turn>=x.turn0+2||!atWar(S.player,tutBy)||(S.prov[tutIst()].ctl||S.prov[tutIst()].o)===S.player},
+ {id:'f-peace',only:tutOsm,sel:'#navTabs [data-act="diplo"]',text:lng('Savaş ancak barışla kazanılır: işgal ettiğin topraklar, barış masasında istersen senin olur. Divan\'ı aç ve Bizans\'la barış masasına otur.','A war is only won at the peace: the lands you occupy become yours if you demand them at the peace table. Open the Divan and sit down with Byzantium.'),
+  done:(S,x)=>x.seen.has('pt-send')||x.seen.has('dp-peace')||!atWar(S.player,tutBy)}
+);
+/** The lessons of this game: the steps whose `only` filter fits the player's realm. */
+function tutList(){return TUT_STEPS.filter(st=>!st.only||st.only(S));}
 function tutActive(){return !!(S&&S.player&&S.tut&&!S.tut.done&&!S.tut.off&&!S.over);}
 const tutFinished=()=>{try{return localStorage.getItem('ke-tut')==='done';}catch(e){return false;}};
 const tutRemember=()=>{try{localStorage.setItem('ke-tut','done');}catch(e){}};
 hook('newGame',(S,player)=>{if(player)S.tut=tutFinished()?null:{step:0,done:false,off:false};},60);
 /** Advance past every finished step; returns the current step or null. */
-function tutStep(){if(!tutActive())return null;
- for(let g=0;g<TUT_STEPS.length+1;g++){const k=S.tut.step;if(k>=TUT_STEPS.length){S.tut.done=true;tutRemember();tutIdx=-1;
+function tutStep(){if(!tutActive())return null;const TL=tutList();
+ for(let g=0;g<TL.length+1;g++){const k=S.tut.step;if(k>=TL.length){S.tut.done=true;tutRemember();tutIdx=-1;
    toast(lng('Vezir: İlk dersler tamam. Bundan sonrası senin hikmetine kalmış; yardım gerekirse Rehber\'e bak.','Vizier: The first lessons are done. The rest is left to your wisdom; if you need help, look in the Guide.'),'good');SND.play('coin');return null;}
-  const st=TUT_STEPS[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
+  const st=TL[k];if(tutIdx!==k){tutIdx=k;tutTurn0=S.turn;tutKey='';}
   let ok=false;try{ok=!!st.done(S,{seen:tutSeen,turn0:tutTurn0});}catch(e){console.error('tut '+st.id,e);ok=true;}
   if(!ok)return st;S.tut.step=k+1;}
  return null;}
@@ -5176,7 +5466,7 @@ function tutRender(){const ring=$('#tutRing'),bub=$('#tutBub');if(!ring)return;
    if(tutKey!==st.id&&(er.bottom>pr.bottom-4||er.top<pr.top)){tutKey=st.id;if(uiSheetCur==='peek')uiSheetSet('half');el.scrollIntoView({block:'nearest'});}}
   r=tutVisible(el);}
  else if(at){pt=at();if(pt&&(pt[0]<0||pt[1]<topH()||pt[0]>innerWidth||pt[1]>innerHeight))pt=null;if(pt)r={left:pt[0]-24,top:pt[1]-24,width:48,height:48,right:pt[0]+24,bottom:pt[1]+24};}
- const k=TUT_STEPS.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TUT_STEPS.length}`,`The Vizier's lesson · ${k+1} / ${TUT_STEPS.length}`);bub.querySelector('.tut-t').textContent=text;
+ const TL=tutList(),k=TL.indexOf(st);bub.querySelector('.tut-e').textContent=lng(`Vezirin dersi · ${k+1} / ${TL.length}`,`The Vizier's lesson · ${k+1} / ${TL.length}`);bub.querySelector('.tut-t').textContent=text;
  bub.hidden=false;bub.dataset.step=st.id;
  if(r){const pad=pt?0:5;ring.hidden=false;ring.classList.toggle('dot',!!pt);Object.assign(ring.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+2*pad+'px',height:r.height+2*pad+'px'});}
  else ring.hidden=true;
@@ -5197,7 +5487,7 @@ new MutationObserver(()=>{if(tutActive())tutRender();}).observe($('#modal'),{att
 ACTS['tut-skip']=()=>{if(S&&S.tut){S.tut.off=true;}tutRemember();tutStop();toast(lng('Dersler kapandı. Menüden yeniden başlatabilirsin.','Lessons turned off. You can restart them from the Menu.'));if(typeof uiAdvRender==='function')uiAdvRender();save();};
 ACTS['tut-restart']=()=>{S.tut={step:0,done:false,off:false};tutIdx=-1;tutSeen.clear();closeModal();try{localStorage.removeItem('ke-tut');}catch(e){}renderAll();};
 MENU_SECTIONS.push({id:'tutorial',order:30,html:()=>`<div class="sec"><h3>${lng('Vezirin dersleri',"The Vizier's lessons")}</h3><div class="acts">${tutActive()?`<button class="btn" data-act="tut-skip">${lng('Dersi geç','Skip lesson')}</button>`:`<button class="btn" data-act="tut-restart">${lng('Dersleri baştan başlat','Restart the lessons')}</button>`}</div></div>`});
-KE.tut=()=>{const st=tutActive()?TUT_STEPS[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null};};
+KE.tut=()=>{const TL=S&&S.player?tutList():[],st=tutActive()?TL[S.tut.step]:null;return {active:tutActive(),step:S&&S.tut?S.tut.step:null,id:st?st.id:null,n:TL.length};};
 /* =====================================================================
    TOP-BAR SHORTCUTS: tap "Ordu" to jump from army to army, "Eyalet" from province to province (capital
    first, then the richest). Each tap centres the map there and opens its panel, so a last forgotten island
@@ -5218,6 +5508,73 @@ ACTS['cyc-army']=()=>{if(!S||!S.player)return;const L0=cycArmyList(S.player);
 QUIET.add('cyc-prov');QUIET.add('cyc-army');
 hook('enterGame',()=>{cycArmy=-1;cycProv=-1;});
 KE.cyc=()=>({army:selArmy,prov:sel});
+/* =====================================================================
+   TURN FLOW (Track D, Wave 2): what still waits for the player before the season ends.
+   - "Emir bekleyen ordular": at war, armies that have not marched this season and are not besieging.
+     A chip under the top bar counts them; each tap jumps to the next one. The End Turn button shows the count.
+     Never blocks the turn (the treasury double-tap in 11-ui-core stays the only confirm).
+   - "Elçiler": envoys waiting with a peace offer (S.offers, Track B keeps them 2 turns). Tap -> the report.
+   - Aggressive expansion (AE, 05b): the realm's standing in the State Ledger, the neighbours' fear in the
+     Divan rows, and two vizier counsels (fear rising, coalition formed).
+   ===================================================================== */
+const uiFlowCfg={aeWarn:35,aeCoal:60};
+let uiFlowIdx=0;
+/** Armies of f waiting for orders while at war: not moved this season, not besieging, not empty. */
+function uiIdleArmies(f){if(!S||!S.armies||!warsOf(f).length)return [];
+ return S.armies.filter(a=>a.f===f&&a.st!=='siege'&&a.n>=500&&a.mp>0&&a.mp>=(a.mpMax||BAL_B.mpMax)).sort((x,y)=>y.n-x.n);}
+/** Envoys still waiting (Track B drops them after two turns). */
+function uiInbox(){if(!S||!S.offers)return [];return S.offers.filter(o=>typeof offerOk!=='function'||offerOk(o));}
+(()=>{const h=$('#hud');if(!h)return;h.insertAdjacentHTML('beforeend',`<div id="uiFlow" class="ui-flow" hidden>
+ <button class="fl fl-inbox" data-act="ui-inbox" hidden><span class="ic" aria-hidden="true">✉</span><span class="t"></span></button>
+ <button class="fl fl-idle" data-act="ui-idle" hidden><span class="ic" aria-hidden="true">⚑</span><span class="t"></span></button></div>`);})();
+function uiFlowRender(){const box=$('#uiFlow');if(!box)return;const on=S&&S.player&&!S.over&&$('#start').hidden;
+ const et=$('#endTurn');
+ if(!on){box.hidden=true;if(et)delete et.dataset.idle;return;}
+ const f=S.player,idle=uiIdleArmies(f),inb=uiInbox();
+ const bi=box.querySelector('.fl-inbox'),bd=box.querySelector('.fl-idle');
+ bi.hidden=!inb.length;if(inb.length){bi.querySelector('.t').textContent=inb.length===1?lng(`${FAC[inb[0].f].s} elçisi barış istiyor`,`An envoy of ${FAC[inb[0].f].s} asks for peace`):lng(`${inb.length} elçi barış istiyor`,`${inb.length} envoys ask for peace`);
+  bi.setAttribute('aria-label',bi.querySelector('.t').textContent);}
+ bd.hidden=!idle.length;if(idle.length){const t=idle.length===1?lng(`${armName(idle[0])} emir bekliyor`,`The ${armName(idle[0])} awaits orders`):lng(`${idle.length} ordu emir bekliyor`,`${idle.length} armies await orders`);
+  bd.querySelector('.t').textContent=t;bd.setAttribute('aria-label',t);bd.dataset.tip='idle';}
+ box.hidden=!inb.length&&!idle.length;uiFlowPlace();
+ if(et){if(idle.length&&!busy)et.dataset.idle=idle.length;else delete et.dataset.idle;}}
+/** Keep the chips clear of the province panel when it stands at the top right (desktop). */
+function uiFlowPlace(){const box=$('#uiFlow'),pn=$('#panel');if(!box)return;let r='';
+ if(pn&&!pn.hidden&&!uiPhone()){const q=pn.getBoundingClientRect();if(q.width&&q.top<topH()+120)r=Math.round(innerWidth-q.left+10)+'px';}
+ box.style.right=r;}
+new MutationObserver(uiFlowPlace).observe($('#panel'),{attributes:true,attributeFilter:['hidden','class','style']});
+addEventListener('resize',uiFlowPlace);
+ACTS['ui-idle']=()=>{const L=uiIdleArmies(S.player);if(!L.length){uiFlowRender();return;}const a=L[uiFlowIdx++%L.length];uiFocusProv(a.loc,a.id);};
+ACTS['ui-inbox']=()=>{if(uiInbox().length)showReport();else uiFlowRender();};
+TIPS.idle=()=>{const L=uiIdleArmies(S.player);return `<b class="tt">${lng('Emir bekleyen ordular','Armies awaiting orders')}</b>${L.slice(0,6).map(a=>`<div>${esc(armName(a))} · ${esc(PD[a.loc].name)} · ${fmtK(a.n)}</div>`).join('')}<p>${lng('Savaştayız ama bu ordular bu mevsim yürümedi. Dokun, sırayla göstereyim. Beklemeleri gerekiyorsa turu yine de bitirebilirsin.','We are at war, yet these armies have not marched this season. Tap and I will show them one by one. If they are meant to wait, you may still end the turn.')}</p>`;};
+hook('renderAll',uiFlowRender);
+hook('enterGame',()=>{uiFlowIdx=0;uiFlowRender();});
+hook('afterRound',()=>{uiFlowIdx=0;},60);
+
+/* ---------- aggressive expansion in the UI ---------- */
+/** Word for an AE level (the world's fear of a realm). */
+function uiAeWord(v){return v>=uiFlowCfg.aeCoal?lng('Korku','Dread'):v>=uiFlowCfg.aeWarn?lng('Tedirginlik','Unease'):v>=10?lng('Dikkat','Wariness'):lng('Sükûnet','Calm');}
+STATE_SECTIONS.push({id:'ae',order:35,html(f){const v=Math.round(typeof aeOf==='function'?aeOf(f):0),C=typeof aiCoal==='function'&&aiCoal(f);
+ const pc=Math.min(100,Math.round(v/uiFlowCfg.aeCoal*100));
+ return `<div class="sec ui-ae"><h3>${lng('Komşuların gözünde','In the eyes of our neighbours')}</h3>
+ <div class="ae-row"><span>${esc(uiAeWord(v))}</span><div class="bar" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div><b>${pc}%</b></div>
+ <p class="hint">${C?lng(`Koalisyon: ${C.m.map(g=>esc(FAC[g].s)).join(', ')} sana karşı birleşti.`,`Coalition: ${C.m.map(g=>esc(FAC[g].s)).join(', ')} have joined forces against you.`)
+   :lng('Her fetih komşuları tedirgin eder; aynı dinden birinin toprağını almak daha çok. Çubuk dolarsa korkan komşular birleşip sana birlikte savaş açar. Barış yıllarında korku yavaş yavaş söner.','Every conquest makes the neighbours uneasy, and taking land from a realm of your own faith even more so. If the bar fills up, the frightened neighbours band together and declare war on you as one. In years of peace the fear slowly fades.')}</p></div>`;}});
+DIPLO_ROW.push({id:'ae',order:40,meta(f){const pl=S.player,C=typeof aiCoal==='function'&&aiCoal(pl);let h='';
+ if(C&&C.m.includes(f))h+=`<span class="chip war">${lng('Koalisyonda','In the coalition')}</span>`;
+ const v=typeof aeOf==='function'?aeOf(f):0;if(v>=uiFlowCfg.aeWarn)h+=`<span>${lng('Komşuları tedirgin','Its neighbours are uneasy')}</span>`;
+ return h;}});
+ADVICE.push(
+ {id:'coal',prio:95,when:(S,f)=>{const C=typeof aiCoal==='function'&&aiCoal(f);return C&&C.m.some(g=>atWar(g,f))?C:null;},
+  t:()=>lng('Koalisyon savaşı','A coalition war'),d:(S,f,C)=>lng(`Sultanım, ${C.m.map(g=>FAC[g].s).join(', ')} fetihlerimizden korkup bize karşı birleşti. İlk mevsimlerde ayrı barış yapmazlar; kaleleri tut, en tehlikeli orduya karşı birlikte dur, sonra teker teker barış iste.`,
+   `My lord, fearing our conquests, ${C.m.map(g=>FAC[g].s).join(', ')} have joined forces against us. They will not make a separate peace in the first seasons; hold the fortresses, stand together against the most dangerous army, then ask for peace one by one.`),
+  go:()=>showDiplo(),goL:lng('Divan\'ı aç','Open the Divan')},
+ {id:'ae',prio:65,when:(S,f)=>{const v=typeof aeOf==='function'?aeOf(f):0;return v>=uiFlowCfg.aeWarn&&!(typeof aiCoal==='function'&&aiCoal(f))?v:null;},
+  t:()=>lng('Komşular tedirgin','The neighbours are uneasy'),d:(S,f,v)=>lng(`Hızlı fetihlerimiz komşuları korkutuyor${v>=uiFlowCfg.aeCoal*.8?'; bir koalisyon kurulmak üzere':''}. Bir süre yeni toprak almazsak korku söner. Devlet defterinde ne kadar tedirgin olduklarını görebilirsin.`,
+   `Our swift conquests frighten the neighbours${v>=uiFlowCfg.aeCoal*.8?'; a coalition is about to form':''}. If we take no new land for a while, the fear will fade. The State Ledger shows how uneasy they are.`),
+  go:()=>showState(),goL:lng('Devlet defteri','State Ledger')}
+);
+KE.uiFlow=()=>({idle:uiIdleArmies(S.player).map(a=>a.id),inbox:uiInbox().length,shown:!$('#uiFlow').hidden,badge:$('#endTurn').dataset.idle||null});
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
@@ -5343,9 +5700,10 @@ ACTS['pt-send']=(t,f)=>{if(!ptBk)return;const o=ptBk.f,bk=peaceNorm(ptBk);if(!at
  if(offerBasket(f,o,bk)){ptBk=null;SND.play('peace');const w=peaceWords(bk,f);toast(w?lng(`${FAC[o].s} antlaşmayı imzaladı: ${w}.`,`${FAC[o].s} signed the treaty: ${w}.`):lng(`${FAC[o].s} barışı kabul etti.`,`${FAC[o].s} accepted peace.`),'good');closeModal();renderAll();}
  else{toast(lng(`${FAC[o].s} bu şartları reddetti.`,`${FAC[o].s} refused these terms.`),'war');renderAll();showPeace(o);}};
 /* ---------------- guide ---------------- */
-const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Savaş','War')],['bina',lng('Binalar','Buildings')],['diplo',lng('Diplomasi','Diplomacy')],['olay',lng('Olaylar','Events')]];
+const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Ordular','Armies')],['kusatma',lng('Kuşatma','Sieges')],['antlasma',lng('Antlaşmalar','Treaties')],
+ ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['olay',lng('Olaylar','Events')]];
 function guideBody(t){
- const half=Math.ceil(NP*.5);
+ const half=Math.ceil(NP*.5),w2=guideW2(t);if(w2)return w2;
  if(EN)return guideBodyEn(t,half);
  if(t==='para')return `<p>Devletin hazinesi eyaletlerinden gelen vergiyle dolar. Her mevsimin sonunda bütün eyaletlerin vergisini öder. Bir eyalet ne kadar gelişmişse o kadar çok vergi verir; büyük bir şehir, küçük bir kasabanın birkaç katını getirir.</p>
  <h3>Parayı ne artırır?</h3>
@@ -5379,10 +5737,12 @@ function guideBody(t){
  <li><b>Toplar</b> surları yıkar. Osmanlı 1453'te Urban'ın dev toplarını alır, diğer devletler 1460'ta barutlu toplara kavuşur. Toplu bir ordunun karşısında kale eski gücünü büyük ölçüde kaybeder.</li>
  <li>Her muharebede biraz da <b>şans</b> vardır; kıl payı üstün bir ordu kaybedebilir.</li></ul>
  <h3>Muharebeden sonra</h3>
- <p><b>Kazanırsan</b> eyalet senin olur. Askerlerinin bir kısmı düşer ama ne kadar üstünsen o kadar az kayıp verirsin. Düşman garnizonunun çoğu ölür, kalanlar komşu eyaletlerine kaçar. Surlar hasar görür ve askerlerin şehri yağmalar.</p>
+ <p><b>Kazanırsan</b> şehir ordunun <b>işgaline</b> girer. Askerlerinin bir kısmı düşer ama ne kadar üstünsen o kadar az kayıp verirsin. Düşman garnizonunun çoğu ölür, kalanlar komşu eyaletlerine kaçar ve askerlerin şehri yağmalar. Eyalet senin olsun istiyorsan barış masasında iste (<b>Antlaşmalar</b>).</p>
+ <p><b>Surlu şehirler</b> hemen alınmaz, kuşatılır (<b>Kuşatma</b>). <b>Meydan muharebesi</b> ise iki ordu karşılaştığında olur: surlar sayılmaz, arazi, mevsim, komutan ve askerlerin morali sayılır. Yenilen ordu komşu bir eyalete çekilir; kaçacak yeri yoksa yok olur.</p>
  <p><b>Kaybedersen</b> ordunun ağır kayıplar verir, sağ kalanlar geri çekilir. Düşman da biraz asker kaybeder.</p>
  <p><b>Muharebe kartı</b> savaşın neden kazanıldığını ya da kaybedildiğini gösterir: kale, arazi, kış, komutan ve talih zarları. Mevsim raporundaki satırlara dokunarak yeniden açabilirsin.</p>
  <p>Bir devletin <b>başkenti düşerse</b> hazinesinin bir kısmı yağmalanır ve başkentini başka bir şehre taşır. Son şehrini de kaybeden devlet tarihten silinir.</p>
+ <p><b>Emir bekleyen ordular:</b> savaştayken bu mevsim hiç yürümemiş ordularını üst çubuğun altındaki küçük düğme sayar; Turu Bitir düğmesinin köşesinde de sayıları görünür. Dokununca sırayla gösterir. Bekletmek istediğin ordular varsa turu yine de bitirebilirsin.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Saldırmadan önce paneldeki tahmine bak. <b>"Ezici üstünlük"</b> yazıyorsa rahat saldır, <b>"Başa baş"</b> ya da <b>"Riskli"</b> yazıyorsa sınırda birkaç mevsim daha asker biriktir. Kalın surlu şehirlere topun gelmeden ve kışın saldırma.</p>`;
  if(t==='bina')return `<p>Kendi eyaletine dokununca açılan panelde asker toplayabilir ve yapı kurabilirsin. Her düğmenin üstünde fiyatı yazar; para hemen hazineden çıkar ve yapı o anda biter.</p>
  <h3>İmar</h3><p>Şehri büyütür. Büyüyen şehir daha çok vergi verir, daha çok asker yetiştirir ve saldırıya karşı daha çok halk silaha sarılır. Şehir büyüdükçe bir sonraki imar daha pahalıya gelir.</p>
@@ -5470,10 +5830,12 @@ function guideBodyEn(t,half){
  <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
  <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
  <h3>After the battle</h3>
- <p><b>If you win</b>, the province is yours. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed and the rest flee to neighbouring provinces. The walls are damaged and your soldiers plunder the city.</p>
+ <p><b>If you win</b>, the city is <b>occupied</b> by your army. You lose some of your men, but the stronger you were, the fewer you lose. Most of the enemy garrison is killed, the rest flee to neighbouring provinces, and your soldiers plunder the town. If you want to keep the province, demand it at the peace table (<b>Treaties</b>).</p>
+ <p><b>Walled cities</b> are not taken at once: they are besieged (<b>Sieges</b>). A <b>field battle</b> is fought when two armies meet: walls do not count, but terrain, season, commander and the soldiers' morale do. The beaten army falls back to a neighbouring province, or is destroyed if it has nowhere to go.</p>
  <p><b>If you lose</b>, your army suffers heavy losses and the survivors fall back. The enemy loses some men too.</p>
  <p>The <b>Battle card</b> shows why a battle was won or lost: walls, terrain, winter, commander and the dice of fortune. You can open it again by tapping the lines in the Season Report.</p>
  <p>When a realm's <b>capital falls</b>, part of its treasury is plundered and it moves its capital to another city. A realm that loses its last city vanishes from history.</p>
+ <p><b>Armies awaiting orders:</b> while you are at war, a small button under the top bar counts the armies that have not marched this season, and the End Turn button shows the number in its corner. Tap it to see them one by one. If some armies are meant to wait, you may still end the turn.</p>
  <p class="tip"><b>The Vizier's counsel:</b> Look at the estimate in the panel before you attack. If it says <b>"Overwhelming"</b>, attack with confidence; if it says <b>"Even odds"</b> or <b>"Risky"</b>, gather troops on the border for a few more seasons. Do not storm thick-walled cities before your cannon arrive, and not in winter.</p>`;
  if(t==='bina')return `<p>Tap one of your own provinces to open its panel: there you can raise troops and put up buildings. Each button shows its price; the gold leaves the treasury at once and the work is finished on the spot.</p>
  <h3>Develop</h3><p>Makes the city grow. A bigger city pays more tax, trains more soldiers, and more of its people take up arms when it is attacked. The bigger the city gets, the more the next round of development costs.</p>
@@ -5534,6 +5896,105 @@ function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);
+/* Wave 2 guide tabs: sieges, treaties, coalitions, dynasties (plain words, no formulas). */
+function guideW2(t){
+ if(t==='kusatma')return EN?`<p>A city behind walls is not taken in a single blow. When your army marches into an enemy province that has walls and no enemy army inside, it <b>lays siege</b>: it pitches camp before the city and starts wearing the walls down.</p>
+ <h3>How a siege goes</h3>
+ <ul><li>A ring over the besieged city fills up season by season. When it is full, the walls fall and the city is <b>occupied</b> by your army.</li>
+ <li>The higher the walls, the longer the siege. Mountain fortresses and great walls, such as those of Constantinople, hold out much longer.</li>
+ <li><b>Cannon</b> shorten a siege a great deal, though they are hard to haul up a mountain. A big army digs faster than a small one.</li>
+ <li>The besiegers lose men every season to sickness and desertion, and in <b>winter</b> even more.</li>
+ <li>A strong garrison may <b>sally out</b> against the camp. If it wins, the siege loses ground.</li>
+ <li>While the siege runs you may <b>storm</b> the walls; the more they have crumbled, the better your chances.</li></ul>
+ <p>A town without walls does not need a siege: your army storms it at once, and if it wins, the town is occupied.</p>
+ <h3>Occupied land</h3>
+ <p>An occupied province does not yet belong to you. Half of its taxes come to you and your army may march through it, but its owner only gives it up <b>at the peace table</b>. Until then the enemy can win it back with a siege of its own.</p>
+ <p>A realm whose every province is occupied has to surrender. A capital that stays occupied through a long war is taken outright.</p>
+ <h3>Relieving a siege</h3>
+ <p>If an enemy army besieges one of your cities, attack it with an army of your own. Win the field battle and the besiegers fall back; the progress they made is lost.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Never leave a besieging army alone. While your main army sits before a great city, keep a second army at home: the enemy likes to walk into lands left undefended. And do not begin a long siege at the start of winter.</p>`
+ :`<p>Surlu bir şehir tek hamlede alınmaz. Ordun surları olan ve içinde düşman ordusu bulunmayan bir düşman eyaletine girince <b>kuşatma</b> başlar: şehrin önüne kamp kurar ve surları yıpratmaya koyulur.</p>
+ <h3>Kuşatma nasıl ilerler?</h3>
+ <ul><li>Kuşatılan şehrin üstündeki halka her mevsim biraz daha dolar. Halka dolunca surlar düşer ve şehir ordunun <b>işgaline</b> girer.</li>
+ <li>Surlar ne kadar yüksekse kuşatma o kadar uzun sürer. Dağ kaleleri ve Konstantiniyye gibi büyük surlar çok daha uzun direnir.</li>
+ <li><b>Toplar</b> kuşatmayı çok kısaltır, ama dağa zor çıkarılır. Büyük bir ordu küçük bir ordudan daha hızlı kazar.</li>
+ <li>Kuşatan ordu her mevsim hastalık ve firar yüzünden asker yitirir; <b>kışın</b> daha da çok.</li>
+ <li>Güçlü bir garnizon kampa karşı <b>çıkış</b> yapabilir. Kazanırsa kuşatma geriler.</li>
+ <li>Kuşatma sürerken surlara <b>hücum</b> edebilirsin; surlar ne kadar yıkıldıysa şansın o kadar yüksektir.</li></ul>
+ <p>Surları olmayan bir kasaba kuşatılmaz: ordun hemen saldırır, kazanırsa kasaba işgal edilir.</p>
+ <h3>İşgal altındaki topraklar</h3>
+ <p>İşgal ettiğin eyalet henüz senin değildir. Vergisinin yarısı sana gelir ve ordun oradan geçebilir, ama sahibi onu ancak <b>barış masasında</b> bırakır. O zamana kadar düşman kendi kuşatmasıyla onu geri alabilir.</p>
+ <p>Bütün eyaletleri işgal edilen devlet teslim olmak zorunda kalır. Uzun süren bir savaşta işgal altında kalan başkent de doğrudan alınır.</p>
+ <h3>Kuşatmayı kırmak</h3>
+ <p>Düşman ordusu şehirlerinden birini kuşatıyorsa, kendi ordunla ona saldır. Meydan muharebesini kazanırsan kuşatanlar geri çekilir ve o ana kadarki emekleri boşa gider.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Kuşatan orduyu yalnız bırakma. Ana ordun büyük bir şehrin önündeyken memlekette ikinci bir ordu tut: düşman boş kalan topraklara girmeyi sever. Kışın başında da uzun bir kuşatmaya girişme.</p>`;
+ if(t==='antlasma')return EN?`<p>A war ends at the <b>peace table</b>. There you write down what you want from your enemy: provinces, gold, or freedom for a nation it once conquered. Every item has a price in <b>war score</b>, and the enemy signs only if the whole basket is not dearer than what the war has earned you.</p>
+ <h3>What makes the enemy give in?</h3>
+ <ul><li><b>War score:</b> battles won, walls taken and capitals occupied push it up; lost battles and sieges push it down.</li>
+ <li><b>War exhaustion:</b> every season of war, every thousand men lost and every province occupied wears a realm down. A tired realm gives more.</li>
+ <li><b>Weakness:</b> a realm far weaker than you is readier to yield.</li></ul>
+ <h3>What things cost</h3>
+ <ul><li>A province you <b>occupy</b> is cheap; one you have not taken costs twice as much. A rich province and a capital cost more.</li>
+ <li>The province your war was declared for (your <b>claim</b>) costs only half.</li>
+ <li><b>Gold</b> is cheap but the enemy can only pay what is in its treasury.</li>
+ <li><b>Releasing a nation</b> gives an old realm its historical lands back, and weakens your enemy for good.</li></ul>
+ <p>When peace is signed, every occupation between the two of you ends: what you did not demand goes back to its owner. Then comes a <b>three-year truce</b>.</p>
+ <h3>Envoys</h3>
+ <p>An enemy that is losing may send an <b>envoy</b> to ask for peace. A chip under the top bar tells you an envoy is waiting; the offer holds for two seasons. If you are the one ahead, do not wait for envoys: go to the Divan and set your own terms.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Occupy first, bargain later. A basket full of provinces you already hold costs little war score. If the enemy refuses, take one province out and ask again.</p>`
+ :`<p>Savaş <b>barış masasında</b> biter. Orada düşmanından ne istediğini yazarsın: eyaletler, altın ya da bir zamanlar fethettiği bir milletin özgürlüğü. Her kalemin <b>savaş skoru</b> olarak bir bedeli vardır; düşman, istediklerinin toplamı savaşta kazandığından pahalı değilse imzalar.</p>
+ <h3>Düşmanı ne yola getirir?</h3>
+ <ul><li><b>Savaş skoru:</b> kazanılan muharebeler, düşen surlar ve işgal edilen başkentler skoru yükseltir; kaybedilen muharebeler ve kuşatmalar düşürür.</li>
+ <li><b>Savaş yorgunluğu:</b> savaşın her mevsimi, kaybedilen her bin asker ve işgal edilen her eyalet bir devleti yıpratır. Yorgun devlet daha çok verir.</li>
+ <li><b>Zayıflık:</b> senden çok zayıf bir devlet boyun eğmeye daha yatkındır.</li></ul>
+ <h3>Neyin bedeli ne?</h3>
+ <ul><li><b>İşgal ettiğin</b> eyalet ucuzdur; almadığın bir eyalet iki kat pahalıdır. Zengin eyaletler ve başkentler daha pahalıdır.</li>
+ <li>Savaşı uğruna açtığın eyalet (<b>hak iddian</b>) yarı fiyatınadır.</li>
+ <li><b>Altın</b> ucuzdur ama düşman hazinesinde ne varsa ancak onu ödeyebilir.</li>
+ <li><b>Bir milleti serbest bırakmak</b> eski bir devlete tarihî topraklarını geri verir ve düşmanını kalıcı olarak zayıflatır.</li></ul>
+ <p>Barış imzalanınca aranızdaki bütün işgaller sona erer: istemediğin topraklar sahibine döner. Ardından <b>üç yıl ateşkes</b> gelir.</p>
+ <h3>Elçiler</h3>
+ <p>Kaybeden bir düşman barış istemek için <b>elçi</b> gönderebilir. Üst çubuğun altındaki küçük düğme bekleyen bir elçi olduğunu haber verir; teklif iki mevsim geçerlidir. Öndeysen elçi bekleme: Divan'a git ve şartlarını kendin koy.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Önce işgal et, sonra pazarlık yap. Zaten elinde tuttuğun eyaletlerle dolu bir sepet az savaş skoru tutar. Düşman reddederse bir eyaleti çıkar ve yeniden iste.</p>`;
+ if(t==='koalisyon')return EN?`<p>The world watches every conquest. Each province you take makes your neighbours more <b>uneasy</b>; taking land from a realm of your own faith frightens them even more, and a capital most of all. Land gained at the peace table counts a little less than land taken by storm.</p>
+ <h3>The coalition</h3>
+ <p>When the fear grows too great, your frightened neighbours band together into a <b>coalition</b> and declare war on you all at once. In the first seasons of a coalition war its members do not make a separate peace. The State Ledger shows how uneasy the world is about you; the vizier warns you before it is too late.</p>
+ <p>Fear fades slowly in years of peace. Once it has faded and the fighting is over, the coalition breaks up, and it does not come back at once.</p>
+ <h3>The crusade</h3>
+ <p>When a Muslim realm grows fearsome to the Christian world, the Pope may call a <b>crusade</b>. The Christian realms that border it, and those who answer such calls, grow eager for war against it for a few years.</p>
+ <h3>The same rules for everyone</h3>
+ <p>The other realms live by these rules too. A neighbour that swallows its neighbours quickly will soon face a coalition of its own, and that may be your chance.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Conquer in waves. After a great war, rest a few years: develop your cities, fill the treasury, and let the fear fade before the next campaign.</p>`
+ :`<p>Dünya her fethi izler. Aldığın her eyalet komşularını biraz daha <b>tedirgin</b> eder; aynı dinden bir devletin toprağını almak onları daha çok korkutur, bir başkenti almak hepsinden çok. Barış masasında kazanılan toprak, kılıçla alınandan biraz daha az korkutur.</p>
+ <h3>Koalisyon</h3>
+ <p>Korku çok büyüyünce tedirgin komşular bir <b>koalisyon</b> kurar ve sana hep birlikte savaş açar. Koalisyon savaşının ilk mevsimlerinde üyeleri ayrı barış yapmaz. Dünyanın senden ne kadar tedirgin olduğunu Devlet defteri gösterir; iş işten geçmeden vezir de seni uyarır.</p>
+ <p>Barış yıllarında korku yavaş yavaş söner. Korku sönüp çarpışmalar bitince koalisyon dağılır ve hemen yeniden kurulmaz.</p>
+ <h3>Haçlı Seferi</h3>
+ <p>Bir Müslüman devlet Hristiyan dünyası için korkutucu hâle gelince Papa <b>Haçlı Seferi</b> çağrısı yapabilir. Ona komşu olan ve bu tür çağrılara kulak veren Hristiyan devletler birkaç yıl boyunca ona karşı savaşa hevesli olur.</p>
+ <h3>Herkes için aynı kurallar</h3>
+ <p>Öteki devletler de bu kurallarla yaşar. Komşularını hızla yutan bir devlet yakında kendi koalisyonuyla karşılaşır; bu senin fırsatın olabilir.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Fetihleri dalga dalga yap. Büyük bir savaştan sonra birkaç yıl dinlen: şehirlerini imar et, hazineyi doldur ve bir sonraki seferden önce korkunun sönmesini bekle.</p>`;
+ if(t==='hanedan')return EN?`<p>Every realm is ruled by a living <b>ruler</b>. Rulers grow old, fall ill and die, and history does not wait for them.</p>
+ <h3>Heirs and succession</h3>
+ <ul><li>The <b>heir</b> is usually the ruler's eldest son. When the ruler dies, the throne passes to him and the realm carries on.</li>
+ <li>If the new ruler is still a child, a <b>regent</b> governs until he comes of age.</li>
+ <li>In elective realms such as Venice, the Papacy, the Knights of Rhodes or the Mamluk Sultanate, a new ruler is elected; elsewhere a related house may be invited to the throne.</li>
+ <li>A realm without an heir falls into a <b>succession crisis</b>: a stranger takes the throne, and you are asked how to settle it, with gold or with patience.</li></ul>
+ <h3>Commanders</h3>
+ <p>Pashas, princes and the ruler himself can lead armies. The more stars a commander has, the more he helps in battle and in the field. Commanders age and die too, and a commander may fall or be captured when his army is beaten.</p>
+ <p>The State Ledger shows your dynasty: the ruler, the heir and your commanders.</p>
+ <p class="tip"><b>The Vizier's counsel:</b> Do not risk an old ruler without an heir in the front line. And keep a free pasha at hand: an army without a commander fights worse.</p>`
+ :`<p>Her devleti yaşayan bir <b>hükümdar</b> yönetir. Hükümdarlar yaşlanır, hastalanır ve ölür; tarih onları beklemez.</p>
+ <h3>Veliaht ve tahtın geçişi</h3>
+ <ul><li><b>Veliaht</b> çoğunlukla hükümdarın en büyük oğludur. Hükümdar ölünce taht ona geçer ve devlet yoluna devam eder.</li>
+ <li>Yeni hükümdar henüz çocuksa, reşit olana kadar devleti bir <b>naip</b> yönetir.</li>
+ <li>Venedik, Papalık, Rodos Şövalyeleri ya da Memlükler gibi seçimle yönetilen devletlerde yeni hükümdar seçilir; başka yerlerde tahta akraba bir hanedan davet edilebilir.</li>
+ <li>Varisi olmayan devlet bir <b>taht bunalımına</b> düşer: tahta bir yabancı çıkar ve sana bunalımı altınla mı sabırla mı çözeceğin sorulur.</li></ul>
+ <h3>Komutanlar</h3>
+ <p>Paşalar, şehzadeler ve hükümdarın kendisi ordu yönetebilir. Komutanın yıldızı ne kadar çoksa muharebede ve seferde o kadar işe yarar. Komutanlar da yaşlanır ve ölür; ordusu yenilen bir komutan düşebilir ya da esir alınabilir.</p>
+ <p>Devlet defteri hanedanını gösterir: hükümdarı, veliahtı ve komutanlarını.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Varisi olmayan yaşlı bir hükümdarı cephenin önüne sürme. Elinde boşta bir paşa da tut: komutansız ordu daha kötü savaşır.</p>`;
+ return '';}
 function showHelp(){openModal(EN?`<div class="eyebrow">How to play</div><h2>The Art of War</h2>
  <div class="logl">
  <div><time>Select</time><span>Tap one of your provinces. Green neighbours are your own land, red ones belong to an enemy you are at war with.</span></div>
