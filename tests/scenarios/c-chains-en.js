@@ -9,6 +9,8 @@ module.exports = {
   fac: null,
   async run(page, L, check) {
     await page.evaluate(() => { localStorage.clear(); localStorage.setItem('ke-lang', 'en'); });
+    // headless Chromium sometimes drops file:// localStorage across a reload: set the language before the page runs
+    await page.context().addInitScript(() => { try { if (!sessionStorage.getItem('ke-en-set')) { localStorage.setItem('ke-lang', 'en'); sessionStorage.setItem('ke-en-set', '1'); } } catch (e) {} });
     await page.reload({ waitUntil: 'domcontentloaded' }); await L.waitLoaded(page);
     await L.startGame(page, 'GEN');
     await L.closeModals(page);

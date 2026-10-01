@@ -4445,7 +4445,9 @@ hook('battleResolved',rep=>{if(!S.chains||!rep||rep.kind!=='field')return;const 
    Needs FAC[CH_CLM] (SEAM REQUEST to 01-factions-provinces.js); without it the old crisis (unrest) stays. */
 const CH_CLM='CLM';
 function chClmSlot(){return !!(FAC[CH_CLM]&&S&&S.fac&&S.fac[CH_CLM]);}
-function chClmCan(f){if(!chClmSlot()||!S.c||S.c.clm||S.fac[CH_CLM].alive||f===CH_CLM||!alive(f))return false;return facProvs(f).length>=BAL_CH2.clmMinProvs;}
+function chClmCan(f){if(!chClmSlot()||!S.c||S.c.clm||S.fac[CH_CLM].alive||f===CH_CLM||!alive(f))return false;
+ if(f==='HUN'&&chYear()>=BAL_CH2.pressburg&&alive('HAB')&&S.player!=='HUN')return false; /* Pressburg: Austria inherits the whole realm, no pretender */
+return facProvs(f).length>=BAL_CH2.clmMinProvs;}
 /** A darker, greyer shade of the old realm's colour for the pretender. */
 function chClmCol(h){const m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return '#5a4f46';const n=parseInt(m[1],16),mix=(v,g)=>Math.round(v*.55+g*.45);
  const r=mix(n>>16&255,70),g=mix(n>>8&255,62),b=mix(n&255,56);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
