@@ -23,6 +23,7 @@ function showHelp(){openModal(EN?`<div class="eyebrow">How to play</div><h2>The 
  </div><div class="foot"><button class="btn primary" data-act="mclose">Anladım</button></div>`);}
 function showMenu(){openModal(`<div class="eyebrow">${esc(FAC[S.player].n)} · ${dateStr(S.turn)}</div><h2>${lng('Menü','Menu')}</h2>
  <p class="lead" style="font-size:14px">${lng('Oyun her hamleden sonra bu tarayıcıya otomatik kaydedilir. Sayfa kapansa bile açılış ekranındaki <b>Kayıtlı oyuna dön</b> ile kaldığın yerden devam edersin.','The game saves itself in this browser after every move. Even if the page closes, <b>Continue saved game</b> on the start screen takes you back to where you left off.')}</p>
+ <div class="sv-menu"><button class="btn" data-act="sv-open" data-m="save">${lng('Oyunu kaydet','Save game')}</button><button class="btn" data-act="sv-open" data-m="load">${lng('Oyun yükle','Load game')}</button></div>
  ${bySlot(MENU_SECTIONS).map(x=>{try{return x.html()||'';}catch(e){console.error('menu '+x.id,e);return '';}}).join('')}
  <div class="choices"><button class="btn" style="justify-content:center" data-act="guide" data-t="genel">${lng('Oyun rehberi','Game guide')}</button>
  <button class="btn danger" data-act="newgame">${lng('Yeni oyun başlat','Start a new game')}</button>
@@ -53,9 +54,12 @@ function renderStart(){
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
  $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(relName(f))} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
-  <div class="row2">${has?`<button class="btn" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button>`:''}<button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
-  :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${has?`<div class="row2"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button></div>`:''}`;
+  ${svStartRow(has,false)}<div class="row2"><button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
+  :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${svStartRow(has,true)}`;
 }
+/** Start screen: "Continue" (the autosave, with its realm and date) and "Load game" (save slots and file import). */
+function svStartRow(has,prim){const m=has&&typeof svAutoMeta==='function'?svAutoMeta():null,k=typeof svSlots==='function'?svSlots().filter(x=>!x.empty).length:0;
+ return `<div class="row2 sv-start">${has?`<button class="btn${prim?' primary':''} sv-cont" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}${m?`<small>${esc(FAC[m.f].s)} · ${dateStr(m.turn)}</small>`:''}</button>`:''}<button class="btn sv-ld" data-act="sv-open" data-m="load">${lng('Oyun yükle','Load game')}${k?`<small>${k} ${lng('kayıt',k===1?'save':'saves')}</small>`:''}</button></div>`;}
 function uiStartScroll(){const fl=$('#flist');fl.classList.toggle('more',fl.scrollTop+fl.clientHeight<fl.scrollHeight-24);}
 $('#flist').addEventListener('scroll',uiStartScroll,{passive:true});addEventListener('resize',()=>{if(!$('#start').hidden)uiStartScroll();});
 ACTS.sgrp=t=>{const g=$('#fg'+t.dataset.g),fl=$('#flist');if(!g)return;const j=fl.querySelector('.fjump');
@@ -72,7 +76,7 @@ function beginGame(f){newGame(f);startPick=null;$('#start').hidden=true;enterGam
 function enterGame(){$('#top').hidden=false;$('#zoom').hidden=false;startPick=null;polDirty=true;hlKey='';renderTop();const c=S.fac[S.player].cap;centerOn(PD[c].lx,PD[c].ly,clamp(Math.min(vw,vh)/560,fitS,2.2)*(G3.on?1.3:1));renderAll();
  if(S.over)queueModal(showEnd);else if(S.pendEv!=null)randomEvent(S.pendEv);
  runHooks('enterGame');}
-function save(){try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
+function save(){try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){if(typeof svAutoFail==='function')svAutoFail(e);}}
 /** Bring any saved state up to schema v2 (idempotent: a v2 state is left byte-identical). */
 function migrate(s){const from=s.v||1;
  (s.mis||[]).forEach(m=>{if(m.t==='Kızıl Elma'){m.t='Roma Seferi';m.d='Roma\'yı fethet.';}});
