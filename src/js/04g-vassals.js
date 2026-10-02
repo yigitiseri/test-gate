@@ -158,12 +158,15 @@ function vasAnnex(o,v){const r=vasAnnexCan(o,v);if(!r.ok)return false;S.fac[o].g
  o===S.player?news(m,'cap'):addLog(m,'cap');polDirty=true;runHooks('vassalAnnexed',o,v,ps);return true;}
 
 /* ---------- each turn: keep the bonds sound, liberty desire, revolts, AI annexation (roundEnd slot 60) ---------- */
-function vasStep(){if(!S||!S.vas)return;
- for(const v of Object.keys(S.vas)){const V=S.vas[v],o=V.o;
-  if(!alive(v)||!alive(o)||v===S.player||vasOf(o)){delete S.vas[v];polDirty=true;continue;}
+/** Drop bonds that no longer hold (a realm fell or was united by history, a war broke out); restore the alliance. */
+function vasClean(){if(!S||!S.vas)return;
+ for(const v of Object.keys(S.vas)){const V=S.vas[v],o=V&&V.o;
+  if(!o||!alive(v)||!alive(o)||v===S.player||vasOf(o)){delete S.vas[v];polDirty=true;continue;}
   if(atWar(o,v)){vasFree(v,'war');continue;}
   if(!isAlly(o,v))S.ally[key(o,v)]=true;
-  for(const k of Object.keys(S.ally)){const [a,b]=k.split('|');if((a===v||b===v)&&a!==o&&b!==o)delete S.ally[k];} // a vassal has no other allies
+  for(const k of Object.keys(S.ally)){const [a,b]=k.split('|');if((a===v||b===v)&&a!==o&&b!==o)delete S.ally[k];}}} // a vassal has no other allies
+function vasStep(){if(!S||!S.vas)return;vasClean();
+ for(const v of Object.keys(S.vas)){const V=S.vas[v],o=V.o;
   const t=vasLibInfo(v).t;V.lib=Math.round(clamp(V.lib+(t-V.lib)*BAL_V.libRate,0,100)*10)/10;
   if(V.lib>=BAL_V.rebel&&S.turn-V.t>=BAL_V.rebelGrace&&(warsOf(o).length||strength(v)>=strength(o)*BAL_V.rebelRatio)&&R()<BAL_V.rebelP){vasRevolt(v);continue;}
   if(o!==S.player){const a=vasAnnexCan(o,v);if(a.ok&&S.fac[o].gold-a.cost>=BAL_V.aiAnnexKeep&&R()<BAL_V.aiAnnexP)vasAnnex(o,v);}}}
@@ -174,6 +177,7 @@ function vasRevolt(v){const o=vasOf(v);if(!o)return false;
  if(o===S.player){news(m,'war');toast(m,'war');}else addLog(m,'war');
  declareWar(v,o,{k:'indep'});runHooks('vassalRevolt',o,v);return true;}
 hook('roundEnd',vasStep,60);
+hook('newTurn',vasClean,96);
 
 /* ---------- AI: ask for vassalage at the end of a won war (called by aiSettle, 05b) ---------- */
 /** Does AI winner w want loser l as a vassal rather than its land? */
