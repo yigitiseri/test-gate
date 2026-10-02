@@ -32,7 +32,8 @@ DIPLO_ROW.push({id:'core',order:10,
  buttons(f){const pl=S.player,F=S.fac[pl],w=atWar(pl,f),al=isAlly(pl,f),tr=inTruce(pl,f);let b='';
   if(w){const k=S.offers.findIndex(o=>o.f===f);if(k>=0)b+=`<span class="envoy">${lng('Elçileri bekliyor','Their envoy waits')}: ${esc(offerLine(S.offers[k]))}</span><button class="btn primary" data-act="off" data-k="${k}" data-f="${f}" data-v="1" data-from="diplo">${lng('Kabul','Accept')}</button>`;
    b+=`<button class="btn" data-act="dp-peace" data-f="${f}">${lng('Barış Masası','Peace Table')}</button><button class="btn" data-act="dp-trib" data-f="${f}">${lng('Haraç iste','Demand tribute')}</button>`;}
-  else{if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">${lng('İttifakı boz','Break alliance')}</button>`;else b+=`<button class="btn" data-act="dp-ally" data-f="${f}">${lng('İttifak öner','Propose alliance')}</button>`;
+  else{const vl=typeof vasLink==='function'&&vasLink(pl,f),vo=typeof vasOf==='function'&&vasOf(f); // vassals (04g): bound to their overlord
+   if(vl);else if(al)b+=`<button class="btn" data-act="dp-break" data-f="${f}">${lng('İttifakı boz','Break alliance')}</button>`;else if(!vo)b+=`<button class="btn" data-act="dp-ally" data-f="${f}">${lng('İttifak öner','Propose alliance')}</button>`;
    b+=`<button class="btn" data-act="dp-gift" data-f="${f}" ${F.gold<50?'disabled':''}>${lng('Hediye (50)','Gift (50)')}</button>`;
    if(!al&&!tr)b+=`<button class="btn danger" data-act="dp-war" data-f="${f}">${confirmKey==='dw:'+f?lng('Emin misin?','Are you sure?'):lng('Savaş ilan et','Declare war')}</button>`;}
   return b;}});
@@ -43,7 +44,7 @@ ACTS['dp-peace']=(t,f)=>{const o=t.dataset.f;if(!atWar(f,o))return;ptBk=null;sho
 ACTS['dp-trib']=(t,f,F)=>{const o=t.dataset.f;if(!atWar(f,o))return;if(aiAcceptTribute(o,f)){const g=tributeAmt(o);S.fac[o].gold=Math.max(0,S.fac[o].gold-g);F.gold+=g;makePeace(f,o,{prov:[],gold:0,release:[]});SND.play('coin');news(lng(`${FAC[o].s} barış karşılığı ${g} altın haraç ödedi.`,`${FAC[o].s} paid ${g} gold in tribute for peace.`),'good');toast(lng(`${FAC[o].s} ${g} altın haraç ödedi.`,`${FAC[o].s} paid ${g} gold in tribute.`),'good');}else toast(tributeAmt(o)<10?lng(`${FAC[o].s} hazinesi boş, ödeyecek haracı yok.`,`The treasury of ${FAC[o].s} is empty: there is no tribute to pay.`):lng(`${FAC[o].s} haraç vermeyi reddetti.`,`${FAC[o].s} refused to pay tribute.`),'war');renderAll();showDiplo();};
 ACTS['dp-ally']=(t,f)=>{const o=t.dataset.f;if(aiAcceptAlliance(o,f)){S.ally[key(f,o)]=true;SND.play('peace');addOp(f,o,10);news(lng(`${FAC[o].s} ile ittifak kuruldu.`,`Alliance formed with ${FAC[o].s}.`),'good');toast(lng(`${FAC[o].s} ittifakı kabul etti.`,`${FAC[o].s} accepted the alliance.`),'good');}else{toast(lng(`${FAC[o].s} ittifak teklifini geri çevirdi.`,`${FAC[o].s} turned down the alliance.`));}renderAll();showDiplo();};
 ACTS['dp-gift']=(t,f,F)=>{const o=t.dataset.f;if(F.gold<50)return;F.gold-=50;addOp(f,o,20);SND.play('coin');toast(lng(`${FAC[o].s} hediyeni memnuniyetle karşıladı (+20 ilişki).`,`${FAC[o].s} welcomed your gift (+20 relations).`),'good');renderAll();showDiplo();};
-ACTS['dp-break']=(t,f)=>{const o=t.dataset.f;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(lng(`${FAC[o].s} ile ittifak bozuldu.`,`The alliance with ${FAC[o].s} was broken.`));renderAll();showDiplo();};
+ACTS['dp-break']=(t,f)=>{const o=t.dataset.f;if(typeof vasLink==='function'&&vasLink(f,o))return;delete S.ally[key(f,o)];addOp(f,o,-30);addLog(lng(`${FAC[o].s} ile ittifak bozuldu.`,`The alliance with ${FAC[o].s} was broken.`));renderAll();showDiplo();};
 ACTS.off=(t,f)=>{let k=+t.dataset.k;const ok=t.dataset.v==='1',fk=t.dataset.f;
  // the list can change while the report is open: match by envoy, and redraw when the offer is gone (no dead buttons)
  if(fk&&(!S.offers[k]||S.offers[k].f!==fk))k=S.offers.findIndex(o=>o.f===fk);
@@ -59,7 +60,8 @@ function ptSigned(v){return (v>0?'+':v<0?'−':'')+Math.abs(Math.round(v*10)/10)
 function showPeace(o){const pl=S.player;if(!atWar(pl,o)){closeModal();return;}
  if(!ptBk||ptBk.f!==o)ptBk={f:o,prov:[],gold:0,release:[]};const bk=ptBk,w=S.war[key(pl,o)];
  bk.prov=bk.prov.filter(i=>(S.prov[i].o===o&&S.prov[i].ctl===pl)||(S.prov[i].o===pl&&S.prov[i].ctl===o));bk.release=bk.release.filter(r=>peaceRelCands(pl,o).includes(r));
- const ws=warScore(pl,o),lim=peaceLimit(o,pl),v=peaceValue(bk,pl,o),ok=aiAcceptBasket(o,pl,bk);
+ const VAS=typeof vasCan==='function';if(bk.vas&&!(VAS&&vasCan(pl,o,bk).ok))bk.vas=false; // vassalage (04g)
+ const ws=warScore(pl,o),lim=peaceLimit(o,pl),v=VAS?vasPeaceValue(bk,pl,o):peaceValue(bk,pl,o),ok=VAS?vasAccept(o,pl,bk):aiAcceptBasket(o,pl,bk);
  const item=(i,give)=>{const on=bk.prov.includes(i),c=give?-peaceProvCost(i,o):peaceProvCost(i,pl),cap=S.fac[S.prov[i].o].cap===i,gl=w.goal&&w.goal.k==='claim'&&w.goal.f===pl&&w.goal.prov===i;
   return `<button class="ptit${on?' on':''}" data-act="pt-prov" data-i="${i}" aria-pressed="${on}"><span class="ck">${on?'✓':''}</span><span class="nm">${cap?'★ ':''}${esc(PD[i].name)}<small>${lng('Gelişim','Development')} ${S.prov[i].dev}${gl?' · '+lng('savaş amacı','war goal'):''}</small></span><b>${ptSigned(c)}</b></button>`;};
  const theirs=facProvs(o).filter(i=>S.prov[i].ctl===pl),ours=facProvs(pl).filter(i=>S.prov[i].ctl===o),rel=peaceRelCands(pl,o);
@@ -76,16 +78,17 @@ function showPeace(o){const pl=S.player;if(!atWar(pl,o)){closeModal();return;}
   <div class="hint">${lng(`Hazineleri: ${gMax} altın. Her 25 altın bir puan.`,`Their treasury: ${gMax} gold. Every 25 gold is one point.`)}</div></div>
  ${rel.length?`<div class="sec"><h3>${lng('Serbest bırak','Release')}</h3><div class="hint">${lng('Eski sahiplerinin topraklarını onlara geri verdir; yeni bir komşu devlet doğar.','Make them hand old lands back to their former rulers; a new neighbour is born.')}</div><div class="ptlist">${rel.map(r=>{const on=bk.release.includes(r),c=peaceRelProvs(r,o).reduce((s,i)=>s+peaceProvCost(i,pl),0)*BAL_S.release;
    return `<button class="ptit${on?' on':''}" data-act="pt-rel" data-f="${r}" aria-pressed="${on}"><span class="ck">${on?'✓':''}</span>${shield(r)}<span class="nm">${esc(FAC[r].n)}<small>${lng(`${peaceRelProvs(r,o).length} eyalet`,`${peaceRelProvs(r,o).length} ${peaceRelProvs(r,o).length===1?'province':'provinces'}`)}</small></span><b>${ptSigned(c)}</b></button>`;}).join('')}</div></div>`:''}
+ ${VAS?vasPtSection(pl,o,bk):''}
  <div class="ptsum ${ok?'ok':'no'}"><div class="ptbar" role="img" aria-label="${lng(`İstekler ${ptSigned(v)}, kabul sınırı ${ptSigned(lim)}`,`Demands ${ptSigned(v)}, limit ${ptSigned(lim)}`)}"><i style="width:${bar}%"></i></div>
   <span>${lng('Masadaki istekler','Demands on the table')} <b>${ptSigned(v)}</b></span><span>${lng('Kabul edecekleri en fazla','The most they will accept')} <b>${ptSigned(lim)}</b></span>
   <b class="verdict">${ok?lng('Kabul ederler','They will accept'):lng('Reddederler','They will refuse')}</b></div>
- <div class="foot"><button class="btn primary" data-act="pt-send" ${ok?'':'aria-disabled="true"'}>${bk.prov.length||bk.gold||bk.release.length?lng('Antlaşmayı teklif et','Propose the treaty'):lng('Beyaz barış teklif et','Propose a white peace')}</button><button class="btn" data-act="pt-auto">${lng('En iyi teklif','Best offer')}</button><button class="btn" data-act="pt-clear">${lng('Temizle','Clear')}</button><button class="btn" data-act="diplo">${lng('Geri','Back')}</button></div>`);}
+ <div class="foot"><button class="btn primary" data-act="pt-send" ${ok?'':'aria-disabled="true"'}>${bk.prov.length||bk.gold||bk.release.length||bk.vas?lng('Antlaşmayı teklif et','Propose the treaty'):lng('Beyaz barış teklif et','Propose a white peace')}</button><button class="btn" data-act="pt-auto">${lng('En iyi teklif','Best offer')}</button><button class="btn" data-act="pt-clear">${lng('Temizle','Clear')}</button><button class="btn" data-act="diplo">${lng('Geri','Back')}</button></div>`);}
 ['pt-send'].forEach(a=>OVERBLOCK.add(a));['pt-prov','pt-gold','pt-rel','pt-auto','pt-clear','pt-send'].forEach(a=>QUIET.add(a));
 ACTS['pt-prov']=t=>{if(!ptBk)return;const i=+t.dataset.i,k=ptBk.prov.indexOf(i);if(k>=0)ptBk.prov.splice(k,1);else ptBk.prov.push(i);SND.play('select');showPeace(ptBk.f);};
 ACTS['pt-rel']=t=>{if(!ptBk)return;const r=t.dataset.f,k=ptBk.release.indexOf(r);if(k>=0)ptBk.release.splice(k,1);else ptBk.release.push(r);SND.play('select');showPeace(ptBk.f);};
 ACTS['pt-gold']=(t,f)=>{if(!ptBk)return;const o=ptBk.f;ptBk.gold=clamp(ptBk.gold+(+t.dataset.d),-Math.floor(S.fac[f].gold),Math.floor(S.fac[o].gold));SND.play('coin');showPeace(o);};
 ACTS['pt-auto']=(t,f)=>{if(!ptBk)return;const o=ptBk.f,b=aiPeaceBasket(f,o);ptBk={f:o,prov:b.prov,gold:b.gold,release:[]};showPeace(o);};
 ACTS['pt-clear']=()=>{if(!ptBk)return;const o=ptBk.f;ptBk={f:o,prov:[],gold:0,release:[]};showPeace(o);};
-ACTS['pt-send']=(t,f)=>{if(!ptBk)return;const o=ptBk.f,bk=peaceNorm(ptBk);if(!atWar(f,o)){closeModal();return;}
- if(offerBasket(f,o,bk)){ptBk=null;SND.play('peace');const w=peaceWords(bk,f);toast(w?lng(`${FAC[o].s} antlaşmayı imzaladı: ${w}.`,`${FAC[o].s} signed the treaty: ${w}.`):lng(`${FAC[o].s} barışı kabul etti.`,`${FAC[o].s} accepted peace.`),'good');closeModal();renderAll();}
+ACTS['pt-send']=(t,f)=>{if(!ptBk)return;const o=ptBk.f,vas=!!ptBk.vas&&typeof vasOffer==='function',bk=peaceNorm(ptBk);if(!atWar(f,o)){closeModal();return;}
+ if(vas?vasOffer(f,o,{...bk,vas:true}):offerBasket(f,o,bk)){ptBk=null;SND.play('peace');const w=[peaceWords(bk,f),vas?lng('haraçgüzarımız oldular','they become our vassal'):''].filter(Boolean).join(' · ');toast(w?lng(`${FAC[o].s} antlaşmayı imzaladı: ${w}.`,`${FAC[o].s} signed the treaty: ${w}.`):lng(`${FAC[o].s} barışı kabul etti.`,`${FAC[o].s} accepted peace.`),'good');closeModal();renderAll();}
  else{toast(lng(`${FAC[o].s} bu şartları reddetti.`,`${FAC[o].s} refused these terms.`),'war');renderAll();showPeace(o);}};
