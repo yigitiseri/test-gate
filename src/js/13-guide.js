@@ -1,6 +1,6 @@
 /* ---------------- guide ---------------- */
 const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Ordular','Armies')],['kusatma',lng('Kuşatma','Sieges')],['antlasma',lng('Antlaşmalar','Treaties')],
- ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['olay',lng('Olaylar','Events')]];
+ ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['vasal',lng('Vasallar','Vassals')],['ticaret',lng('Ticaret ve Eserler','Trade & Great Works')],['olay',lng('Olaylar','Events')]];
 function guideBody(t){
  const half=Math.ceil(NP*.5),w2=guideW2(t);if(w2)return w2;
  if(EN)return guideBodyEn(t,half);
@@ -188,10 +188,34 @@ function guideBodyEn(t,half){
  <li>On the keyboard, <b>Space</b> ends the turn, <b>Esc</b> closes a window, and <b>1–4</b> open Diplomacy, Goals, the Chronicle and the State Ledger.</li></ul>
  <p class="tip">The game saves itself after every move. Even if you close it, <b>Continue saved game</b> on the opening screen takes you back to where you left off.</p>`;
 }
+/* Wave 3 sections (vassals, trade and great works; saves and the ledger under Basics). own: the tab is only this text. */
+const GUIDE_ADD={
+ vasal:Object.assign(()=>lng(`<p>Yendiğin bir devleti ilhak etmek zorunda değilsin: <b>Barış Masası</b>'ndaki <b>Haraçgüzarlık</b> bölümünde "… haraçgüzarımız olsun" seçeneğini işaretleyerek onu haraç veren bir vasala çevirebilirsin. Toprakları ve hükümdarı onda kalır, ama artık senin sözünden çıkamaz.</p>
+ <h3>Vasal ne yapar?</h3><ul><li>Her mevsim vergilerinden bir pay sana <b>haraç</b> olarak gelir.</li><li>Senin açtığın savaşlara katılır, kendi başına savaş açamaz ve ittifak kuramaz.</li><li>Ona saldıran sana da saldırmış olur: onu korursun, orduların topraklarından geçebilir.</li></ul>
+ <h3>Bağımsızlık isteği</h3><p>Her vasalın içinde bir bağımsızlık isteği vardır. Sen zayıf düşersen, savaş kaybedersen ya da onun dindaşlarıyla savaşırsan bu istek büyür; iyi ilişkiler ve uzun yıllar onu yatıştırır. İstek çok yükselirse vasal isyan edip sana savaş açabilir.</p>
+ <h3>Barışçıl ilhak</h3><p>Yıllarca sadık kalan bir vasalı altın karşılığında topraklarına katabilirsin. Bu, kılıçla fetihten çok daha az korku yaratır; komşuların seninle birleşmeye pek heveslenmez.</p>
+ <p class="tip"><b>Vezirin öğüdü:</b> Eflak, Sırbistan ve Boğdan gibi küçük ama savaşçı komşuları vasal yapmak, onları ilhak edip huzursuz eyaletlerle uğraşmaktan çoğu zaman daha kârlıdır.</p>`,
+ `<p>You do not have to annex a beaten realm: at the <b>Peace Table</b>, tick "… becomes our vassal" in the <b>Vassalage</b> section and it becomes a tributary. It keeps its lands and its ruler, but it can no longer go against your word.</p>
+ <h3>What does a vassal do?</h3><ul><li>Every season a share of its taxes comes to you as <b>tribute</b>.</li><li>It joins the wars you start; it cannot declare wars or make alliances of its own.</li><li>Whoever attacks it attacks you too: you protect it, and your armies may cross its lands.</li></ul>
+ <h3>The wish for freedom</h3><p>Every vassal longs for freedom. The longing grows when you are weak, when you lose a war or when you fight its fellow believers; good relations and long years calm it. If it grows too strong, the vassal may rise and declare war on you.</p>
+ <h3>Peaceful annexation</h3><p>A vassal that has stayed loyal for years can be joined to your realm for gold. This frightens your neighbours far less than a conquest by the sword.</p>
+ <p class="tip"><b>The Vizier advises:</b> making small but warlike neighbours such as Wallachia, Serbia or Moldavia your vassals is often worth more than annexing them and fighting their unrest.</p>`),{own:true}),
+ ticaret:Object.assign(()=>lng(`<p>Çağın büyük ticaret yolları haritadan geçer: <b>İpek Yolu</b> (Tebriz'den Bursa'ya), <b>Baharat Yolu</b> (İskenderiye ve Kahire üzerinden), <b>Karadeniz yolu</b> (Kefe'den) ve <b>Venedik–Levant deniz yolu</b>. Yolun durakları olan şehirleri elinde tutan, her mevsim ticaret geliri alır.</p>
+ <h3>Yol ne zaman canlı olur?</h3><ul><li>Bir yolun bütün duraklarını tek elde toplamak geliri artırır.</li><li>Duraklardaki pazarlar ve kervansaraylar akışı hızlandırır.</li><li>Savaş, kuşatma ve işgal yolu tıkar; o mevsim herkes daha az kazanır.</li></ul>
+ <p>Haritada yolları görmek için yakınlaş ya da harita modunu değiştir. Bir durak şehrine dokununca panelde yolun durumu yazar.</p>
+ <h3>Büyük eserler</h3><p>Külliye, katedral, bedesten, kervansaray, tersane, hisar ve medrese gibi büyük eserler pahalıdır ve birkaç mevsimde biter, ama kalıcı bir fayda sağlar: huzur, vergi, asker, sur gücü ya da gemi kirasında indirim. Bir eyalete dokun, paneldeki <b>Büyük eserler</b> bölümünden inşaata başla. Aynı anda en fazla iki şantiye yürütebilirsin; eyalet işgal edilir ya da kuşatılırsa inşaat durur.</p>`,
+ `<p>The great trade roads of the age cross the map: the <b>Silk Road</b> (Tabriz to Bursa), the <b>Spice Road</b> (through Alexandria and Cairo), the <b>Black Sea road</b> (from Caffa) and the <b>Venice–Levant sea route</b>. Whoever holds the cities that are stops on a road earns trade income every season.</p>
+ <h3>When does a road thrive?</h3><ul><li>Holding every stop of a road yourself raises the income.</li><li>Markets and caravanserais at the stops speed the flow.</li><li>War, sieges and occupation choke the road; everyone earns less that season.</li></ul>
+ <p>Zoom in or change the map mode to see the roads. Tap a city on a road and the panel shows how the road is doing.</p>
+ <h3>Great works</h3><p>Mosque complexes, cathedrals, covered markets, caravanserais, arsenals, citadels and madrasas are expensive and take several seasons, but they give a lasting benefit: calm, taxes, troops, stronger walls or cheaper ships. Tap a province and start building from the <b>Great works</b> section of its panel. You can run at most two building sites at once; work stops while the province is occupied or besieged.</p>`),{own:true}),
+ genel:()=>lng(`<h3>Kayıtlar ve Defter</h3><p>Oyun her hamleden sonra kendiliğinden kaydedilir. Ayrıca menüdeki <b>Kayıtlar</b> bölümünden oyunu adlandırılmış yuvalara kaydedip istediğin an o ana dönebilir, oyunu dosya olarak indirip başka bir cihazda açabilirsin.</p>
+ <p><b>Defter</b> (Devlet defterinden ve menüden açılır) gelirinin, ordunun, toprağının ve puanının yıllar içindeki seyrini rakiplerinle karşılaştırmalı grafiklerde gösterir; devletlerin sıralamasını ve savaşların tarihini de tutar.</p>`,
+ `<h3>Saves and the Ledger</h3><p>The game saves itself after every move. From <b>Saves</b> in the menu you can also keep the game in named slots and come back to that moment whenever you like, or download it as a file and open it on another device.</p>
+ <p>The <b>Ledger</b> (open it from the State book or the menu) shows your income, army, land and score over the years in charts next to your rivals, with the ranking of the realms and the history of the wars.</p>`)};
 function showGuide(t){t=GUIDE_TABS.some(g=>g[0]===t)?t:'genel';
  openModal(`<div class="guide"><div class="eyebrow">Age of Dynasties</div><h2>${lng('Oyun Rehberi','Game Guide')}</h2>
  <div class="gtabs" role="tablist">${GUIDE_TABS.map(([k,l])=>`<button class="gt${k===t?' on':''}" role="tab" aria-selected="${k===t}" data-act="guide" data-t="${k}">${l}</button>`).join('')}</div>
- <div class="gbody">${guideBody(t)}</div>
+ <div class="gbody">${GUIDE_ADD[t]&&!GUIDE_ADD[t].own?'':guideBody(t)}${GUIDE_ADD[t]?GUIDE_ADD[t]():''}</div>
  <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div></div>`);}
 ACTS.help=()=>showGuide('genel');
 ACTS.guide=t=>showGuide(t.dataset.t);

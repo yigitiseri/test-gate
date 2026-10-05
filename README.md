@@ -32,6 +32,14 @@ The game is available in **English and Turkish** (switch on the start screen or 
   commander in battle or to captivity gets a free replacement at the end of the round.
 - **Shortcuts.** Tap **Army** or **Provinces** in the top bar to jump through your armies or provinces one
   by one, so a forgotten island or a lost army is always one tap away.
+- **Vassals.** Instead of annexing a beaten realm, make it a tributary at the Peace Table: it keeps its land,
+  pays you tribute every season and follows you to war, but it longs for freedom and may rise if you grow weak.
+  Loyal vassals can be annexed peacefully for gold.
+- **Trade and great works.** The Silk Road, the Spice Road, the Black Sea road and the Venice–Levant sea route
+  pay whoever holds their stops; war and sieges choke them. Raise mosque complexes, cathedrals, covered markets,
+  caravanserais, arsenals, citadels and madrasas for lasting bonuses.
+- **Saves and the Ledger.** Named save slots, export and import as a file (also on iPhone), and a Ledger with
+  charts of income, army, land and score against your rivals, the ranking of the realms and the history of wars.
 - **Dynasties.** Rulers age, die and are succeeded by their heirs; Venice elects doges; succession crises break
   out when there is no heir.
 - **Economy.** Income comes from developed provinces. Build markets, barracks, walls and new quarters; pay your

@@ -31,6 +31,15 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
   alırsın; komutanı ölen ya da esir düşen ordunun başına tur sonunda boştaki bir paşa geçer.
 - **Kısayollar.** Üst çubukta **Ordu**'ya ya da **Eyalet**'e dokununca ordularını ya da eyaletlerini sırayla
   gösterir; unuttuğun bir ada ya da kaybolan bir ordu hep bir dokunuş uzağındadır.
+- **Vasallar.** Yendiğin devleti ilhak etmek yerine Barış Masası'nda haraçgüzar yap: toprağı kendinde kalır, her
+  mevsim haraç öder ve savaşlarında yanında yürür; ama bağımsızlık ister ve zayıf düşersen isyan edebilir. Sadık
+  vasallar altın karşılığında barışçıl yolla ilhak edilir.
+- **Ticaret ve büyük eserler.** İpek Yolu, Baharat Yolu, Karadeniz yolu ve Venedik–Levant deniz yolu, duraklarını
+  elinde tutana gelir getirir; savaş ve kuşatma yolları tıkar. Kalıcı bonuslar için külliye, katedral, bedesten,
+  kervansaray, tersane, hisar ve medrese inşa et.
+- **Kayıtlar ve Defter.** Adlandırılmış kayıt yuvaları, oyunu dosyaya aktarma ve geri yükleme (iPhone'da da), ve
+  gelir, ordu, toprak ve puanın rakiplerle karşılaştırmalı grafiklerini, devlet sıralamasını ve savaş tarihini
+  tutan Defter.
 - **Hanedanlar.** Hükümdarlar yaşlanır, ölür, yerine veliaht geçer; Venedik dojunu seçer; veliaht yoksa taht
   kavgası çıkar.
 - **Ekonomi.** Gelir gelişmiş eyaletlerden gelir. Pazar, kışla, kale ve imar yaparsın; askerlerine her mevsim
