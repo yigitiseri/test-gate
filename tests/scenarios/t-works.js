@@ -31,7 +31,7 @@ module.exports = {
     await page.click(btn); await page.waitForTimeout(200);
     const site = await E(i => { const K = window.__ke, S = K.S, w = S.works.find(x => x.i === i && x.k === 'faith');
       const sec = document.querySelector('#panel [data-sec="works"]'); return { w, gold: S.fac.OSM.gold, txt: sec ? sec.innerText : '', bar: !!document.querySelector('#panel .wkbar') }; }, ed);
-    check('foundations laid: 250 gold paid, the site shows its progress', site.w && !site.w.d && site.gold === 750 && site.bar && /Edirne/.test(site.txt) && /tur kaldı/.test(site.txt), site);
+    check('foundations laid: 250 gold paid, the site shows its progress', site.w && !site.w.d && site.gold === 750 && site.bar && /Üç Şerefeli Cami/.test(site.txt) && /tur kaldı/.test(site.txt), site);
     const lim = await E(i => { const K = window.__ke, S = K.S, pk = k => K.PD.findIndex(d => d.key === k);
       const second = K.works.can('OSM', pk('bursa'), 'faith'), s2 = K.works.start('OSM', pk('selanik'), 'citadel'), third = K.works.can('OSM', pk('sofya'), 'citadel');
       return { second: second.why, s2: !!s2, third: third.why }; }, ed);
@@ -42,7 +42,7 @@ module.exports = {
       S.news = []; for (let k = 0; k < 20 && !w.d; k++) K.works.tick();
       return { p1, p2, d: w.d, news: S.news.map(n => n.m) }; }, ed);
     check('work advances each season and pauses under occupation', prog.p1 === 1 && prog.p2 === 1, prog);
-    check('the Külliye is finished with news of its effect', prog.d === 1 && prog.news.some(m => /Edirne/.test(m) && /tamamlandı/.test(m) && /huzursuzluk/.test(m)), prog.news);
+    check('the Külliye is finished with news of its effect', prog.d === 1 && prog.news.some(m => /Üç Şerefeli Cami \(Edirne\)/.test(m) && /tamamlandı/.test(m) && /huzursuzluk/.test(m)), prog.news);
     // faith: unrest fades twice as fast
     const un = await E(() => { const K = window.__ke, S = K.S, i = K.PD.findIndex(d => d.key === 'sofya'); S.prov[i].un = 6; K.runHooks('roundEnd'); return S.prov[i].un; });
     check('with a Külliye unrest fades twice as fast', un === 4, un);

@@ -2902,6 +2902,8 @@ const wkPick=(o,rel)=>o[rel]||o['*']||o['Katolik']||Object.values(o)[0];
 function wkName(w){const T=WK_TYPES[w.k],rel=w.rel||wkRel(S.prov[w.i].o),h=WK_HIST[w.k+':'+PD[w.i].key];
  if(h){const v=h.tr?h:(h[rel]||h['*']);if(v)return tx(v);}
  const n=wkPick(T.n,rel);return EN?`${n.en} of ${PD[w.i].name}`:`${PD[w.i].name} ${n.tp}`;}
+/** Name with its place when a historical name does not say it (news, lists). */
+function wkNameAt(w){const n=wkName(w),pl=PD[w.i].name;return n.includes(pl)?n:`${n} (${pl})`;}
 /** Short type name in the current faith of realm f (for buttons). */
 const wkTypeName=(k,f)=>tx(wkPick(WK_TYPES[k].n,wkRel(f)));
 /** Effect text of type k (plain words). */
@@ -2947,13 +2949,13 @@ function wkCan(f,i,k){const T=WK_TYPES[k],p=S.prov[i];if(!T||!p)return {ok:false
 /** Begin work k at province i for realm f (pays the cost). -> the work, or null */
 function wkStart(f,i,k){if(!wkCan(f,i,k).ok)return null;const T=WK_TYPES[k];S.fac[f].gold-=T.cost;
  const w={i,k,f,p:0,n:T.turns,d:0,t:S.turn};if(k==='faith')w.rel=wkRel(f);(S.works||(S.works=[])).push(w);
- if(f===S.player)addLog(lng(`${wkName(w)} için temel atıldı.`,`The foundations of the ${wkName(w)} were laid.`),'info');
+ if(f===S.player)addLog(lng(`${wkNameAt(w)} için temel atıldı.`,`The foundations of the ${wkNameAt(w)} were laid.`),'info');
  runHooks('workStarted',w);return w;}
 /** Finish w now (also used by the start-of-game works). */
 function wkFinish(w,quiet){w.d=1;w.p=w.n;w.t=S.turn;if(w.k==='faith'&&!w.rel)w.rel=wkRel(S.prov[w.i].o);
  if(!quiet){if(w.k==='medrese'){const p=S.prov[w.i];p.dev=Math.min(Math.max(p.dev,BAL_W.medreseMax),p.dev+BAL_W.medreseDev);}const o=S.prov[w.i].o;
-  if(o===S.player){news(lng(`${wkName(w)} tamamlandı! ${tx(WK_TYPES[w.k].eff)}`,`The ${wkName(w)} is complete! ${tx(WK_TYPES[w.k].eff)}`),'good');}
-  else if(S.player&&(nbrs(S.player).includes(o)||w.k==='faith'))addLog(lng(`${FAC[o].s}: ${wkName(w)} tamamlandı.`,`${FAC[o].s}: the ${wkName(w)} is complete.`),'info');
+  if(o===S.player){news(lng(`${wkNameAt(w)} tamamlandı! ${tx(WK_TYPES[w.k].eff)}`,`The ${wkNameAt(w)} is complete! ${tx(WK_TYPES[w.k].eff)}`),'good');}
+  else if(S.player&&(nbrs(S.player).includes(o)||w.k==='faith'))addLog(lng(`${FAC[o].s}: ${wkNameAt(w)} tamamlandı.`,`${FAC[o].s}: the ${wkNameAt(w)} is complete.`),'info');
   runHooks('workDone',w);}
  polDirty=true;}
 /** Seasons of work: called each roundEnd. */
@@ -7030,7 +7032,7 @@ PANEL_SECTIONS.push({id:'works',order:64,when:c=>c.tgt<0&&(wkAt(c.i).length>0||(
  return h+'</div>';}});
 ACTS.wkbuild=(t,f)=>{const i=+t.dataset.i,k=t.dataset.k,ck='wk:'+i+':'+k;if(!S.prov[i]||S.prov[i].o!==f)return;
  const r=wkCan(f,i,k);if(!r.ok){toast(r.why);return;}if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
- const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkName(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkName(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
+ const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkNameAt(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkNameAt(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
 OVERBLOCK.add('wkbuild');QUIET.add('wkbuild');
 /* ---- modal ---- */
 function showTrade(){const pl=S.player,all=trdAll();let h=`<div class="eyebrow">${lng('Kervanlar, kadırgalar, çarşılar','Caravans, galleys, bazaars')}</div><h2>${lng('Ticaret ve Büyük Eserler','Trade and Great Works')}</h2>`;

@@ -48,7 +48,7 @@ PANEL_SECTIONS.push({id:'works',order:64,when:c=>c.tgt<0&&(wkAt(c.i).length>0||(
  return h+'</div>';}});
 ACTS.wkbuild=(t,f)=>{const i=+t.dataset.i,k=t.dataset.k,ck='wk:'+i+':'+k;if(!S.prov[i]||S.prov[i].o!==f)return;
  const r=wkCan(f,i,k);if(!r.ok){toast(r.why);return;}if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
- const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkName(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkName(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
+ const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkNameAt(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkNameAt(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
 OVERBLOCK.add('wkbuild');QUIET.add('wkbuild');
 /* ---- modal ---- */
 function showTrade(){const pl=S.player,all=trdAll();let h=`<div class="eyebrow">${lng('Kervanlar, kadırgalar, çarşılar','Caravans, galleys, bazaars')}</div><h2>${lng('Ticaret ve Büyük Eserler','Trade and Great Works')}</h2>`;
