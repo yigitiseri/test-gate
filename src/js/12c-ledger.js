@@ -60,7 +60,8 @@ hook('battleResolved',rep=>{if(!S.lg||!rep||!rep.att)return;const w=lgWarOpen(re
 /** [[turn,value]…] of metric m (an LG_MET entry) for realm f, plus today's value and the fall to zero. */
 function lgSeries(f,m){const r=S.lg&&S.lg.r[f],o=[],mul=m.m||1;
  if(r)for(let i=0;i*LG_K<r.d.length;i++)o.push([r.t+i*r.s,r.d[i*LG_K+m.k]*mul]);
- if(alive(f)){const T=S.turn;if(!o.length||o[o.length-1][0]<T)o.push([T,m.k===4?score(f):m.k===0?facProvs(f).length:m.k===1?Math.round(income(f)):m.k===2?strength(f):S.fac[f].mp]);}
+ if(alive(f)){const T=S.turn,v=m.k===4?score(f):m.k===0?facProvs(f).length:m.k===1?Math.round(income(f)):m.k===2?strength(f):S.fac[f].mp;
+  if(o.length&&o[o.length-1][0]>=T)o[o.length-1]=[T,v];else o.push([T,v]);} // today's point is always live
  else if(r&&r.x!=null&&(!o.length||o[o.length-1][0]<r.x))o.push([r.x,0]);
  return o;}
 /** Value of a series at turn T: the last sample at or before T (null before the first one). */
@@ -105,7 +106,7 @@ function lgChart(){const box=$('#lgChart');if(!box)return;const m=LG_MET.find(x=
  lgGeo={ml,mt,pw,ph,t1,X,Y,m,ser,W,H};
  box.innerHTML=`<svg class="lg-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" tabindex="0" role="img" aria-label="${esc(m.l)}: ${esc(fs.map(f=>FAC[f].s).join(', '))}">
   ${g}<line class="axis" x1="${ml}" x2="${ml+pw}" y1="${mt+ph}" y2="${mt+ph}"/>${lines}${ends}<g class="hov"></g>
-  <rect class="hit" x="${ml-8}" y="0" width="${pw+16}" height="${H}" fill="transparent"/></svg><div class="lg-tip" hidden></div>`;
+  <rect class="hit" x="${ml-8}" y="0" width="${pw+16}" height="${H}" fill="transparent"/></svg><div class="lg-tip${W<480?' nar':''}" aria-live="polite"${W<480?'':' hidden'}>${W<480?lgTipIdle():''}</div>`;
  const sv=box.querySelector('svg');
  const at=e=>{const r=sv.getBoundingClientRect();return Math.round(clamp((e.clientX-r.left)*W/r.width-ml,0,pw)/pw*t1);};
  sv.addEventListener('pointerdown',e=>{lgShow(at(e));});
@@ -117,15 +118,16 @@ function lgChart(){const box=$('#lgChart');if(!box)return;const m=LG_MET.find(x=
  if(lgHover!=null)lgShow(Math.min(lgHover,t1));}
 /** Show the crosshair and the readout at turn T (null hides them). */
 function lgShow(T){const G=lgGeo,box=$('#lgChart');if(!G||!box)return;const hv=box.querySelector('.hov'),tip=box.querySelector('.lg-tip');if(!hv||!tip)return;
- lgHover=T;if(T==null){hv.innerHTML='';tip.hidden=true;return;}
+ const nar=tip.classList.contains('nar');lgHover=T;if(T==null){hv.innerHTML='';if(nar)tip.innerHTML=lgTipIdle();else tip.hidden=true;return;}
  // snap to the nearest sample of the player's (densest) line
  const mine=G.ser[0].p;let best=T,bd=1e9;for(const p of mine){const d=Math.abs(p[0]-T);if(d<bd){bd=d;best=p[0];}}if(bd<=4)T=best;
  const x=G.X(T);let h=`<line class="cross" x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${G.mt}" y2="${G.mt+G.ph}"/>`;const rows=[];
  for(const s of G.ser){const v=lgAt(s.p,T);if(!v)continue;h+=lgMark(s.k,G.X(v[0]),G.Y(v[1]),4.5,LG_COL[s.k],'#f3e7c6');rows.push({f:s.f,v:v[1]});}
  hv.innerHTML=h;rows.sort((a,b)=>b.v-a.v);
  tip.innerHTML=`<div class="d">${esc(dateStr(T))}</div>${rows.map(r=>`<div class="r">${lgKey(r.f)}<b>${lgFmt(r.v,G.m)}</b><span>${esc(FAC[r.f].s)}</span></div>`).join('')||`<div class="r">${lng('Kayıt yok','No record')}</div>`}`;
- tip.hidden=false;const bw=box.clientWidth,sc=bw/G.W,tw=tip.offsetWidth,px=x*sc;
+ if(nar)return;tip.hidden=false;const bw=box.clientWidth,sc=bw/G.W,tw=tip.offsetWidth,px=x*sc;
  tip.style.left=Math.round(px+12+tw>bw?Math.max(0,px-12-tw):px+12)+'px';tip.style.top='4px';}
+const lgTipIdle=()=>`<div class="d">${lng('Bir tarihteki değerleri okumak için grafiğe dokun.','Touch the chart to read the values at a date.')}</div>`;
 function lgLegend(){const m=LG_MET.find(x=>x.id===lgMetric)||LG_MET[0];
  return lgShown().map(f=>{const s=lgSeries(f,m),v=s.length?s[s.length-1][1]:null;
   return `<span class="lg-leg${f===S.player?' me':''}">${lgKey(f)}${shield(f)}<span class="nm">${esc(FAC[f].s)}</span><b>${alive(f)?lgFmt(v,m):lng('yıkıldı','fallen')}</b>${f!==S.player?`<button class="x" data-act="lg-riv" data-f="${f}" aria-label="${esc(lng(`${FAC[f].s} grafikten çıkar`,`Remove ${FAC[f].s} from the chart`))}">×</button>`:''}</span>`;}).join('');}
@@ -151,7 +153,7 @@ function lgRank(){const pl=S.player,c=LG_COLS.find(x=>x.id===lgSort)||LG_COLS[3]
  const vis=rows.filter((r,k)=>k<lim||r.f===pl);
  const delta=f=>{const r=S.lg&&S.lg.r[f];if(!r||!r.d.length)return '';const n=r.d.length/LG_K,back=Math.max(0,n-1-Math.ceil(40/r.s)),d=score(f)-r.d[back*LG_K+4];
   return n>1&&d?`<small class="${d>0?'pos':'neg'}">${d>0?'+':'−'}${Math.abs(d)}</small>`:'';};
- return `<p class="hint">${lng(`Puana göre ${rk}. sıradasın (${rows.length} devlet arasında). Bir satıra dokunarak devleti grafiğe ekle ya da çıkar.`,`You rank ${ordEn(rk)} of ${rows.length} realms by score. Tap a row to add the realm to the chart or take it off.`)}</p>
+ return `<p class="hint">${!rk?lng('Devletin artık yok. Sıralama ayakta kalan devletleri gösteriyor.','Your realm is no more. The ranking shows the realms still standing.'):lng(`Puana göre ${rk}. sıradasın (${rows.length} devlet arasında). Bir satıra dokunarak devleti grafiğe ekle ya da çıkar.`,`You rank ${ordEn(rk)} of ${rows.length} realms by score. Tap a row to add the realm to the chart or take it off.`)}</p>
  <table class="lg-rank"><thead><tr><th class="n">#</th><th class="r">${lng('Devlet','Realm')}</th>${LG_COLS.map(x=>`<th><button class="lg-sort${x.id===lgSort?' on':''}" data-act="lg-sort" data-k="${x.id}" aria-pressed="${x.id===lgSort}">${esc(x.l)}${x.id===lgSort?' ▾':''}</button></th>`).join('')}</tr></thead>
  <tbody>${vis.map(r=>{const k=rows.indexOf(r);return `<tr class="${r.f===pl?'me':''}${sh.has(r.f)?' on':''}"${r.f!==pl?` data-act="lg-riv" data-f="${r.f}"`:''}><td class="n">${k+1}</td><td class="r"><div class="rn">${shield(r.f)}<span>${esc(FAC[r.f].s)}</span>${sh.has(r.f)?lgKey(r.f):''}</div></td>${LG_COLS.map(x=>`<td>${x.t(r[x.id])}${x.id==='score'?delta(r.f):''}</td>`).join('')}</tr>`;}).join('')}</tbody></table>
  ${rows.length>10?`<button class="btn lg-all" data-act="lg-all">${lgAll?lng('İlk 10 devleti göster','Show the top 10'):lng(`Bütün devletleri göster (${rows.length})`,`Show all realms (${rows.length})`)}</button>`:''}`;}
@@ -167,7 +169,7 @@ function lgWarRow(w){const pl=S.player,y0=lgYear(w.s),y1=w.e!=null?lgYear(w.e):n
  else res=lng('Savaş sona erdi','The war ended');
  const won=w.r==='a'||w.r==='b'?w[w.r]:w.r==='x'?(w.q===w.a?w.b:w.a):null,cls=w.e==null?'':(won===pl?'pos':(won&&(w.a===pl||w.b===pl))?'neg':'');
  const bt=w.wa+w.wb?lng(`Kazanılan muharebe: ${A} ${w.wa}, ${B} ${w.wb}`,`Battles won: ${A} ${w.wa}, ${B} ${w.wb}`):lng('Meydan muharebesi olmadı','No battles fought');
- return `<div class="lg-war"><div class="sides">${shield(w.a)}<span>${esc(A)}</span><i>${lng('karşı','vs')}</i><span>${esc(B)}</span>${shield(w.b)}</div>
+ return `<div class="lg-war"><div class="sides">${shield(w.a)}<span>${esc(A)}</span><i>${lng('–','vs')}</i><span>${esc(B)}</span>${shield(w.b)}</div>
   <div class="yrs">${y0}${y1==null?' –':y1!==y0?'–'+y1:''}</div><div class="res ${cls}">${res}</div><div class="bt">${esc(bt)}</div></div>`;}
 function lgWars(){const W=S.lg?S.lg.w:[],pl=S.player,mine=W.filter(w=>w.a===pl||w.b===pl).reverse(),oth=W.filter(w=>w.a!==pl&&w.b!==pl).reverse();
  return `<div class="lg-wars">${mine.map(lgWarRow).join('')||`<p class="hint">${lng('Henüz savaşa girmedin.','You have not fought a war yet.')}</p>`}</div>
@@ -176,7 +178,7 @@ function lgWars(){const W=S.lg?S.lg.w:[],pl=S.player,mine=W.filter(w=>w.a===pl||
 /* ---------------- modal ---------------- */
 function showLedger(){const f=S.player;lgHover=null;
  openModal(`<div class="lgr"><div class="eyebrow">${esc(FAC[f].n)} · ${dateStr(S.turn)}</div><h2>${lng('Defter','Ledger')}</h2>
- <p class="lead lg-lead">${lng('Devletinin yıllar içindeki gidişatı, rakiplerinle karşılaştırması ve savaşların kaydı.','How your realm has fared over the years, how it compares with its rivals, and the record of its wars.')}</p>
+ <p class="hint lg-lead">${lng('Devletinin yıllar içindeki gidişatı, rakiplerinle karşılaştırması ve savaşların kaydı.','How your realm has fared over the years, how it compares with its rivals, and the record of its wars.')}</p>
  <div class="sec"><h3>${lng('Zaman içinde','Over time')}</h3><div id="lgCh">${lgChartSec()}</div></div>
  <div class="sec"><h3>${lng('Devletlerin sıralaması','Ranking of the realms')}</h3><div id="lgRank">${lgRank()}</div></div>
  <div class="sec"><h3>${lng('Savaş tarihi','War history')}</h3>${lgWars()}</div>

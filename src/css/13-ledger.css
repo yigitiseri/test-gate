@@ -7,7 +7,7 @@
 .lg-open .btn .c{font-size:20px;line-height:1;color:var(--brass)}
 /* metric selector: one row above the chart */
 .lg-mets{display:flex;flex-wrap:wrap;gap:4px}
-.lg-met{font:600 14px/1 var(--body);padding:7px 11px;min-height:34px;border:1px solid #a88452;border-radius:3px;background:rgba(255,250,232,.45);color:var(--lg-ink);cursor:pointer}
+.lg-met{flex:1 1 auto;font:600 14px/1 var(--body);padding:7px 11px;min-height:34px;border:1px solid #a88452;border-radius:3px;background:rgba(255,250,232,.45);color:var(--lg-ink);cursor:pointer}
 .lg-met.on{background:linear-gradient(#3f7550,#244a30);border-color:#17311f;color:#f7e8bb}
 .lg-d{margin:0;font-size:13.5px}
 /* chart */
@@ -26,6 +26,9 @@
 .lg-tip .r{display:flex;align-items:center;gap:6px;line-height:1.45}
 .lg-tip .r b{font-variant-numeric:tabular-nums;min-width:34px}
 .lg-tip .r span{color:var(--lg-ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-tip.nar{position:static;max-width:none;min-height:46px;margin:0;border:0;border-top:1px solid #c9ae7e;border-radius:0;box-shadow:none;background:rgba(255,250,232,.55);display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px}
+.lg-tip.nar .d{flex-basis:100%;margin:0}
+.lg-tip.nar .r span{max-width:90px}
 .lg-key{width:22px;height:12px;flex:none}
 /* legend: identity + today's value */
 .lg-legend{display:flex;flex-wrap:wrap;gap:4px 14px}
@@ -61,6 +64,7 @@
 .lg-rank tbody tr[data-act]:hover{background:rgba(110,77,39,.07)}
 .lg-rank tr.me{background:rgba(142,31,20,.1);font-weight:700}
 .lg-rank tr.on td.r span{font-weight:700}
+.lgr .sec>.hint,#lgRank>.hint{margin:0}
 .lg-all{align-self:flex-start;font-size:14px}
 /* wars */
 .lg-wars{display:flex;flex-direction:column;border:1px solid #b89a6a;border-radius:3px}
@@ -71,13 +75,14 @@
 .lg-war .sides .shield{width:16px;height:19px}
 .lg-war .sides i{font-style:italic;color:var(--lg-mute);font-weight:400}
 .lg-war .yrs{font:600 13px var(--display);color:var(--lg-ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
-.lg-war .res{grid-column:1/-1;font-size:14px}
+.lg-war .res{grid-column:1/-1;grid-row:2;font-size:14px}
 .lg-war .res .on{color:#8a2416;font-weight:600}
-.lg-war .bt{grid-column:1/-1;font-size:12.5px;color:var(--lg-mute)}
+.lg-war .bt{grid-column:1/-1;grid-row:3;font-size:12.5px;color:var(--lg-mute)}
 @media (max-width:520px){
  #modal .card:has(.lgr) .in{padding:14px 12px 16px}
  .lg-met{padding:7px 8px;font-size:13.5px}
  .lg-rank{font-size:13px}
- .lg-rank td.r .shield{display:none}
+ .lg-rank td.r .shield,.lg-leg .shield{display:none}
+ .lg-legend{gap:2px 12px}
  .lg-war .sides{font-size:14px}
 }
