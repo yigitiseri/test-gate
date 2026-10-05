@@ -166,7 +166,7 @@ function vasClean(){if(!S||!S.vas)return;
   if(!isAlly(o,v))S.ally[key(o,v)]=true;
   for(const k of Object.keys(S.ally)){const [a,b]=k.split('|');if((a===v||b===v)&&a!==o&&b!==o)delete S.ally[k];}}} // a vassal has no other allies
 function vasStep(){if(!S||!S.vas)return;vasClean();
- for(const v of Object.keys(S.vas)){const V=S.vas[v],o=V.o;
+ for(const v of Object.keys(S.vas)){const V=S.vas[v];if(!V)continue;const o=V.o; // an annexation or revolt earlier in this loop may have ended it
   const t=vasLibInfo(v).t;V.lib=Math.round(clamp(V.lib+(t-V.lib)*BAL_V.libRate,0,100)*10)/10;
   if(V.lib>=BAL_V.rebel&&S.turn-V.t>=BAL_V.rebelGrace&&(warsOf(o).length||strength(v)>=strength(o)*BAL_V.rebelRatio)&&R()<BAL_V.rebelP){vasRevolt(v);continue;}
   if(o!==S.player){const a=vasAnnexCan(o,v);if(a.ok&&S.fac[o].gold-a.cost>=BAL_V.aiAnnexKeep&&R()<BAL_V.aiAnnexP)vasAnnex(o,v);}}}
@@ -255,4 +255,4 @@ STATE_SECTIONS.push({id:'vassals',order:33,html(f){if(!S.vas)return '';const L=v
 
 KE.vas={of:f=>vasOf(f),list:o=>vasList(o),can:(o,v,bk)=>vasCan(o,v,bk),cost:(o,v,bk)=>vasCost(o,v,bk),make:(o,v)=>vasMake(o,v,'test'),free:v=>vasFree(v,'free'),
  lib:v=>vasLib(v),libInfo:v=>vasLibInfo(v),trib:v=>vasTrib(v),annexCan:(o,v)=>vasAnnexCan(o,v),annex:(o,v)=>vasAnnex(o,v),revolt:v=>vasRevolt(v),
- accept:(ai,o,bk)=>vasAccept(ai,o,bk),offer:(p,ai,bk)=>vasOffer(p,ai,bk),treaty:(a,b,bk)=>vasTreaty(a,b,bk),aiSettle:(w,l)=>vasAiSettle(w,l),step:()=>vasStep(),col:f=>vasMapCol(f),BAL:BAL_V};
+ accept:(ai,o,bk)=>vasAccept(ai,o,bk),offer:(p,ai,bk)=>vasOffer(p,ai,bk),treaty:(a,b,bk)=>vasTreaty(a,b,bk),aiSettle:(w,l)=>vasAiSettle(w,l),step:()=>vasStep(),col:f=>vasMapCol(f),why:r=>vasWhyText(r),BAL:BAL_V};

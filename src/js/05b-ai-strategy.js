@@ -84,7 +84,7 @@ KE.aiDecl=[]; // test log of AI declarations: {t,f,g,p,j}
 
 function aiDiplo(f){
  const my=strength(f),A=aiState(f),P=aiPers(f);
- warsOf(f).forEach(g=>{
+ warsOf(f).forEach(g=>{if(!atWar(f,g))return; // an earlier settlement this turn may have ended it (vassals follow their overlord's peace, 04g)
   const dur0=S.turn-S.war[key(f,g)].t;if(dur0<BAL_D.firstPeace)return;
   if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&warScore(f,g)<=0&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
   else if(aiCoalLock(f,g)||aiBesieging(f,g)||aiBesieging(g,f))return;

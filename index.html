@@ -3554,7 +3554,7 @@ function vasClean(){if(!S||!S.vas)return;
   if(!isAlly(o,v))S.ally[key(o,v)]=true;
   for(const k of Object.keys(S.ally)){const [a,b]=k.split('|');if((a===v||b===v)&&a!==o&&b!==o)delete S.ally[k];}}} // a vassal has no other allies
 function vasStep(){if(!S||!S.vas)return;vasClean();
- for(const v of Object.keys(S.vas)){const V=S.vas[v],o=V.o;
+ for(const v of Object.keys(S.vas)){const V=S.vas[v];if(!V)continue;const o=V.o; // an annexation or revolt earlier in this loop may have ended it
   const t=vasLibInfo(v).t;V.lib=Math.round(clamp(V.lib+(t-V.lib)*BAL_V.libRate,0,100)*10)/10;
   if(V.lib>=BAL_V.rebel&&S.turn-V.t>=BAL_V.rebelGrace&&(warsOf(o).length||strength(v)>=strength(o)*BAL_V.rebelRatio)&&R()<BAL_V.rebelP){vasRevolt(v);continue;}
   if(o!==S.player){const a=vasAnnexCan(o,v);if(a.ok&&S.fac[o].gold-a.cost>=BAL_V.aiAnnexKeep&&R()<BAL_V.aiAnnexP)vasAnnex(o,v);}}}
@@ -3643,7 +3643,7 @@ STATE_SECTIONS.push({id:'vassals',order:33,html(f){if(!S.vas)return '';const L=v
 
 KE.vas={of:f=>vasOf(f),list:o=>vasList(o),can:(o,v,bk)=>vasCan(o,v,bk),cost:(o,v,bk)=>vasCost(o,v,bk),make:(o,v)=>vasMake(o,v,'test'),free:v=>vasFree(v,'free'),
  lib:v=>vasLib(v),libInfo:v=>vasLibInfo(v),trib:v=>vasTrib(v),annexCan:(o,v)=>vasAnnexCan(o,v),annex:(o,v)=>vasAnnex(o,v),revolt:v=>vasRevolt(v),
- accept:(ai,o,bk)=>vasAccept(ai,o,bk),offer:(p,ai,bk)=>vasOffer(p,ai,bk),treaty:(a,b,bk)=>vasTreaty(a,b,bk),aiSettle:(w,l)=>vasAiSettle(w,l),step:()=>vasStep(),col:f=>vasMapCol(f),BAL:BAL_V};
+ accept:(ai,o,bk)=>vasAccept(ai,o,bk),offer:(p,ai,bk)=>vasOffer(p,ai,bk),treaty:(a,b,bk)=>vasTreaty(a,b,bk),aiSettle:(w,l)=>vasAiSettle(w,l),step:()=>vasStep(),col:f=>vasMapCol(f),why:r=>vasWhyText(r),BAL:BAL_V};
 /* ---------------- AI ----------------
    The AI plays by the player's rules: garrisons defend, field armies (04c) march and attack.
    Strategy comes from Track D: aiTargets(f) (what to attack) and aiDefendNeeds(f) (what to hold). */
@@ -3828,7 +3828,7 @@ KE.aiDecl=[]; // test log of AI declarations: {t,f,g,p,j}
 
 function aiDiplo(f){
  const my=strength(f),A=aiState(f),P=aiPers(f);
- warsOf(f).forEach(g=>{
+ warsOf(f).forEach(g=>{if(!atWar(f,g))return; // an earlier settlement this turn may have ended it (vassals follow their overlord's peace, 04g)
   const dur0=S.turn-S.war[key(f,g)].t;if(dur0<BAL_D.firstPeace)return;
   if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&warScore(f,g)<=0&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
   else if(aiCoalLock(f,g)||aiBesieging(f,g)||aiBesieging(g,f))return;
