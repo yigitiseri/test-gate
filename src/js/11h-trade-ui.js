@@ -29,7 +29,7 @@ function wkSiteLine(w){const p=S.prov[w.i],left=wkLeft(w),paused=p.ctl||(typeof 
 function trdWorkTip(L){return L.map(w=>`<b class="tt">${esc(wkName(w))}</b>${w.d?`<p>${esc(wkEff(w.k))}</p>`:`<p>${esc(wkSiteLine(w))}</p><p>${lng('Bitince:','When finished:')} ${esc(wkEff(w.k))}</p>`}`).join('');}
 function wkBar(w){const pc=Math.round(clamp(w.p/w.n,0,1)*100);return `<div class="wkbar" role="img" aria-label="${lng(`İnşaat yüzde ${pc} tamam`,`Construction ${pc} percent complete`)}"><i style="width:${pc}%"></i></div>`;}
 /* ---- province panel ---- */
-PANEL_SECTIONS.push({id:'trade',order:62,when:c=>c.tgt<0&&trdIsStop(c.i),html(c){const pl=c.f,holder=ctl(c.i);
+PANEL_SECTIONS.push({id:'trade',order:99,when:c=>c.tgt<0&&trdIsStop(c.i),html(c){const pl=c.f,holder=ctl(c.i);
  let h=`<div class="sec trsec"><h3>${lng('Ticaret yolu','Trade road')}</h3>`;
  for(const m of TRD_AT[c.i]){const r=m.r,F=trdFlow(r),[w,cl]=trdWord(F.flow),v=trdStopVal(r,m.k,F.flow);
   h+=`<div class="trrow" data-tip="trroute" data-r="${r.id}" tabindex="0"><span class="trn">${trdGlyph(r)}${esc(tx(r.n))}</span><span class="trw" style="color:${cl}">${w}</span></div>

@@ -9,6 +9,7 @@
 .btile .bt-sub{font-size:11.5px;color:var(--muted)}
 .btile .bt-c{font-size:12.5px;font-weight:700;color:#8a5a12;margin-top:auto;padding-top:2px}
 .btile .bt-c::after{content:" ◉";font-size:.7em;vertical-align:1px;color:#c99a3b}
+.btile.nocoin .bt-c::after{content:""}
 .btile.done{background:rgba(87,120,60,.12)}
 .btile.done .bt-c{color:var(--ok)}.btile.done .bt-c::after{content:""}
 .btile:disabled{opacity:.55}

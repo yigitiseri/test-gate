@@ -67,14 +67,12 @@ PANEL_SECTIONS.push({id:'orders',order:40,when:c=>c.tgt>=0&&!!armyById(selArmy),
 PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,html(c){const {F,f,i}=c,p=c.p;
  const d=armRecruitDest(f,i,{army:selArmy}),cnt=armyList(f).length,cap=armyCap(f);
  const where=d.to==='army'?lng(`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`,`New troops join the ranks of <b>${esc(armName(d.army))}</b>.`):d.to==='new'?lng(`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`,`A new field army is formed (${cnt+1}/${cap}).`):d.to==='gar'?lng(`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`,`You have reached the army limit (${cnt}/${cap}): troops join the garrison.`):esc(d.reason||'');
- const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i;
- return `<div class="sec"><h3>${lng('Asker topla','Raise troops')}</h3><div class="hint">${where}</div><div class="acts">
-   <button class="btn" data-act="rec1" ${!d.to||F.gold<RC||F.mp<1000?'disabled':''}>${lng('+1.000','+1,000')} <span class="c">${RC} ${lng('altın','gold')}</span></button>
-   <button class="btn" data-act="rec5" ${!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000?'disabled':''}>${lng('+5.000','+5,000')} <span class="c">${RC*5} ${lng('altın','gold')}</span></button></div></div>
-  <div class="sec garsec"><h3>${lng('Garnizon','Garrison')} <span class="cap">${fmtK(p.t)} / ${fmtK(gm)}</span></h3>
-   <div class="hint">${lng('Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.','A garrison guards its province but cannot go on campaign. Its pay is half that of a field army.')}</div><div class="acts">
-   <button class="btn" data-act="grec" ${room<100||F.gold<RC*gn/1000||F.mp<gn?'disabled':''}>${lng('Garnizonu güçlendir','Reinforce')} ${gn>=100?'+'+gn.toLocaleString(lng('tr','en')):''} <span class="c">${room<100?lng('dolu','full'):Math.ceil(RC*gn/1000)+lng(' altın',' gold')}</span></button>
-   <button class="btn" data-act="gdisband" ${p.t<=garMin(i)?'disabled':''}>${confirmKey===ck?lng('Emin misin? Azalt','Sure? Reduce'):lng('Garnizonu azalt','Reduce')}</button></div></div>`;}});
+ const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i,sure=confirmKey===ck;
+ return `<div class="sec garsec"><h3>${lng('Asker topla','Raise troops')}</h3><div class="hint" style="margin-bottom:6px">${where}</div><div class="btiles">
+   ${bTile({act:'rec1',icon:bIcon('rec1'),name:lng('Alay','Regiment'),sub:lng('+1.000 asker','+1,000 men'),cost:RC,dis:!d.to||F.gold<RC||F.mp<1000,tip:lng('Bin kişilik bir alay toplar. Altın ve insan gücü ister.','Raises a regiment of a thousand men. Costs gold and manpower.')})}
+   ${bTile({act:'rec5',icon:bIcon('rec5'),name:lng('Tümen','Division'),sub:lng('+5.000 asker','+5,000 men'),cost:RC*5,dis:!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000,tip:lng('Beş bin kişilik büyük bir birlik toplar.','Raises a large body of five thousand men.')})}
+   ${bTile({act:'grec',icon:bIcon('grec'),name:lng('Garnizon','Garrison'),sub:`${fmtK(p.t)} / ${fmtK(gm)}`,cost:room<100?lng('dolu','full'):`+${fmtK(gn)} · ${Math.ceil(RC*gn/1000)}`,coin:room>=100,dis:room<100||F.gold<RC*gn/1000||F.mp<gn,tip:lng('Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.','A garrison guards its province but cannot go on campaign. Its pay is half that of a field army.')})}
+   ${bTile({act:'gdisband',icon:bIcon('gdis'),name:sure?lng('Emin misin?','Sure?'):lng('Terhis','Release'),sub:sure?lng('Bir daha bas','Tap again'):lng('Garnizonu azalt','Fewer guards'),cost:lng('maaş azalır','less pay'),coin:false,dis:p.t<=garMin(i),tip:lng('Garnizondan asker terhis eder; maaş azalır ama eyalet zayıflar.','Sends garrison troops home: less pay, but a weaker province.')})}</div></div>`;}});
 
 PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,html(c){const {F,p}=c;
  return `
