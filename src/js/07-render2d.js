@@ -16,7 +16,7 @@ function zoomAt(sx,sy,ns){if(G3.on){G3.zoomAt(sx,sy,ns);req();return;}ns=clamp(n
 
 let mapMode='pol',polDist=null;
 function renderPol(){
- const N=W*H,d=polImg.data;const col=FK.map(f=>hex2(FAC[f].c));const fi={};FK.forEach((f,k)=>fi[f]=k);
+ const N=W*H,d=polImg.data;const col=FK.map(f=>hex2(typeof vasMapCol==='function'?vasMapCol(f):FAC[f].c)); /* vassals: the overlord's colour, lighter (04g) */const fi={};FK.forEach((f,k)=>fi[f]=k);
  const oi=new Int16Array(NP);for(let i=0;i<NP;i++)oi[i]=fi[S.prov[i].o];
  // occupation (W2): an occupied province keeps its owner's colour and borders, hatched with the occupier's colour (EU4 style)
  const oc=new Int16Array(NP).fill(-1);let anyOc=false;for(let i=0;i<NP;i++){const c=S.prov[i].ctl;if(c&&c!==S.prov[i].o&&fi[c]!=null){oc[i]=fi[c];anyOc=true;}}

@@ -84,7 +84,7 @@ KE.aiDecl=[]; // test log of AI declarations: {t,f,g,p,j}
 
 function aiDiplo(f){
  const my=strength(f),A=aiState(f),P=aiPers(f);
- warsOf(f).forEach(g=>{
+ warsOf(f).forEach(g=>{if(!atWar(f,g))return; // an earlier settlement this turn may have ended it (vassals follow their overlord's peace, 04g)
   const dur0=S.turn-S.war[key(f,g)].t;if(dur0<BAL_D.firstPeace)return;
   if(g===S.player){if(S.fac[f].nextOffer<=S.turn&&warScore(f,g)<=0&&aiWantsPeace(f,g)&&R()<.5&&!S.offers.some(o=>o.f===f)){S.offers.push({f,type:'peace',wt:S.war[key(f,g)].t});S.fac[f].nextOffer=S.turn+4;}}
   else if(aiCoalLock(f,g)||aiBesieging(f,g)||aiBesieging(g,f))return;
@@ -116,6 +116,7 @@ function aiDiplo(f){
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
  if(S.turn<BAL_D.graceTurns){aiOps(f);return;}
+ if(typeof vasOf==='function'&&vasOf(f)){aiOps(f);return;} // a vassal (04g) declares no wars and makes no alliances of its own
  // declare war on the most desired reachable neighbour
  const nw0=warsOf(f).length,cap=my>BAL_D.bigStr?BAL_D.maxWarsBig:BAL_D.maxWars;
  const cands=Object.keys(D).filter(g=>D[g]>=BAL_D.thresh).sort((a,b)=>D[b]-D[a]);
@@ -207,6 +208,7 @@ function aiTreatyBasket(w,l){const prov=aiOccupied(w,l).sort((x,y)=>S.prov[y].de
 function aiSettle(a,b){
  if(typeof aiAcceptBasket!=='function'||typeof peaceValue!=='function'){makePeace(a,b);return null;}
  const [w,l]=aiPeaceSides(a,b),bk=aiTreatyBasket(w,l);
+ if(typeof vasAiSettle==='function'&&vasAiSettle(w,l))return {prov:[],gold:0,release:[],vas:true}; // vassalage instead of land (04g)
  for(let g=0;g<40;g++){if(!bk.prov.length&&!bk.gold)break;
   let ok=false;try{ok=aiAcceptBasket(l,w,bk);}catch(e){console.error('aiAcceptBasket',e);break;}
   if(ok){makePeace(w,l,bk);return bk;}
@@ -240,7 +242,7 @@ function aiCoalitions(){if(!S.coal)return;
    continue;}
   if(!alive(f)||aeOf(f)<BAL_D.coalAE||(C&&C.cd>S.turn))continue;
   const nb=new Set(nbrs(f)),my=strength(f);
-  const cands=FK.filter(g=>g!==f&&g!==S.player&&alive(g)&&(nb.has(g)||atWar(g,f))&&!isAlly(g,f)&&!(inTruce(g,f)&&!atWar(g,f))&&getOp(g,f)<BAL_D.coalOp)
+  const cands=FK.filter(g=>g!==f&&g!==S.player&&alive(g)&&(nb.has(g)||atWar(g,f))&&!isAlly(g,f)&&!(inTruce(g,f)&&!atWar(g,f))&&getOp(g,f)<BAL_D.coalOp&&!(typeof vasOf==='function'&&vasOf(g)))
    .sort((x,y)=>strength(y)-strength(x));
   const pow=cands.reduce((s,g)=>s+strength(g),0);
   if(cands.length<BAL_D.coalMin||pow<my*BAL_D.coalPow)continue;
