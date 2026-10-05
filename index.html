@@ -7149,7 +7149,7 @@ function svSlots(){const ix=svIndex(),out=[];let fix=false;
 let svAutoC={k:'',m:null};
 function svAutoMeta(){let raw=null;try{raw=localStorage.getItem(SAVE);}catch(e){}if(!raw)return null;
  const k=raw.length+':'+raw.slice(-64);if(svAutoC.k===k)return svAutoC.m;let m=null;
- try{const s=JSON.parse(raw);if(s&&s.player&&FAC[s.player])m={f:s.player,turn:s.turn|0,kb:Math.ceil(raw.length/1024)};}catch(e){}
+ try{const s=JSON.parse(raw);if(s&&s.player&&FAC[s.player])m={f:s.player,turn:s.turn|0,kb:Math.ceil(raw.length/1024),th:Array.isArray(s.prov)&&s.prov.length===NP?svThumb(s):""};}catch(e){}
  svAutoC={k,m};return m;}
 
 /* ---- thumbnail: the political map sampled from the province id map, PNG data URL (~2-4 KB) ---- */
@@ -7237,7 +7237,7 @@ function svShow(mode,keep){svMode=mode==='save'?'save':'load';const ingame=!!(S&
   ?lng('Oyun her hamleden sonra kendiliğinden kaydedilir (<b>Kayıtlı oyuna dön</b>). Buradaki yuvalar ek kayıtlardır: önemli bir andan önce kaydet, istersen sonra o ana dön.','The game saves itself after every move (<b>Continue</b>). These slots are extra saves: save before an important moment and come back to it later if you like.')
   :lng('Bir kayıt yüklemek, otomatik kaydı (<b>Kayıtlı oyuna dön</b>) o oyunla değiştirir. Süren oyunu saklamak istersen önce bir yuvaya kaydet.','Loading a save replaces the autosave (<b>Continue</b>) with that game. To keep the game in progress, save it to a slot first.')}</p>
  ${svMsg?`<p class="sv-msg ${svMsg.k}" role="alert">${esc(svMsg.m)}</p>`:''}
- <div class="sv-list">${auto?`<div class="sv-row auto">${svPic({f:auto.f})}<div class="sv-tx"><b>${lng('Otomatik kayıt','Autosave')}</b><small>${esc(FAC[auto.f].n)} · ${dateStr(auto.turn)}</small></div><div class="sv-ra"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button><button class="btn" data-act="sv-exp-auto">${lng('Dışa aktar','Export')}</button></div></div>`:''}
+ <div class="sv-list">${auto?`<div class="sv-row auto">${svPic(auto)}<div class="sv-tx"><b>${lng('Otomatik kayıt','Autosave')}</b><small>${esc(FAC[auto.f].n)} · ${dateStr(auto.turn)}</small></div><div class="sv-ra"><button class="btn primary" data-act="continue">${lng('Kayıtlı oyuna dön','Continue saved game')}</button><button class="btn" data-act="sv-exp-auto">${lng('Dışa aktar','Export')}</button></div></div>`:''}
  ${list||(auto?'':`<p class="hint sv-none">${lng('Henüz kayıt yok. Bir oyun dosyan varsa aşağıdan içe aktarabilirsin.','No saves yet. If you have a save file, you can import it below.')}</p>`)}</div>
  <div class="sv-file"><label class="btn" for="svFile">${lng('Dosyadan içe aktar','Import from a file')}</label><input type="file" id="svFile" class="sv-in" accept=".json,application/json,text/plain">
  ${ingame?`<button class="btn" data-act="sv-exp-cur">${lng('Bu oyunu dosyaya aktar','Export this game to a file')}</button>`:''}</div>
