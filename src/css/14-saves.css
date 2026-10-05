@@ -39,4 +39,5 @@
 .pick .sv-start .btn{flex-direction:column;justify-content:center;align-items:center;min-height:44px;line-height:1.2}
 .pick .sv-start .btn small{display:block;font-weight:500;font-size:12px;opacity:.8;margin-top:2px}
 .pick .sv-start .sv-ld{flex:0 1 40%}
-@media (min-width:761px){.sv-row{grid-template-columns:96px minmax(0,1fr) auto;grid-template-areas:"pic tx ra"}.sv-ra{justify-content:flex-end;max-width:300px}}
+.sv-ra .btn.danger{flex:0 1 auto;padding:8px 12px}
+@media (min-width:761px){.sv-ra{flex-wrap:nowrap}.sv-ra .btn{flex:1 1 0}.sv-ra .btn.danger{flex:0 0 auto}}
