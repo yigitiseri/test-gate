@@ -750,6 +750,44 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
 .stat.cyc:hover,.stat.cyc:focus-visible{background:rgba(201,154,59,.16);outline:none}
 .stat.cyc:active{background:rgba(201,154,59,.28)}
 .stat.cyc b::after{content:"›";font-size:.8em;opacity:.55;margin-left:3px}
+/* Track T (Wave 3): trade roads and great works */
+#zoom #trBtn{display:flex;align-items:center;justify-content:center;padding:0}
+#zoom #trBtn[aria-pressed="true"]{background:#8e1f14;border-color:#e6c46a;color:#fff3d6;box-shadow:inset 0 0 0 1px rgba(255,236,190,.35)}
+.trsec .trrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 3px;font-size:15px;cursor:help}
+.trsec .trn{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--paper)}
+.trsec .trw,.trcard .trhd span{font:700 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.trsec .hint{margin-bottom:6px}
+img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
+.wksec .wkrow{padding:6px 8px;margin:0 0 6px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.45)}
+.wksec .wkrow b{font:700 14px/1.2 var(--display);letter-spacing:.03em;color:var(--paper)}
+.wkrow.site{border-style:dashed}
+.wkbar{height:7px;border-radius:4px;background:rgba(60,36,14,.22);overflow:hidden;margin:5px 0 4px}
+.wkbar i{display:block;height:100%;background:linear-gradient(90deg,#b8862c,#e1b95a)}
+.wkopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.wkopts .btn{min-height:44px;flex-wrap:wrap}
+.wkopts .btn span:first-child{flex:1 1 auto;min-width:0}
+.hint.small{font-size:13px;margin-top:4px}
+.trlist{display:grid;gap:8px}
+.trcard{padding:8px 10px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.5);cursor:help}
+.trcard.mine{border-color:#b8862c;box-shadow:inset 3px 0 0 #b8862c}
+.trcard .trhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trcard .trhd b{display:flex;align-items:center;gap:6px;font:700 15px/1.2 var(--display);color:var(--paper)}
+.trbar{height:6px;border-radius:3px;background:rgba(60,36,14,.2);overflow:hidden;margin:6px 0 5px}
+.trbar i{display:block;height:100%}
+.trst{font-size:13px;color:var(--muted);line-height:1.35}
+.trhold{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px;font-size:13px;color:var(--muted)}
+.trhold span{display:inline-flex;align-items:center;gap:4px}
+.trhold span.me{color:var(--paper);font-weight:700}
+.trhold .shield{width:14px;height:16px}
+.wklist .wkrow{padding:6px 0;border-bottom:1px solid rgba(142,31,20,.18)}
+.wklist .wkrow b{font:700 14px/1.2 var(--display);color:var(--paper)}
+.wkworld{display:grid;gap:5px;font-size:14px}
+.wkworld>div{display:flex;gap:7px;align-items:flex-start}
+.wkworld .shield{width:16px;height:18px;flex:none;margin-top:1px}
+@media (max-width:760px){
+  .wkopts{grid-template-columns:1fr}
+  .trcard .trhd b{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -5777,6 +5815,129 @@ KE.sg={list:()=>aSieges().map(g=>({i:g.i,f:g.f,prog:g.prog,need:g.need,wall:aWal
   const near=(o,c)=>c&&Math.abs(d[o]-c[0])+Math.abs(d[o+1]-c[1])+Math.abs(d[o+2]-c[2])<6;
   for(let q=provStart[i];q<provStart[i+1];q++){const o=provPix[q]*4;if(near(o,cc))occ++;else if(near(o,oc))own++;}return {occ,own};}};
 /* =====================================================================
+   TRADE MAP LAYER (Track T, Wave 3): the trade roads in the manuscript / portolan style.
+   Dotted caravan roads (sepia ink) and dashed sea lanes (teal ink) with small camel, mule, ship and
+   barge glyphs, plus a medallion for every great work. Shown
+    - in the trade map mode (the scales button under the zoom buttons, or the province panel): every
+      road, its stops in their holder's colour, its name, and a red cross where war cuts it;
+    - otherwise only when zoomed in close (faint roads, no names), so the default view stays clean.
+   Static: the layer never asks for another frame (render on demand), and it does no work at all in the
+   default view except the great-work medallions (zoomed in only).
+   Hovering a road (mouse) explains it in plain words in the shared tooltip.
+   ===================================================================== */
+const TRD_V={zoomShow:2.05,zoomWorks:1.25,glyphMin:44,hoverPx:9};
+let trdScr=[],trdWk=[],trdTipOn=false,trdHovT=0;
+/** Trade map mode on? (07's mapMode; 'trade' draws the political colours light, like the terrain map) */
+const trdModeOn=()=>mapMode==='trade';
+let trdPrev='pol';
+function trdSetMode(on){if(on===trdModeOn()){trdBtnSync();polDirty=true;req();return;}if(on)trdPrev=mapMode==='ter'?'ter':'pol';mapMode=on?'trade':trdPrev;const mb=document.querySelector('#zoom [data-act="mode"]');if(mb){const p=mapMode!=='ter';mb.textContent=p?'◐':'◑';mb.title=p?lng('Arazi haritası','Terrain map'):lng('Siyasi harita','Political map');}
+ trdBtnSync();polDirty=true;req();}
+function trdBtnSync(){const b=document.getElementById('trBtn');if(b){const on=trdModeOn();if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on));}}
+/* world-space geometry of every leg (built once, after the map exists) */
+let trdGeo=null;
+function trdBuildGeo(){trdGeo=[];for(const r of TRD)for(let k=1;k<r.stops.length;k++){const a=PD[r.stops[k-1].i],b=PD[r.stops[k].i];
+ const pts=[[a.lx,a.ly],...r.stops[k].via.map(v=>P(v[0],v[1])),[b.lx,b.ly]];trdGeo.push({r,k,sea:r.stops[k].sea,pts});}}
+/* ---- glyph sprites (ink drawings, cached per kind and size) ---- */
+const trdSpr={};
+function trdSprite(kind,sz){const key=kind+sz;if(trdSpr[key])return trdSpr[key];const sc=2,c=document.createElement('canvas');c.width=c.height=Math.ceil(sz*sc);
+ const g=c.getContext('2d');g.scale(sc*sz/24,sc*sz/24);g.lineCap='round';g.lineJoin='round';g.strokeStyle='#3e2412';g.fillStyle='#f4e7c6';g.lineWidth=1.5;
+ const legs=xs=>{g.beginPath();for(const [x0,x1] of xs){g.moveTo(x0,14);g.lineTo(x1,21);}g.stroke();};
+ if(kind==='camel'){legs([[7,6],[9,10],[14,15],[16,18]]);
+  g.beginPath();g.ellipse(11.5,12.5,7,3.4,0,0,7);g.fill();g.stroke();g.beginPath();g.ellipse(10.5,9.6,3.6,3,0,Math.PI,0);g.fill();g.stroke();
+  g.beginPath();g.moveTo(17.5,12);g.quadraticCurveTo(20,10,19.5,6);g.stroke();g.beginPath();g.ellipse(21,5.6,2.3,1.3,0,0,7);g.fill();g.stroke();
+  g.beginPath();g.moveTo(4.6,12);g.lineTo(3.2,15);g.stroke();}
+ else if(kind==='mule'){legs([[7,6.5],[9,9.5],[14.5,15],[16.5,17.5]]);
+  g.beginPath();g.ellipse(12,12.5,6.6,3.2,0,0,7);g.fill();g.stroke();g.fillStyle='#c9a46a';g.fillRect(8.5,7.4,6.5,4);g.strokeRect(8.5,7.4,6.5,4);g.fillStyle='#f4e7c6';
+  g.beginPath();g.moveTo(17.8,11.5);g.lineTo(19.8,7.6);g.stroke();g.beginPath();g.ellipse(21,7.6,2.2,1.4,.5,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(19.6,6.3);g.lineTo(19,3.8);g.stroke();
+  g.beginPath();g.moveTo(5.4,12);g.lineTo(4,15.5);g.stroke();}
+ else if(kind==='ship'){g.beginPath();g.moveTo(2.5,14);g.lineTo(21.5,14);g.quadraticCurveTo(20,19,16,19.5);g.lineTo(7,19.5);g.quadraticCurveTo(3.5,18.5,2.5,14);g.closePath();g.fill();g.stroke();
+  g.beginPath();g.moveTo(12,14);g.lineTo(12,2.5);g.stroke();g.beginPath();g.moveTo(6.5,4.5);g.quadraticCurveTo(12,6.5,17.5,4.5);g.lineTo(17,12);g.quadraticCurveTo(12,13.2,7,12);g.closePath();g.fill();g.stroke();
+  g.fillStyle='#9a2b18';g.beginPath();g.moveTo(12,2.5);g.lineTo(15.5,3.4);g.lineTo(12,4.3);g.closePath();g.fill();}
+ else{g.beginPath();g.moveTo(3.5,15);g.lineTo(20.5,15);g.quadraticCurveTo(19,19,15,19);g.lineTo(8,19);g.quadraticCurveTo(4.5,18.6,3.5,15);g.closePath();g.fill();g.stroke(); // barge with a lateen sail
+  g.beginPath();g.moveTo(11,15);g.lineTo(11,6);g.stroke();g.beginPath();g.moveTo(7,13.5);g.lineTo(15.5,4.5);g.lineTo(15,13.5);g.closePath();g.fill();g.stroke();}
+ return trdSpr[key]=c;}
+/* ---- great-work medallions ---- */
+function trdMedal(c,x,y,r,k,done,frac,col){c.save();c.translate(x,y);
+ c.fillStyle='rgba(30,18,8,.3)';c.beginPath();c.arc(.8,1.1,r,0,7);c.fill();
+ c.fillStyle=done?'#f6ead0':'#e8dcc0';c.beginPath();c.arc(0,0,r,0,7);c.fill();
+ c.lineWidth=done?1.6:1.2;c.strokeStyle=done?'#b8862c':'#6e4d27';if(!done)c.setLineDash([2,1.6]);c.stroke();c.setLineDash([]);
+ if(!done&&frac>0){c.strokeStyle=col||'#b8862c';c.lineWidth=2.2;c.beginPath();c.arc(0,0,r+1.6,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);c.stroke();}
+ const s=r/8;c.scale(s,s);c.strokeStyle='#3e2412';c.fillStyle='#3e2412';c.lineWidth=1.1;c.lineJoin='round';c.lineCap='round';
+ if(!done){c.beginPath();for(const xx of [-4,0,4]){c.moveTo(xx,4.5);c.lineTo(xx,-4.5);}c.moveTo(-5,-1.5);c.lineTo(5,-1.5);c.moveTo(-5,2);c.lineTo(5,2);c.moveTo(-4,4.5);c.lineTo(4,-4.5);c.stroke();c.restore();return;}
+ c.beginPath();
+ if(k==='faith'){c.moveTo(-5,4.5);c.lineTo(5,4.5);c.lineTo(5,1);c.lineTo(-5,1);c.closePath();c.moveTo(-4,1);c.arc(0,1,4,Math.PI,0);c.moveTo(0,-3);c.lineTo(0,-5.5);c.fill();c.stroke();}
+ else if(k==='bedesten'){c.rect(-5.5,0,11,4.5);c.moveTo(-3.5,0);c.arc(-3.2,0,2,Math.PI,0);c.moveTo(1.2,0);c.arc(3.2,0,2,Math.PI,0);c.moveTo(-1,0);c.arc(0,-.4,1.6,Math.PI,0);c.stroke();}
+ else if(k==='caravan'){c.rect(-5,-3.5,10,8);c.moveTo(-1.6,4.5);c.lineTo(-1.6,1.2);c.arc(0,1.2,1.6,Math.PI,0);c.lineTo(1.6,4.5);c.moveTo(-5,-3.5);c.lineTo(-5,-5);c.moveTo(5,-3.5);c.lineTo(5,-5);c.stroke();}
+ else if(k==='arsenal'){c.moveTo(-5.5,1.5);c.lineTo(5.5,1.5);c.quadraticCurveTo(4.5,4.8,2,5);c.lineTo(-2.5,5);c.quadraticCurveTo(-5,4.6,-5.5,1.5);c.moveTo(0,1.5);c.lineTo(0,-5.5);c.moveTo(-3.5,-4);c.lineTo(3.5,-4);c.lineTo(3,0);c.lineTo(-3,0);c.closePath();c.stroke();}
+ else if(k==='citadel'){c.moveTo(-3.5,5);c.lineTo(-3.5,-3);c.lineTo(-3.5,-5);c.lineTo(-2,-5);c.lineTo(-2,-3.6);c.lineTo(-.7,-3.6);c.lineTo(-.7,-5);c.lineTo(.7,-5);c.lineTo(.7,-3.6);c.lineTo(2,-3.6);c.lineTo(2,-5);c.lineTo(3.5,-5);c.lineTo(3.5,5);c.closePath();c.fill();}
+ else{c.moveTo(0,-2.5);c.quadraticCurveTo(-3,-4.2,-5.5,-3);c.lineTo(-5.5,4);c.quadraticCurveTo(-3,2.8,0,4.3);c.quadraticCurveTo(3,2.8,5.5,4);c.lineTo(5.5,-3);c.quadraticCurveTo(3,-4.2,0,-2.5);c.lineTo(0,4.3);c.stroke();}
+ c.restore();}
+/** Smooth path through screen points (quadratic through midpoints). */
+function trdPath(c,q){c.beginPath();c.moveTo(q[0][0],q[0][1]);if(q.length===2){c.lineTo(q[1][0],q[1][1]);return;}
+ for(let k=1;k<q.length-1;k++){const mx=(q[k][0]+q[k+1][0])/2,my=(q[k][1]+q[k+1][1])/2;c.quadraticCurveTo(q[k][0],q[k][1],k===q.length-2?q[k+1][0]:mx,k===q.length-2?q[k+1][1]:my);}}
+/** Point at the middle of a projected polyline (by length) and its direction. */
+function trdMid(q){let L=0;for(let k=1;k<q.length;k++)L+=Math.hypot(q[k][0]-q[k-1][0],q[k][1]-q[k-1][1]);let h=L/2;
+ for(let k=1;k<q.length;k++){const d=Math.hypot(q[k][0]-q[k-1][0],q[k][1]-q[k-1][1]);if(h<=d||k===q.length-1){const t=d?Math.min(1,h/d):0;return {x:q[k-1][0]+(q[k][0]-q[k-1][0])*t,y:q[k-1][1]+(q[k][1]-q[k-1][1])*t,dx:q[k][0]-q[k-1][0],len:L};}h-=d;}
+ return {x:q[0][0],y:q[0][1],dx:1,len:0};}
+DRAW_LAYERS.trade=(c,now,s,g3)=>{trdBtnSync();trdScr=[];trdWk=[];if(!S)return false;
+ const mode=trdModeOn(),show=mode||s>=TRD_V.zoomShow;
+ if(show){if(!trdGeo)trdBuildGeo();const fa=mode?1:clamp((s-TRD_V.zoomShow)/.35,0,1)*.85;if(fa>0.02){
+  const flows={};for(const r of TRD)flows[r.id]=trdFlow(r);
+  c.save();c.lineCap='round';c.lineJoin='round';
+  for(const L of trdGeo){const q=[];let ok=true,on=false;for(const p of L.pts){const z=pj(p[0],p[1],0);if(!z[2]){ok=false;break;}q.push(z);if(z[0]>-40&&z[1]>-40&&z[0]<vw+40&&z[1]<vh+40)on=true;}
+   if(!ok)continue;const fl=flows[L.r.id],a=L.r.stops[L.k-1].i,b=L.r.stops[L.k].i,ca=ctl(a),cb=ctl(b),cut=ca!==cb&&atWar(ca,cb);
+   trdScr.push({r:L.r,k:L.k,q,cut});if(!on)continue;
+   const ink=L.sea?'24,70,84':'112,36,14',w=mode?1.8+fl.flow*1.2:1.6;
+   if(mode){c.globalAlpha=.8;c.strokeStyle='rgba(250,240,214,.85)';c.lineWidth=w+3.2;c.setLineDash([]);trdPath(c,q);c.stroke();}
+   c.globalAlpha=fa;c.strokeStyle=`rgba(${ink},${mode?.92:.8})`;c.lineWidth=w;c.setLineDash(L.sea?[8,5]:[.5,4.6]);trdPath(c,q);c.stroke();c.setLineDash([]);
+   const m=trdMid(q);
+   if(cut&&mode){c.globalAlpha=1;c.strokeStyle='#b0261a';c.lineWidth=2.4;c.beginPath();c.moveTo(m.x-5,m.y-5);c.lineTo(m.x+5,m.y+5);c.moveTo(m.x+5,m.y-5);c.lineTo(m.x-5,m.y+5);c.stroke();}
+   else if(m.len>=TRD_V.glyphMin*(mode?1:1.3)){const sz=mode?22:17,img=trdSprite(L.sea&&L.r.g!=='boat'?'ship':L.r.g,sz);c.globalAlpha=mode?1:fa;
+    c.save();c.translate(m.x,m.y-sz*.35);if(m.dx<0)c.scale(-1,1);c.drawImage(img,-sz/2,-sz/2,sz,sz);c.restore();}}
+  if(mode){c.globalAlpha=1;
+   for(const r of TRD){r.stops.forEach((st,k)=>{const d=PD[st.i],z=pj(d.lx,d.ly,0);if(!z[2])return;const col=FAC[ctl(st.i)].c,rad=2.2+st.w*1.1;
+     c.fillStyle=col;c.strokeStyle='#2a1a0c';c.lineWidth=1.2;c.beginPath();c.arc(z[0],z[1],rad,0,7);c.fill();c.stroke();});}
+   // road names, in italic ink, at the middle leg of each road
+   c.font='italic 600 14px "EB Garamond", Georgia, serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
+   for(const r of TRD){const legs=trdScr.filter(x=>x.r===r);if(!legs.length)continue;const L=legs[Math.floor((legs.length-1)/2)],m=trdMid(L.q),fl=flows[r.id].flow;
+    const t=tx(r.n),w=c.measureText(t).width+6;let y=null;for(const yy of [m.y+17,m.y-19,m.y+31]){if(aFree([m.x-w/2,yy-8,m.x+w/2,yy+8])){y=yy;break;}}if(y==null)y=m.y+17;aOcc.push(aTag([m.x-w/2,y-8,m.x+w/2,y+8],'tr'));
+    c.lineWidth=3.5;c.strokeStyle='rgba(250,240,214,.92)';c.strokeText(t,m.x,y);c.fillStyle=fl<.8?'#8e1f14':'#3e2412';c.fillText(t,m.x,y);}}
+  c.restore();}}
+ // great-work medallions (zoomed in, or the trade map)
+ if((mode||s>=TRD_V.zoomWorks)&&S.works&&S.works.length){const seen=new Set();
+  for(const w of S.works){if(seen.has(w.i))continue;const here=S.works.filter(x=>x.i===w.i);seen.add(w.i);const d=PD[w.i];
+   const z=g3&&G3.anchor&&G3.anchor[w.i]?pj(G3.anchor[w.i][0],G3.anchor[w.i][1],G3.anchor[w.i][2]):pj(d.lx,d.ly,0);if(!z[2]||z[0]<-20||z[1]<-20||z[0]>vw+20||z[1]>vh+20)continue;
+   const r=mode||s>2?7.5:6,site=here.find(x=>!x.d),top=site||here[0],n=here.length,ext=(n-1)*r*1.5;let x=0,y=0,rc=null;
+   for(const [ox,oy] of [[-16-r-ext,0],[-12-r-ext,r+6],[-12-r-ext,-r-8],[14+r,r+4],[14+r,-r-6]]){const t=[z[0]+ox-r-1,z[1]+oy-r-1,z[0]+ox+r+1+ext,z[1]+oy+r+1];if(aFree(t)){rc=t;x=z[0]+ox;y=z[1]+oy;break;}}
+   if(!rc){if(!(mode||site))continue;x=z[0]-16-r-ext;y=z[1];rc=[x-r-1,y-r-1,x+r+1+ext,y+r+1];}aOcc.push(aTag(rc,'w'));
+   here.slice().sort((p,q)=>(p===top?-1:q===top?1:0)).forEach((v,k)=>{trdMedal(c,x+k*r*1.5,y,r,v.k,!!v.d,v.d?1:v.p/v.n,FAC[v.f]?FAC[v.f].c:null);});
+   trdWk.push({i:w.i,x:x,y:y,r,w:here});}}
+ return false;};
+/* ---- hover tooltips on the map (mouse): a road or a great-work medallion ---- */
+function trdSegDist(px,py,q){let best=1e9;for(let k=1;k<q.length;k++){const ax=q[k-1][0],ay=q[k-1][1],bx=q[k][0],by=q[k][1],dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+ const t=l?clamp(((px-ax)*dx+(py-ay)*dy)/l,0,1):0;best=Math.min(best,Math.hypot(px-ax-dx*t,py-ay-dy*t));}return best;}
+function trdTipAt(x,y){
+ for(const m of trdWk)if(Math.hypot(x-m.x,y-m.y)<=m.r+3)return trdWorkTip(m.w);
+ let best=null,bd=TRD_V.hoverPx;for(const L of trdScr){const d=trdSegDist(x,y,L.q);if(d<bd){bd=d;best=L;}}
+ return best?trdRouteTip(best.r,best.cut):'';}
+function trdTipShow(h,x,y){if(!h){if(trdTipOn){uiTipEl.hidden=true;trdTipOn=false;}return;}
+ uiTipEl.innerHTML=h;uiTipEl.hidden=false;trdTipOn=true;const t=uiTipEl.getBoundingClientRect(),m=8;
+ uiTipEl.style.left=Math.round(clamp(x+14,m,Math.max(m,innerWidth-t.width-m)))+'px';uiTipEl.style.top=Math.round(clamp(y+16,m,Math.max(m,innerHeight-t.height-m)))+'px';}
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||trdHovT||!S||!S.player)return;if(!trdScr.length&&!trdWk.length){if(trdTipOn)trdTipShow('');return;}
+ trdHovT=setTimeout(()=>{trdHovT=0;},60);if(e.buttons){trdTipShow('');return;}trdTipShow(trdTipAt(e.clientX,e.clientY),e.clientX,e.clientY);});
+cv.addEventListener('pointerleave',()=>trdTipShow(''));
+cv.addEventListener('pointerdown',()=>trdTipShow(''));
+/* ---- the trade map button, under the map-mode button ---- */
+(()=>{const z=document.getElementById('zoom');if(!z||document.getElementById('trBtn'))return;const mb=z.querySelector('[data-act="mode"]');
+ const b=document.createElement('button');b.id='trBtn';b.dataset.act='tmode';b.dataset.tip='tmode';b.setAttribute('aria-pressed','false');
+ b.setAttribute('aria-label',lng('Ticaret yolları haritası','Trade routes map'));
+ b.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 17c3-1 4-5 8-5s5 4 10 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1 2.6" stroke-linecap="round"/><path d="M9.5 9.8c0-2 1.2-3.3 2.6-3.3S14.7 7.8 14.7 9.8M8 10h8.5M12.2 6.5V4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4" cy="17" r="1.8" fill="currentColor"/><circle cx="20.5" cy="15" r="1.8" fill="currentColor"/></svg>';
+ if(mb&&mb.nextSibling)z.insertBefore(b,mb.nextSibling);else z.appendChild(b);})();
+ACTS.tmode=()=>{const on=!trdModeOn();trdSetMode(on);toast(on?lng('Ticaret yolları haritası','Trade routes map'):mapMode==='ter'?lng('Arazi haritası','Terrain map'):lng('Siyasi harita','Political map'));};
+QUIET.add('tmode');
+KE.tradeMap={on:()=>trdModeOn(),set:v=>trdSetMode(!!v),legs:()=>trdScr.length,medals:()=>trdWk.map(m=>({i:m.i,x:Math.round(m.x),y:Math.round(m.y)})),
+ legAt:(id,k)=>{const L=trdScr.find(x=>x.r.id===id&&x.k===k);return L?trdMid(L.q):null;},tipAt:(x,y)=>trdTipAt(x,y)};
+/* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
 const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[],
@@ -6819,6 +6980,91 @@ ADVICE.push(
   go:()=>showState(),goL:lng('Devlet defteri','State Ledger')}
 );
 KE.uiFlow=()=>({idle:uiIdleArmies(S.player).map(a=>a.id),inbox:uiInbox().length,shown:!$('#uiFlow').hidden,badge:$('#endTurn').dataset.idle||null});
+/* =====================================================================
+   TRADE AND GREAT WORKS UI (Track T, Wave 3)
+   Province panel: "Ticaret yolu" (slot 62, any trade stop) and "Büyük eserler" (slot 64: the works that
+   stand here, the building site with its progress, and what the player may raise here).
+   Modal "Ticaret ve Büyük Eserler" (ACT trades): every road with its flow and holders, the player's works
+   and sites, the famous works of the world. State book section (slot 25). Tooltips: tmode, trroute, wkt.
+   Plain words and percentages only, no formulas.
+   ===================================================================== */
+const trdPct=v=>(v>=0?'+':'−')+lng('%'+Math.abs(Math.round(v*100)),Math.abs(Math.round(v*100))+'%');
+const trdN=v=>(Math.round(v*10)/10).toLocaleString(EN?'en':'tr');
+/** Status word and colour of a road's flow. */
+function trdWord(fl){return fl>=1.15?[lng('Canlı','Thriving'),'var(--ok)']:fl>=.9?[lng('Olağan','Steady'),'#6e4d27']:fl>=.6?[lng('Yavaş','Sluggish'),'#a0521a']:[lng('Tıkanmış','Choked'),'var(--war2)'];}
+const trdGlyphU={};
+/** Small inline picture of road r's glyph (the map sprite as an image). */
+function trdGlyph(r){const k=r.g;if(!trdGlyphU[k]){try{trdGlyphU[k]=trdSprite(k,18).toDataURL();}catch(e){trdGlyphU[k]='';}}return trdGlyphU[k]?`<img class="trg" src="${trdGlyphU[k]}" alt="" width="18" height="18">`:'';}
+/** Plain-words explanation of road r (tooltip and modal). */
+function trdRouteTip(r,cut){const F=trdFlow(r),[w,cl]=trdWord(F.flow),pl=S.player;let mine=0,n=0;
+ r.stops.forEach((q,k)=>{if(ctl(q.i)===pl){mine+=trdStopVal(r,k,F.flow);n++;}});
+ let h=`<b class="tt">${esc(tx(r.n))} · <span style="color:${cl}">${w}</span></b><p>${esc(tx(r.d))}</p><div class="tl"><span>${lng('Her mevsim taşınan mal','Goods carried each season')}</span><b>${lng(`~${trdN(r.v*F.flow)} altın`,`~${trdN(r.v*F.flow)} gold`)}</b>`;
+ if(n)h+=`<span>${lng(`Senin payın (${n} durak)`,`Your share (${n} ${n===1?'stop':'stops'})`)}</span><b class="pos">+${trdN(mine)}</b>`;
+ for(const y of F.why)h+=`<span>${esc(y.l)}</span><b class="${y.v>=0?'pos':'neg'}">${trdPct(y.v)}</b>`;
+ h+='</div>';
+ if(cut)h+=`<p class="neg">${lng('Burada iki düşman devletin sınırı yolu kesiyor: kervanlar geçemiyor.','Here the border of two realms at war cuts the road: the caravans cannot pass.')}</p>`;
+ return h+`<p>${lng('Her durağı tutan devlet kendi payını alır. Pazarlar ve kervansaraylar yolu canlandırır; savaş, kuşatma ve işgal kervanları durdurur.','Whoever holds a stop takes its share. Markets and caravanserais bring the road to life; war, sieges and occupation stop the caravans.')}</p>`;}
+/** Status line of a building site. */
+function wkSiteLine(w){const p=S.prov[w.i],left=wkLeft(w),paused=p.ctl||(typeof siegeAt==='function'&&siegeAt(w.i));
+ return paused?lng('İnşaat durdu: şehir düşman elinde ya da kuşatmada.','Work has stopped: the city is besieged or in enemy hands.'):lng(`İnşa ediliyor: ~${left} tur kaldı.`,`Under construction: ~${left} ${left===1?'turn':'turns'} to go.`);}
+/** Tooltip for the works of one province (map medallion). */
+function trdWorkTip(L){return L.map(w=>`<b class="tt">${esc(wkName(w))}</b>${w.d?`<p>${esc(wkEff(w.k))}</p>`:`<p>${esc(wkSiteLine(w))}</p><p>${lng('Bitince:','When finished:')} ${esc(wkEff(w.k))}</p>`}`).join('');}
+function wkBar(w){const pc=Math.round(clamp(w.p/w.n,0,1)*100);return `<div class="wkbar" role="img" aria-label="${lng(`İnşaat yüzde ${pc} tamam`,`Construction ${pc} percent complete`)}"><i style="width:${pc}%"></i></div>`;}
+/* ---- province panel ---- */
+PANEL_SECTIONS.push({id:'trade',order:62,when:c=>c.tgt<0&&trdIsStop(c.i),html(c){const pl=c.f,holder=ctl(c.i);
+ let h=`<div class="sec trsec"><h3>${lng('Ticaret yolu','Trade road')}</h3>`;
+ for(const m of TRD_AT[c.i]){const r=m.r,F=trdFlow(r),[w,cl]=trdWord(F.flow),v=trdStopVal(r,m.k,F.flow);
+  h+=`<div class="trrow" data-tip="trroute" data-r="${r.id}" tabindex="0"><span class="trn">${trdGlyph(r)}${esc(tx(r.n))}</span><span class="trw" style="color:${cl}">${w}</span></div>
+   <div class="hint">${holder===pl?lng(`Bu durak her mevsim hazinene <b>${trdN(v)}</b> altın getiriyor.`,`This stop brings <b>${trdN(v)}</b> gold into your treasury every season.`):lng(`Bu durak her mevsim ${esc(FAC[holder].s)} hazinesine ${trdN(v)} altın getiriyor.`,`This stop brings ${trdN(v)} gold a season to the treasury of ${esc(FAC[holder].s)}.`)}${F.why.filter(y=>y.v<0).length?' '+F.why.filter(y=>y.v<0).map(y=>`${esc(y.l)} ${trdPct(y.v)}`).join(' · '):''}</div>`;}
+ h+=`<div class="acts"><button class="btn" data-act="tmode" aria-pressed="${trdModeOn()}">${trdModeOn()?lng('Siyasi harita','Political map'):lng('Ticaret haritası','Trade map')}</button><button class="btn" data-act="trades">${lng('Bütün yollar','All roads')}</button></div>`;
+ return h+'</div>';}});
+PANEL_SECTIONS.push({id:'works',order:64,when:c=>c.tgt<0&&(wkAt(c.i).length>0||(c.mine&&!c.p.ctl)),html(c){const f=c.f,here=wkAt(c.i);
+ let h=`<div class="sec wksec"><h3>${lng('Büyük eserler','Great works')}</h3>`;
+ for(const w of here){h+=`<div class="wkrow${w.d?'':' site'}" data-tip="wkt" data-k="${w.k}" data-i="${c.i}" tabindex="0"><b>${esc(wkName(w))}</b>`;
+  h+=w.d?`<div class="hint">${esc(wkEff(w.k))}</div>`:`${wkBar(w)}<div class="hint">${esc(wkSiteLine(w))}</div>`;h+='</div>';}
+ if(c.mine&&!c.p.ctl){const opts=WK_ORDER.filter(k=>wkReqOk(k,c.i)&&!here.some(w=>w.k===k)&&!(WK_TYPES[k].realm&&wkList().some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f)));
+  if(opts.length){h+=`<div class="wkopts">`;for(const k of opts){const T=WK_TYPES[k],r=wkCan(f,c.i,k),ck='wk:'+c.i+':'+k;
+    h+=`<button class="btn wkb" data-act="wkbuild" data-k="${k}" data-i="${c.i}" data-tip="wkt" ${r.ok?'':'disabled'}><span>${confirmKey===ck?lng('Emin misin? Temel at','Sure? Lay the foundations'):esc(wkTypeName(k,f))}</span><span class="c">${T.cost} · ${lng(`${T.turns} tur`,`${T.turns} turns`)}</span></button>`;}
+   h+=`</div>`;const bad=opts.map(k=>wkCan(f,c.i,k)).find(r=>!r.ok&&!r.gold);h+=`<div class="hint">${bad?esc(bad.why):lng('Büyük eserler pahalıdır ve birkaç mevsimde biter, ama etkileri kalıcıdır. Ayrıntı için düğmenin üzerinde dur.','Great works are costly and take several seasons, but their effect lasts. Hover or hold a button for details.')}</div>`;}
+  else if(!here.length)h+=`<div class="hint">${lng('Bu eyalet büyük bir eser için henüz uygun değil. Pazar, gelişim, kale ya da bir ticaret yolu yeni seçenekler açar.','This province is not yet fit for a great work. A market, more development, walls or a trade road open new choices.')}</div>`;}
+ return h+'</div>';}});
+ACTS.wkbuild=(t,f)=>{const i=+t.dataset.i,k=t.dataset.k,ck='wk:'+i+':'+k;if(!S.prov[i]||S.prov[i].o!==f)return;
+ const r=wkCan(f,i,k);if(!r.ok){toast(r.why);return;}if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
+ const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkName(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkName(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
+OVERBLOCK.add('wkbuild');QUIET.add('wkbuild');
+/* ---- modal ---- */
+function showTrade(){const pl=S.player,all=trdAll();let h=`<div class="eyebrow">${lng('Kervanlar, kadırgalar, çarşılar','Caravans, galleys, bazaars')}</div><h2>${lng('Ticaret ve Büyük Eserler','Trade and Great Works')}</h2>`;
+ h+=`<p class="lead">${lng('Dönemin büyük ticaret yolları. Bir yolun durağını tutan devlet, oradan geçen maldan payını alır. Savaş yolu keser, pazarlar ve kervansaraylar canlandırır.','The great trade roads of the age. Whoever holds a stop on a road takes a share of the goods that pass. War cuts the roads; markets and caravanserais bring them to life.')}</p>`;
+ h+=`<div class="sec"><h3>${lng('Ticaret yolları','Trade roads')} <span class="cap">${lng('Senin payın','Your share')} +${trdN(all.by[pl]||0)}</span></h3><div class="trlist">`;
+ for(const r of TRD){const F=all.flows[r.id],[w,cl]=trdWord(F.flow),pc=Math.round(clamp(F.flow/BAL_T.flowMax,0,1)*100),hold={};
+  r.stops.forEach((q,k)=>{const c=ctl(q.i);hold[c]=(hold[c]||0)+trdStopVal(r,k,F.flow);});
+  const hs=Object.keys(hold).sort((a,b)=>hold[b]-hold[a]);
+  h+=`<div class="trcard${hold[pl]?' mine':''}" data-tip="trroute" data-r="${r.id}" tabindex="0"><div class="trhd"><b>${trdGlyph(r)}${esc(tx(r.n))}</b><span style="color:${cl}">${w}</span></div>
+   <div class="trbar" role="img" aria-label="${lng(`Akış: ${w}`,`Flow: ${w}`)}"><i style="width:${pc}%;background:${cl}"></i></div>
+   <div class="trst">${r.stops.map(q=>esc(PD[q.i].name)).join(' · ')}</div>
+   <div class="trhold">${hs.map(f=>`<span class="${f===pl?'me':''}">${shield(f)}${esc(FAC[f].s)} <b>${trdN(hold[f])}</b></span>`).join('')}</div></div>`;}
+ h+=`</div></div>`;
+ const mine=wkList().filter(w=>S.prov[w.i].o===pl||(!w.d&&w.f===pl)),others=wkList().filter(w=>w.d&&S.prov[w.i].o!==pl);
+ h+=`<div class="sec"><h3>${lng('Büyük eserlerin','Your great works')}</h3>`;
+ h+=mine.length?`<div class="wklist">${mine.map(w=>`<div class="wkrow${w.d?'':' site'}"><b>${esc(wkName(w))}</b> <small>${esc(PD[w.i].name)}</small>${w.d?`<div class="hint">${esc(wkEff(w.k))}</div>`:`${wkBar(w)}<div class="hint">${esc(wkSiteLine(w))}</div>`}</div>`).join('')}</div>`
+  :`<div class="hint">${lng('Henüz büyük bir eserin yok. Bir eyaletini seç; panelin "Büyük eserler" bölümü orada neler yapılabileceğini gösterir.','You have no great works yet. Select one of your provinces: the "Great works" part of its panel shows what can be raised there.')}</div>`;
+ h+=`</div>`;
+ if(others.length){const by={};for(const w of others){const o=S.prov[w.i].o;(by[o]||(by[o]=[])).push(w);}
+  h+=`<div class="sec"><h3>${lng('Dünyanın büyük eserleri','Great works of the world')}</h3><div class="wkworld">${Object.keys(by).map(o=>`<div>${shield(o)}<span>${by[o].map(w=>esc(wkName(w))).join(', ')}</span></div>`).join('')}</div></div>`;}
+ h+=`<div class="foot"><button class="btn" data-act="trmap">${trdModeOn()?lng('Siyasi haritaya dön','Back to the political map'):lng('Ticaret haritasını aç','Open the trade map')}</button><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`;
+ openModal(h);}
+ACTS.trades=()=>showTrade();
+ACTS.trmap=()=>{closeModal();trdSetMode(!trdModeOn());renderPanel();};
+STATE_SECTIONS.push({id:'trade',order:25,html(f){const v=trdIncome(f),n=TRD.reduce((s,r)=>s+r.stops.filter(q=>ctl(q.i)===f).length,0),w=wkList().filter(x=>x.d&&S.prov[x.i].o===f).length,st=wkSites(f).length;
+ return `<div class="sec"><h3>${lng('Ticaret ve büyük eserler','Trade and great works')}</h3><div class="meta"><span>${lng('Ticaret durağı','Trade stops')} <b>${n}</b></span><span>${lng('Ticaret geliri','Trade income')} <b>+${trdN(v)}</b></span><span>${lng('Büyük eser','Great works')} <b>${w}</b></span>${st?`<span>${lng('İnşaatta','Being built')} <b>${st}</b></span>`:''}</div>
+  <div class="acts"><button class="btn" data-act="trades">${lng('Ticaret yolları ve eserler','Trade roads and works')}</button></div></div>`;}});
+/* ---- tooltips ---- */
+TIPS.tmode=()=>uiTT(lng('Ticaret haritası','Trade map'),`<p>${lng('Dönemin büyük ticaret yollarını gösterir: kervan yolları noktalı, deniz yolları kesik çizgiyle. Durağın rengi onu tutan devleti, kırmızı çarpı savaşın kestiği yeri gösterir. Yakınlaştırınca yollar soluk olarak her haritada görünür.','Shows the great trade roads of the age: caravan roads dotted, sea routes dashed. A stop takes the colour of the realm that holds it; a red cross marks where war cuts the road. Zoom in close and the roads also show faintly on every map.')}</p>`);
+TIPS.trroute=el=>{const r=TRD_BY[el.dataset.r];return r?trdRouteTip(r,false):'';};
+TIPS.wkt=el=>{const k=el.dataset.k,T=WK_TYPES[k];if(!T)return '';const i=+el.dataset.i,w=wkAt(i).find(x=>x.k===k);
+ if(w)return trdWorkTip([w]);const f=S.player,r=wkCan(f,i,k);
+ return uiTT(esc(wkName({i,k,rel:wkRel(f)})),`<p>${esc(wkEff(k))}</p><div class="tl"><span>${lng('Maliyet','Cost')}</span><b>${T.cost} ${lng('altın','gold')}</b><span>${lng('Süre','Time')}</span><b>${lng(`${T.turns} tur`,`${T.turns} turns`)}</b></div>${T.realm?`<p>${lng('Devlet başına yalnız bir tane yapılabilir.','Only one may be raised per realm.')}</p>`:''}${r.ok?'':`<p class="neg">${esc(r.why)}</p>`}`);};
+KE.tradeUI={show:()=>showTrade()};
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
