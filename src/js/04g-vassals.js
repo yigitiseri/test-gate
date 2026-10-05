@@ -215,6 +215,8 @@ function vasPtSection(pl,o,bk){const r=vasCan(pl,o,bk),on=!!bk.vas&&r.ok,c=vasCo
 ['pt-vas'].forEach(a=>QUIET.add(a));['vas-annex','vas-free'].forEach(a=>OVERBLOCK.add(a));
 ACTS['pt-vas']=(t,f)=>{if(typeof ptBk==='undefined'||!ptBk)return;if(!vasCan(f,ptBk.f,ptBk).ok)return;ptBk.vas=!ptBk.vas;SND.play('select');showPeace(ptBk.f);};
 
+/** How long v has been a vassal, in words. */
+function vasYears(v){const y=Math.floor((S.turn-S.vas[v].t)/4);return y<1?lng('bu yıldan beri','since this year'):lng(`${y} yıldır`,`for ${y} ${y===1?'year':'years'}`);}
 /** Liberty bar + word (HTML). */
 function vasLibHtml(v){const l=vasLib(v),[w,c]=vasLibWord(l);
  return `<span class="vas-lib" data-tip="vas" data-f="${v}"><b style="color:${c}">${w}</b><span class="vas-bar" role="img" aria-label="${lng('Bağımsızlık isteği','Liberty desire')} ${Math.round(l)}%"><i style="width:${clamp(l,0,100)}%;background:${c}"></i></span></span>`;}
@@ -250,7 +252,7 @@ PANEL_SECTIONS.push({id:'vassal',order:27,when:c=>!!(S&&S.vas)&&c.p.o!==S.player
  if(L.length)h+=`<div class="vas-line">${L.map(v=>shield(v)).join('')}<span>${lng(`${FAC[o].s} haraçgüzarları: ${L.map(v=>FAC[v].s).join(', ')}. Bu devletler savaşlarında onun yanında yürür.`,`Vassals of ${FAC[o].s}: ${L.map(v=>FAC[v].s).join(', ')}. They march at its side in war.`)}</span></div>`;
  return h+'</div>';}});
 STATE_SECTIONS.push({id:'vassals',order:33,html(f){if(!S.vas)return '';const L=vasList(f);
- const rows=L.map(v=>`<div class="row">${shield(v)}<div class="nm">${esc(FAC[v].n)}<small>${lng('Haraç','Tribute')} +${vasTrib(v).toFixed(1)} · ${lng(`${Math.floor((S.turn-S.vas[v].t)/4)} yıldır`,`for ${Math.floor((S.turn-S.vas[v].t)/4)} ${Math.floor((S.turn-S.vas[v].t)/4)===1?'year':'years'}`)}</small></div><div class="ra">${vasLibHtml(v)}</div></div>`).join('');
+ const rows=L.map(v=>`<div class="row">${shield(v)}<div class="nm">${esc(FAC[v].n)}<small>${lng('Haraç','Tribute')} +${vasTrib(v).toFixed(1)} · ${vasYears(v)}</small></div><div class="ra">${vasLibHtml(v)}</div></div>`).join('');
  return `<div class="sec vas-state"><h3>${lng('Haraçgüzarlar','Vassals')}</h3>${L.length?`<div class="rows">${rows}</div>`:`<div class="hint">${lng('Haraçgüzarımız yok. Yendiğin bir devleti Barış Masası\'nda haraçgüzar yapabilirsin: toprakları onlarda kalır, sana haraç öderler ve savaşlarında yanında yürürler.','We have no vassals. At the Peace Table you can make a beaten realm your vassal: it keeps its lands, pays you tribute and marches with you in war.')}</div>`}</div>`;}});
 
 KE.vas={of:f=>vasOf(f),list:o=>vasList(o),can:(o,v,bk)=>vasCan(o,v,bk),cost:(o,v,bk)=>vasCost(o,v,bk),make:(o,v)=>vasMake(o,v,'test'),free:v=>vasFree(v,'free'),

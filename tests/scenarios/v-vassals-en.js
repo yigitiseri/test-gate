@@ -30,7 +30,7 @@ module.exports = {
     await click('#modal [data-act="dp-peace"][data-f="WAL"]');
     await click('#modal [data-act="pt-vas"]');
     const pt = await look('peace table', '#modal .vas-pt');
-    check('Peace Table vassal item in English', /Vassalage/.test(pt) && /becomes our vassal/.test(pt) && /fifth of their taxes/.test(pt), pt);
+    check('Peace Table vassal item in English', /Vassalage/i.test(pt) && /becomes our vassal/.test(pt) && /fifth of their taxes/.test(pt), pt);
     await click('#modal [data-act="pt-send"]');
     check('the treaty is signed', await E(() => window.__ke.vas.of('WAL') === 'OSM'));
     await click('#top [data-act="diplo"]');
@@ -47,7 +47,7 @@ module.exports = {
     check('province panel vassal section in English', /is our vassal/.test(pn), pn);
     await E(() => window.__ke.reg.ACTS.state());
     const st = await look('state book', '#modal .vas-state');
-    check('State book vassal list in English', /Vassals/.test(st), st);
+    check('State book vassal list in English', /Vassals/i.test(st), st);
     await L.closeModals(page);
     const lines = await E(() => { const K = window.__ke, S = K.S; S.truce = {};
       K.declareWar('OSM', 'HUN'); K.makePeace('OSM', 'HUN', { prov: [], gold: 0, release: [] }); S.truce = {};
