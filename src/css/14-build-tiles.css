@@ -1,0 +1,19 @@
+/* build tiles: icon + name + status + cost (11i-build-icons) */
+.btiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wkopts.btiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+.btile{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;min-height:92px;padding:7px 3px 6px;text-align:center;line-height:1.15;white-space:normal}
+.btile .bi{width:34px;height:34px;flex:none;margin-bottom:2px;color:#4a3520;--bi-fill:rgba(201,154,59,.38)}
+.bi path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.bi path.f{fill:var(--bi-fill,rgba(201,154,59,.38))}
+.btile .bt-nm{font-weight:700;font-size:13.5px}
+.btile .bt-sub{font-size:11.5px;color:var(--muted)}
+.btile .bt-c{font-size:12.5px;font-weight:700;color:#8a5a12;margin-top:auto;padding-top:2px}
+.btile .bt-c::after{content:" ◉";font-size:.7em;vertical-align:1px;color:#c99a3b}
+.btile.done{background:rgba(87,120,60,.12)}
+.btile.done .bt-c{color:var(--ok)}.btile.done .bt-c::after{content:""}
+.btile:disabled{opacity:.55}
+.btile:disabled .bi{--bi-fill:rgba(120,100,70,.2)}
+.btile:not(:disabled):hover .bi{color:#8e1a12}
+.wkrow>.bi{float:left;width:30px;height:30px;margin:0 8px 2px 0;color:#4a3520}
+.wkrow::after{content:"";display:block;clear:both}
+@media (max-width:380px){.btiles{grid-template-columns:repeat(2,minmax(0,1fr))}.wkopts.btiles{grid-template-columns:repeat(2,minmax(0,1fr))}}

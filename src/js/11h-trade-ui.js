@@ -38,11 +38,11 @@ PANEL_SECTIONS.push({id:'trade',order:62,when:c=>c.tgt<0&&trdIsStop(c.i),html(c)
  return h+'</div>';}});
 PANEL_SECTIONS.push({id:'works',order:64,when:c=>c.tgt<0&&(wkAt(c.i).length>0||(c.mine&&!c.p.ctl)),html(c){const f=c.f,here=wkAt(c.i);
  let h=`<div class="sec wksec"><h3>${lng('Büyük eserler','Great works')}</h3>`;
- for(const w of here){h+=`<div class="wkrow${w.d?'':' site'}" data-tip="wkt" data-k="${w.k}" data-i="${c.i}" tabindex="0"><b>${esc(wkName(w))}</b>`;
+ for(const w of here){h+=`<div class="wkrow${w.d?'':' site'}" data-tip="wkt" data-k="${w.k}" data-i="${c.i}" tabindex="0">${bIcon(w.k,w.f)}<b>${esc(wkName(w))}</b>`;
   h+=w.d?`<div class="hint">${esc(wkEff(w.k))}</div>`:`${wkBar(w)}<div class="hint">${esc(wkSiteLine(w))}</div>`;h+='</div>';}
  if(c.mine&&!c.p.ctl){const opts=WK_ORDER.filter(k=>wkReqOk(k,c.i)&&!here.some(w=>w.k===k)&&!(WK_TYPES[k].realm&&wkList().some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f)));
-  if(opts.length){h+=`<div class="wkopts">`;for(const k of opts){const T=WK_TYPES[k],r=wkCan(f,c.i,k),ck='wk:'+c.i+':'+k;
-    h+=`<button class="btn wkb" data-act="wkbuild" data-k="${k}" data-i="${c.i}" data-tip="wkt" ${r.ok?'':'disabled'}><span>${confirmKey===ck?lng('Emin misin? Temel at','Sure? Lay the foundations'):esc(wkTypeName(k,f))}</span><span class="c">${T.cost} · ${lng(`${T.turns} tur`,`${T.turns} turns`)}</span></button>`;}
+  if(opts.length){h+=`<div class="wkopts btiles">`;for(const k of opts){const T=WK_TYPES[k],r=wkCan(f,c.i,k),ck='wk:'+c.i+':'+k;
+    h+=bTile({act:'wkbuild',attrs:`data-k="${k}" data-i="${c.i}" data-tip="wkt"`,icon:bIcon(k,f),name:confirmKey===ck?lng('Emin misin? Temel at','Sure? Lay the foundations'):esc(wkTypeName(k,f)),sub:lng(`${T.turns} tur`,`${T.turns} turns`),cost:T.cost,dis:!r.ok});}
    h+=`</div>`;const bad=opts.map(k=>wkCan(f,c.i,k)).find(r=>!r.ok&&!r.gold);h+=`<div class="hint">${bad?esc(bad.why):lng('Büyük eserler pahalıdır ve birkaç mevsimde biter, ama etkileri kalıcıdır. Ayrıntı için düğmenin üzerinde dur.','Great works are costly and take several seasons, but their effect lasts. Hover or hold a button for details.')}</div>`;}
   else if(!here.length)h+=`<div class="hint">${lng('Bu eyalet büyük bir eser için henüz uygun değil. Pazar, gelişim, kale ya da bir ticaret yolu yeni seçenekler açar.','This province is not yet fit for a great work. A market, more development, walls or a trade road open new choices.')}</div>`;}
  return h+'</div>';}});

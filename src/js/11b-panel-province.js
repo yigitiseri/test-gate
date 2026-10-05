@@ -78,12 +78,12 @@ PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,htm
 
 PANEL_SECTIONS.push({id:'build',order:60,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,html(c){const {F,p}=c;
  return `
-  <div class="sec"><h3>${lng('İnşa et','Build')}</h3><div class="acts">
-   <button class="btn" data-act="bdev" ${p.dev>=12||F.gold<25*p.dev?'disabled':''}>${lng('İmar','Develop')} +1 <span class="c">${25*p.dev}</span></button>
-   <button class="btn" data-act="bmkt" ${p.mkt||F.gold<60?'disabled':''}>${p.mkt?lng('Pazar var','Market built'):lng('Pazar','Market')} <span class="c">${p.mkt?'✓':'60'}</span></button>
-   <button class="btn" data-act="bfort" ${p.fort>=5||F.gold<40*(p.fort+1)?'disabled':''}>${lng('Kale','Walls')} ${p.fort+1} <span class="c">${p.fort>=5?lng('azami','max'):40*(p.fort+1)}</span></button>
-   <button class="btn" data-act="bbrk" ${p.brk||F.gold<50?'disabled':''}>${p.brk?lng('Kışla var','Barracks built'):lng('Kışla','Barracks')} <span class="c">${p.brk?'✓':'50'}</span></button></div>
-   <div class="hint" style="margin-top:6px">${lng('Pazar geliri %50 artırır, kışla insan gücünü iki katına çıkarır. Kale ve yerel milis savunmaya katılır; kale ve gelişim garnizonun sığacağı asker sayısını da artırır.','A market raises income by 50%, barracks double manpower. Walls and the local militia join the defence; walls and development also let the province hold a larger garrison.')}</div></div>`;}});
+  <div class="sec"><h3>${lng('İnşa et','Build')}</h3><div class="btiles">
+   ${bTile({act:'bdev',icon:bIcon('dev'),name:lng('İmar','Develop'),sub:lng(`Gelişim ${p.dev}`,`Level ${p.dev}`),cost:p.dev>=12?lng('azami','max'):25*p.dev,dis:p.dev>=12||F.gold<25*p.dev,tip:lng('Şehri büyütür: daha çok vergi, asker ve savunma.','Grows the city: more taxes, troops and defence.')})}
+   ${bTile({act:'bmkt',icon:bIcon('mkt'),name:lng('Pazar','Market'),sub:p.mkt?lng('Kurulu','Built'):lng('Vergi +%50','Taxes +50%'),cost:60,done:!!p.mkt,dis:!!p.mkt||F.gold<60,tip:lng('Tüccarlar gelir, şehrin vergisi yarı yarıya artar.','Merchants arrive and the city\'s taxes rise by half.')})}
+   ${bTile({act:'bfort',icon:bIcon('fort'),name:lng('Kale','Walls'),sub:lng(`Seviye ${p.fort}`,`Level ${p.fort}`),cost:p.fort>=5?lng('azami','max'):40*(p.fort+1),dis:p.fort>=5||F.gold<40*(p.fort+1),tip:lng('Surları yükseltir: kuşatma uzar, garnizon büyür.','Raises the walls: sieges take longer, the garrison grows.')})}
+   ${bTile({act:'bbrk',icon:bIcon('brk'),name:lng('Kışla','Barracks'),sub:p.brk?lng('Kurulu','Built'):lng('Asker ×2','Troops ×2'),cost:50,done:!!p.brk,dis:!!p.brk||F.gold<50,tip:lng('Eyaletin insan gücünü iki katına çıkarır.','Doubles the province\'s manpower.')})}</div>
+   <div class="hint" style="margin-top:6px">${lng('Bir binanın ne işe yaradığını görmek için üzerinde dur ya da basılı tut.','Hover or hold a building to see what it does.')}</div></div>`;}});
 PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
  const f=c.f,o=c.p.o,dp=defPower(sel,f);
  let h=`<div class="meta"><span>${lng('Hükümdar','Ruler')} <b>${esc(rulerName(o))}</b></span><span>${lng('İlişki','Relations')} <b>${getOp(f,o)}</b></span><span>${lng('Ordu','Army')} <b>${fmtK(strength(o))}</b></span><span>${lng('Tahmini savunma','Est. defence')} <b>${fmtK(dp)}</b></span></div>`;
