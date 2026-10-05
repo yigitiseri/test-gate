@@ -1,0 +1,38 @@
+/* Track T (Wave 3): trade roads and great works */
+#zoom #trBtn{display:flex;align-items:center;justify-content:center;padding:0}
+#zoom #trBtn[aria-pressed="true"]{background:#8e1f14;border-color:#e6c46a;color:#fff3d6;box-shadow:inset 0 0 0 1px rgba(255,236,190,.35)}
+.trsec .trrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 3px;font-size:15px;cursor:help}
+.trsec .trn{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--paper)}
+.trsec .trw,.trcard .trhd span{font:700 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.trsec .hint{margin-bottom:6px}
+img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
+.wksec .wkrow{padding:6px 8px;margin:0 0 6px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.45)}
+.wksec .wkrow b{font:700 14px/1.2 var(--display);letter-spacing:.03em;color:var(--paper)}
+.wkrow.site{border-style:dashed}
+.wkbar{height:7px;border-radius:4px;background:rgba(60,36,14,.22);overflow:hidden;margin:5px 0 4px}
+.wkbar i{display:block;height:100%;background:linear-gradient(90deg,#b8862c,#e1b95a)}
+.wkopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.wkopts .btn{min-height:44px;flex-wrap:wrap}
+.wkopts .btn span:first-child{flex:1 1 auto;min-width:0}
+.hint.small{font-size:13px;margin-top:4px}
+.trlist{display:grid;gap:8px}
+.trcard{padding:8px 10px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.5);cursor:help}
+.trcard.mine{border-color:#b8862c;box-shadow:inset 3px 0 0 #b8862c}
+.trcard .trhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trcard .trhd b{display:flex;align-items:center;gap:6px;font:700 15px/1.2 var(--display);color:var(--paper)}
+.trbar{height:6px;border-radius:3px;background:rgba(60,36,14,.2);overflow:hidden;margin:6px 0 5px}
+.trbar i{display:block;height:100%}
+.trst{font-size:13px;color:var(--muted);line-height:1.35}
+.trhold{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px;font-size:13px;color:var(--muted)}
+.trhold span{display:inline-flex;align-items:center;gap:4px}
+.trhold span.me{color:var(--paper);font-weight:700}
+.trhold .shield{width:14px;height:16px}
+.wklist .wkrow{padding:6px 0;border-bottom:1px solid rgba(142,31,20,.18)}
+.wklist .wkrow b{font:700 14px/1.2 var(--display);color:var(--paper)}
+.wkworld{display:grid;gap:5px;font-size:14px}
+.wkworld>div{display:flex;gap:7px;align-items:flex-start}
+.wkworld .shield{width:16px;height:18px;flex:none;margin-top:1px}
+@media (max-width:760px){
+  .wkopts{grid-template-columns:1fr}
+  .trcard .trhd b{font-size:14px}
+}

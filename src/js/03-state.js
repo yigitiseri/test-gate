@@ -58,7 +58,7 @@ function armTotal(f){let s=0;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a
 function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;} // occupied land gives no manpower
 /** Plain development sum (no barracks bonus): use this for any gold amount. */
 function devRaw(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev;return s;}
-function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}
+function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)*wkTaxMul(i);} // wkTaxMul: covered market (03g)
 /** All economy rows of faction f (ECON_ROWS registry): [{l,v,k:'inc'|'exp',id?,tip?}]. */
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}

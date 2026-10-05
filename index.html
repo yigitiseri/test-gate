@@ -764,6 +764,44 @@ button[data-tip],[data-act][data-tip]{cursor:pointer}
 .vas-why{margin:6px 0 0;padding-left:16px}
 .vas-why li{margin:2px 0}
 .vas-state .ra{justify-content:flex-end}
+/* Track T (Wave 3): trade roads and great works */
+#zoom #trBtn{display:flex;align-items:center;justify-content:center;padding:0}
+#zoom #trBtn[aria-pressed="true"]{background:#8e1f14;border-color:#e6c46a;color:#fff3d6;box-shadow:inset 0 0 0 1px rgba(255,236,190,.35)}
+.trsec .trrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 3px;font-size:15px;cursor:help}
+.trsec .trn{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--paper)}
+.trsec .trw,.trcard .trhd span{font:700 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+.trsec .hint{margin-bottom:6px}
+img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
+.wksec .wkrow{padding:6px 8px;margin:0 0 6px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.45)}
+.wksec .wkrow b{font:700 14px/1.2 var(--display);letter-spacing:.03em;color:var(--paper)}
+.wkrow.site{border-style:dashed}
+.wkbar{height:7px;border-radius:4px;background:rgba(60,36,14,.22);overflow:hidden;margin:5px 0 4px}
+.wkbar i{display:block;height:100%;background:linear-gradient(90deg,#b8862c,#e1b95a)}
+.wkopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.wkopts .btn{min-height:44px;flex-wrap:wrap}
+.wkopts .btn span:first-child{flex:1 1 auto;min-width:0}
+.hint.small{font-size:13px;margin-top:4px}
+.trlist{display:grid;gap:8px}
+.trcard{padding:8px 10px;border:1px solid rgba(142,31,20,.25);border-radius:4px;background:rgba(255,248,226,.5);cursor:help}
+.trcard.mine{border-color:#b8862c;box-shadow:inset 3px 0 0 #b8862c}
+.trcard .trhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.trcard .trhd b{display:flex;align-items:center;gap:6px;font:700 15px/1.2 var(--display);color:var(--paper)}
+.trbar{height:6px;border-radius:3px;background:rgba(60,36,14,.2);overflow:hidden;margin:6px 0 5px}
+.trbar i{display:block;height:100%}
+.trst{font-size:13px;color:var(--muted);line-height:1.35}
+.trhold{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px;font-size:13px;color:var(--muted)}
+.trhold span{display:inline-flex;align-items:center;gap:4px}
+.trhold span.me{color:var(--paper);font-weight:700}
+.trhold .shield{width:14px;height:16px}
+.wklist .wkrow{padding:6px 0;border-bottom:1px solid rgba(142,31,20,.18)}
+.wklist .wkrow b{font:700 14px/1.2 var(--display);color:var(--paper)}
+.wkworld{display:grid;gap:5px;font-size:14px}
+.wkworld>div{display:flex;gap:7px;align-items:flex-start}
+.wkworld .shield{width:16px;height:18px;flex:none;margin-top:1px}
+@media (max-width:760px){
+  .wkopts{grid-template-columns:1fr}
+  .trcard .trhd b{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -1555,7 +1593,7 @@ function armTotal(f){let s=0;if(S.armies)for(const a of S.armies)if(a.f===f)s+=a
 function devSum(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=S.prov[i].dev*(1+S.prov[i].brk);return s;} // occupied land gives no manpower
 /** Plain development sum (no barracks bonus): use this for any gold amount. */
 function devRaw(f){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f)s+=S.prov[i].dev;return s;}
-function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1);}
+function provIncome(i){const p=S.prov[i];return p.dev*(1+.5*p.mkt)*(p.un>0?.5:1)*wkTaxMul(i);} // wkTaxMul: covered market (03g)
 /** All economy rows of faction f (ECON_ROWS registry): [{l,v,k:'inc'|'exp',id?,tip?}]. */
 function econRows(f){const r=[];for(const fn of ECON_ROWS){const x=fn(f);if(x)for(const e of x)r.push(e);}return r;}
 function income(f){let s=0;for(const e of econRows(f))if(e.k==='inc')s+=e.v;return s;}
@@ -2675,6 +2713,312 @@ ACTS['cmd-open']=()=>{const a=armyById(selArmy);if(!a)return;cmdOpen=cmdOpen===a
 ACTS['cmd-set']=t=>{const a=armyById(selArmy);if(!a||a.f!==S.player)return;const g=+t.dataset.g;
  if(cmdSet(a.id,g)){cmdOpen=null;SND.play('select');toast(lng(`${cmdName(S.chars[g])} artık ${armName(a)}'nun komutanı.`,`${cmdName(S.chars[g])} now commands the ${armName(a)}.`),'good');renderAll();req();}};
 KE.cmd={cands:f=>cmdCands(f).map(x=>({id:x.c.id,army:x.a&&x.a.id})),set:(a,g)=>cmdSet(a,g),newGeneral:f=>chGenGeneral(f).id};
+/* =====================================================================
+   TRADE ROUTES (Track T, Wave 3)
+   The great trade roads of the age as chains of provinces (route "stops"). Every season each route
+   carries goods worth `v` gold; whoever controls a stop (ctl: the occupier, else the owner) earns that
+   stop's share (weight w). The flow of a whole route falls when war cuts it (two neighbouring stops
+   held by realms at war), when a stop is besieged or occupied, and rises with markets and caravanserais
+   at its stops and when one realm holds the whole road. Nothing is stored in the save: everything is
+   computed from the provinces, wars and sieges, so old saves just work.
+   Income: ECON_ROWS row id 'trade' ("Ticaret yolları"). Map layer: 07g. Panel/modal: 11h.
+   ===================================================================== */
+/* Track T balance constants. Tune here only. */
+const BAL_T={
+ warLeg:.15,       // each leg whose two stops are held by realms at war: flow −15%
+ siegeStop:.2,     // each besieged stop: −20%
+ occStop:.1,       // each occupied stop: −10%
+ mktStop:.04,mktMax:.2,   // each market at a stop +4% (at most +20%)
+ caravan:.1,caravanMax:.3,// each caravanserai (great work, 03g) +10% (at most +30%)
+ whole:.2,         // one realm holds every stop: +20%
+ flowMin:.25,flowMax:1.6,
+ bedesten:1.5,     // a covered market (03g) at a stop: that stop earns x1.5
+ arsenalSea:1.25,  // a realm with an arsenal (03g): its sea-port stops earn x1.25
+ toll:1,           // a caravanserai stop also takes a flat toll of 1 gold
+};
+/* Routes. Stops: 'key' (weight 1), 'key*2' (weight 2: a great market or port), '~key' = reached by sea.
+   [lon,lat] = a waypoint the drawn line passes (sea lanes around capes, river bends). g = map glyph.
+   era: later historical shifts of the flow (turn, multiplier, news). */
+const TRADE_ROUTES=[
+ {id:'silk',g:'camel',v:11,n:{tr:'İpek Yolu',en:'Silk Road'},
+  d:{tr:'İran ipeği Tebriz\'den kervanlarla Erzurum, Tokat ve Ankara üzerinden Bursa\'nın ipek pazarına taşınır.',en:'Persian silk travels by caravan from Tabriz through Erzurum, Tokat and Ankara to the silk market of Bursa.'},
+  s:['tebriz*3','hoy','erzurum','erzincan','tokat*2','amasya','ankara','bursa*3']},
+ {id:'trebizond',g:'camel',v:4,n:{tr:'Trabzon Yolu',en:'Trebizond Road'},
+  d:{tr:'Tebriz kervanlarının bir kolu Erzurum ve Bayburt\'tan dağları aşıp Trabzon limanına iner; mallar oradan Karadeniz\'e açılır.',en:'A branch of the Tabriz caravans crosses the mountains by Erzurum and Bayburt down to the port of Trebizond, where the goods take ship on the Black Sea.'},
+  s:['tebriz*2','erzurum','bayburt','trabzon*3']},
+ {id:'spice',g:'camel',v:9,n:{tr:'Baharat Yolu',en:'Spice Route'},
+  d:{tr:'Hint baharatı Kızıldeniz\'den Süveyş\'e çıkar, Kahire üzerinden İskenderiye limanına iner; Avrupalı tüccarlar onu orada alır.',en:'Indian spices come up the Red Sea to Suez and on through Cairo to the port of Alexandria, where European merchants buy them.'},
+  s:['suveys*2','kahire*3','iskenderiye*3'],
+  era:[{t:196,m:.75,tr:'Portekiz gemileri Ümit Burnu\'nu dolaşıp Hindistan\'a ulaştı: Baharat Yolu\'ndan geçen mal azalıyor.',en:'Portuguese ships have rounded the Cape of Good Hope and reached India: fewer spices travel the Spice Route.'}]},
+ {id:'levant',g:'ship',v:9,n:{tr:'Levant Deniz Yolu',en:'Levant Sea Route'},
+  d:{tr:'Venedik kadırgaları Adriyatik\'ten Korfu, Moton, Kandiye ve Rodos\'a uğrayarak Kıbrıs ve Beyrut\'a gider.',en:'Venetian galleys sail down the Adriatic, calling at Corfu, Modon, Candia and Rhodes on the way to Cyprus and Beirut.'},
+  s:['venedik*3',[13.6,44.6],[15.6,43.2],'~raguza*2',[18.9,40.6],'~korfu',[20.4,38.3],'~moton',[23.2,36.1],'~kandiye*2',[26.8,35.7],'~rodos',[30.6,35.9],'~magosa',[34.6,34.4],'~beyrut*2'],
+  era:[{t:196,m:.85,tr:'Okyanus yolları açıldı: Levant\'tan Venedik\'e giden gemiler azalıyor.',en:'The ocean routes have opened: fewer ships sail from the Levant to Venice.'}]},
+ {id:'black',g:'ship',v:8,n:{tr:'Karadeniz Yolu',en:'Black Sea Route'},
+  d:{tr:'Bozkırın tahılı, kürkü ve kölesi Azak ve Kefe\'den gemilerle Sinop ve Konstantiniyye üzerinden Ege\'ye iner.',en:'Grain, furs and slaves from the steppe sail from Azov and Caffa past Sinope and Constantinople down to the Aegean.'},
+  s:['azak*2',[37.4,46.1],'~kefe*3',[35.1,43.6],'~sinop',[31.2,41.9],'~istanbul*3',[27.9,40.75],'~gelibolu',[25.9,39.7],'~sakiz*2']},
+ {id:'ragusa',g:'mule',v:5,n:{tr:'Raguza Kervan Yolu',en:'Ragusan Caravan Road'},
+  d:{tr:'Raguzalı tüccarlar Novobırda\'nın gümüşünü ve Balkan\'ın yününü katırlarla Sofya ve Filibe üzerinden Edirne\'ye götürür.',en:'Ragusan merchants carry the silver of Novo Brdo and the wool of the Balkans by mule through Sofia and Philippopolis to Adrianople.'},
+  s:['raguza*2','hersek','yenipazar','novobirda*2','sofya','filibe','edirne*2']},
+ {id:'danube',g:'boat',v:5,n:{tr:'Tuna Yolu',en:'Danube Road'},
+  d:{tr:'Viyana\'dan Budin ve Belgrad\'a, oradan Demirkapı\'yı geçip Kili\'ye kadar Tuna boyunca mavnalar ve kervanlar işler.',en:'Barges and caravans work the Danube from Vienna to Buda and Belgrade, then through the Iron Gates down to Kilia.'},
+  s:['viyana*2','pojon','budin*2',[18.8,46.0],'belgrad*2',[22.3,44.6],'vidin','nigbolu','silistre','kili*2']},
+ {id:'aleppo',g:'camel',v:8,n:{tr:'Halep Kervan Yolu',en:'Aleppo Caravan Road'},
+  d:{tr:'Basra Körfezi\'nin malları Bağdat\'tan Fırat boyunca Rahbe üzerinden Halep çarşılarına ve Antakya\'ya ulaşır.',en:'Goods from the Persian Gulf go from Baghdad up the Euphrates by way of Rahba to the bazaars of Aleppo and on to Antioch.'},
+  s:['basra*2','bagdat*3','ane','rahbe','halep*3','antakya']},
+];
+/** Parsed routes: {id,g,v,n,d,era,stops:[{i,w,sea,via:[[lon,lat]...]}],W (sum of weights)} */
+const TRD=TRADE_ROUTES.map(r=>{const stops=[];let via=[];
+ for(const x of r.s){if(Array.isArray(x)){via.push(x);continue;}
+  const sea=x[0]==='~',m=/^~?([a-z]+)(?:\*(\d))?$/.exec(x),i=m?PK[m[1]]:null;
+  if(i==null){console.error('trade: unknown stop '+x);continue;}
+  stops.push({i,w:m[2]?+m[2]:1,sea,via});via=[];}
+ return {...r,stops,W:stops.reduce((s,q)=>s+q.w,0)};});
+const TRD_BY={};TRD.forEach(r=>TRD_BY[r.id]=r);
+/** province index -> [{r, k}] (route, stop index) */
+const TRD_AT={};TRD.forEach(r=>r.stops.forEach((q,k)=>(TRD_AT[q.i]||(TRD_AT[q.i]=[])).push({r,k})));
+/** Is province i a stop of any route? */
+const trdIsStop=i=>!!TRD_AT[i];
+/** Is stop k of route r a sea port (reached by sea, or the next leg leaves by sea)? */
+const trdPort=(r,k)=>r.stops[k].sea||!!(r.stops[k+1]&&r.stops[k+1].sea);
+/** Works hooks (03g) with safe fallbacks, so trade works on its own. */
+const trdHas=(i,k)=>typeof wkDone==='function'&&wkDone(i,k);
+const trdArsenal=f=>typeof wkRealmHas==='function'&&wkRealmHas(f,'arsenal');
+/** Historical era factor of route r now (e.g. the Cape route after 1500). */
+function trdEra(r){let m=1;if(r.era&&S)for(const e of r.era)if(S.turn>=e.t)m*=e.m;return m;}
+/** Flow of route r now: {flow, why:[{k,l,v}], owner (one realm holding every stop, or null), cut (legs at war)}.
+ why lists the plain-word reasons with their effect (v = +/- share). */
+function trdFlow(r){const why=[];let f=1,cut=0,sg=0,oc=0,mk=0,cv=0;const own=new Set();
+ for(let k=0;k<r.stops.length;k++){const i=r.stops[k].i,p=S.prov[i],c=p.ctl||p.o;own.add(c);
+  if(typeof siegeAt==='function'&&siegeAt(i))sg++;else if(p.ctl&&p.ctl!==p.o)oc++;
+  if(p.mkt)mk++;if(trdHas(i,'caravan'))cv++;
+  if(k>0){const j=r.stops[k-1].i,pc=S.prov[j].ctl||S.prov[j].o;if(pc!==c&&alive(pc)&&alive(c)&&atWar(pc,c))cut++;}}
+ const add=(k,l,v)=>{if(!v)return;f+=v;why.push({k,l,v});};
+ add('war',lng(`Savaş yolu kesiyor (${cut} yerde)`,`War cuts the road (${cut} ${cut===1?'place':'places'})`),-cut*BAL_T.warLeg);
+ add('siege',lng(`Kuşatma altında durak (${sg})`,`Stops under siege (${sg})`),-sg*BAL_T.siegeStop);
+ add('occ',lng(`İşgal altında durak (${oc})`,`Stops under occupation (${oc})`),-oc*BAL_T.occStop);
+ add('mkt',lng(`Duraklardaki pazarlar (${mk})`,`Markets at the stops (${mk})`),Math.min(BAL_T.mktMax,mk*BAL_T.mktStop));
+ add('caravan',lng(`Kervansaraylar (${cv})`,`Caravanserais (${cv})`),Math.min(BAL_T.caravanMax,cv*BAL_T.caravan));
+ const one=own.size===1?[...own][0]:null;
+ if(one)add('whole',lng(`Bütün yol tek elde: ${FAC[one].s}`,`The whole road in one hand: ${FAC[one].s}`),BAL_T.whole);
+ const era=trdEra(r);if(era<1)why.push({k:'era',l:lng('Okyanus yolları rakip oldu','The ocean routes compete'),v:era-1});
+ f=clamp(f,BAL_T.flowMin,BAL_T.flowMax)*era;
+ return {flow:f,why,owner:one,cut,sg,oc};}
+/** Gold that stop k of route r brings its controller this season (with the flow fl, default: computed). */
+function trdStopVal(r,k,fl){const q=r.stops[k],p=S.prov[q.i],c=p.ctl||p.o;if(fl==null)fl=trdFlow(r).flow;
+ let v=r.v*fl*q.w/r.W;
+ if(trdHas(q.i,'bedesten'))v*=BAL_T.bedesten;
+ if(trdPort(r,k)&&trdArsenal(c))v*=BAL_T.arsenalSea;
+ if(trdHas(q.i,'caravan'))v+=BAL_T.toll;
+ return v;}
+/** Trade income of province i (all routes through it) for whoever controls it. */
+function trdProvVal(i){let s=0;for(const m of TRD_AT[i]||[])s+=trdStopVal(m.r,m.k);return s;}
+/** Every route's flow and the gold per realm, in one pass: {flows:{id:flow}, by:{f:gold}, rows:{f:[{r,k,i,v}]}} */
+function trdAll(){const flows={},by={},rows={};
+ for(const r of TRD){const fl=trdFlow(r);flows[r.id]=fl;
+  r.stops.forEach((q,k)=>{const p=S.prov[q.i],c=p.ctl||p.o,v=trdStopVal(r,k,fl.flow);by[c]=(by[c]||0)+v;(rows[c]||(rows[c]=[])).push({r,k,i:q.i,v});});}
+ return {flows,by,rows};}
+/** Trade income of realm f this season. */
+function trdIncome(f){let s=0;for(const r of TRD){let fl=null;r.stops.forEach((q,k)=>{const p=S.prov[q.i];if((p.ctl||p.o)!==f)return;if(fl==null)fl=trdFlow(r).flow;s+=trdStopVal(r,k,fl);});}return s;}
+ECON_ROWS.push(f=>{const v=trdIncome(f);return v>0.05?[{id:'trade',l:lng('Ticaret yolları','Trade routes'),v,k:'inc',
+ tip:lng('Elindeki ticaret duraklarından gelen gümrük ve çarşı vergisi. Savaş ve kuşatma kervanları durdurur; pazarlar ve kervansaraylar yolu canlandırır.','Customs and bazaar dues from the trade stops you hold. War and sieges stop the caravans; markets and caravanserais bring the road to life.')}]:null;});
+/* era news: the season a route's fortune turns, the realms on it hear about it */
+hook('newTurn',()=>{if(!S||!S.player)return;for(const r of TRD)for(const e of r.era||[])if(S.turn===e.t&&r.stops.some(q=>ctl(q.i)===S.player))news(lng(e.tr,e.en),'info');},60);
+KE.trade={routes:()=>TRD.map(r=>({id:r.id,name:tx(r.n),v:r.v,stops:r.stops.map(q=>PD[q.i].key)})),flow:id=>trdFlow(TRD_BY[id]),income:f=>trdIncome(f),all:()=>trdAll(),prov:i=>trdProvVal(i),BAL:BAL_T};
+/* =====================================================================
+   GREAT WORKS (Track T, Wave 3)
+   A few grand, expensive buildings that take several seasons to raise and then give a lasting bonus:
+   a mosque complex / cathedral / great church (faith), a covered market (bedesten), a caravanserai,
+   an arsenal (tersane), a citadel (hisar) and a madrasa / university. Some may be raised once per realm,
+   the others once per province. The player and the AI build under the same rules.
+   S.works: [{i,k,f,p,n,d,t,rel}]  i province, k type, f the realm that raised it, p seasons of work done,
+   n seasons needed, d 1 when finished, t the turn it was begun (finished: the turn it was finished),
+   rel the faith it was consecrated to (faith works; changes when a conqueror converts it).
+   A site is paused while its province is occupied or besieged and abandoned if the province changes
+   hands; a finished work stays with the province and serves whoever owns it.
+   ===================================================================== */
+const BAL_W={
+ maxSites:2,                // building sites a realm may run at once
+ faithUnrest:1,             // faith: unrest fades this many extra seasons per season (twice as fast)
+ faithMp:.2,                // faith: manpower recovers +20%
+ bedestenTax:1.5,           // covered market: the province's taxes x1.5
+ citadelSiege:1.5,citadelAssault:1.2, // citadel: sieges here take 50% longer, assaults meet +20% defence
+ medreseDev:2,medreseEvery:20,medreseMax:12, // madrasa: +2 development, then +1 every 5 years (to 12)
+ shipMul:.5,                // arsenal: ship hire for armies x0.5 (needs Track B's armShipCost to read wkShipMul)
+ aiP:.12,aiReserve:250,aiWarReserve:400, // AI: chance per season to begin a work, gold it keeps back (at war: more)
+ aiPer:8,                   // AI: at most 1 + one work per 8 provinces (great works stay rare)
+};
+/* Types. realm: once per realm (counting the works this realm raised and still holds), else once per province.
+   n: name by faith ({tr,en}, the province name is put in front in Turkish: "Bursa Bedesteni" / "Covered Market of Bursa").
+   tp: Turkish possessive form for "<place> <tp>". */
+const WK_TYPES={
+ faith:{realm:true,cost:250,turns:10,ico:'dome',
+  n:{'İslam':{tr:'Külliye',en:'Mosque Complex',tp:'Külliyesi'},'Katolik':{tr:'Katedral',en:'Cathedral',tp:'Katedrali'},'Ortodoks':{tr:'Büyük Kilise',en:'Great Church',tp:'Büyük Kilisesi'}},
+  eff:{tr:'Devletin her yerinde huzursuzluk iki kat hızlı söner, insan gücü %20 daha hızlı toplanır.',en:'Unrest fades twice as fast across the realm, and manpower gathers 20% faster.'},
+  req:{tr:'Gelişimi en az 5 olan bir şehir ya da başkent',en:'A city of development 5 or more, or the capital'}},
+ bedesten:{cost:180,turns:6,ico:'bazaar',
+  n:{'İslam':{tr:'Bedesten',en:'Covered Market',tp:'Bedesteni'},'*':{tr:'Tüccar Hanı',en:'Merchants\' Hall',tp:'Tüccar Hanı'}},
+  eff:{tr:'Bu eyaletin vergisi %50 artar; bir ticaret durağıysa oradan gelen kazanç da %50 artar.',en:'This province pays 50% more taxes; if it is a trade stop, its trade earnings also rise by 50%.'},
+  req:{tr:'Pazarı olan, gelişimi en az 4 olan bir eyalet',en:'A province with a market and development 4 or more'}},
+ caravan:{cost:100,turns:4,ico:'caravan',
+  n:{'*':{tr:'Kervansaray',en:'Caravanserai',tp:'Kervansarayı'}},
+  eff:{tr:'Bu durağın ticaret yolu %10 daha canlı akar (yoldaki herkes kazanır); durak ayrıca her mevsim 1 altın geçiş vergisi alır.',en:'The trade road through this stop flows 10% stronger (everyone on the road gains), and the stop takes a toll of 1 gold each season.'},
+  req:{tr:'Bir kara ticaret yolunun durağı',en:'A stop on an overland trade road'}},
+ arsenal:{realm:true,cost:200,turns:8,ico:'ship',
+  n:{'İslam':{tr:'Tersane',en:'Arsenal',tp:'Tersanesi'},'*':{tr:'Tersane',en:'Arsenal',tp:'Tersanesi'}},
+  eff:{tr:'Deniz yolu üzerindeki liman durakların %25 fazla kazanır.',en:'Your port stops on sea routes earn 25% more.'},
+  effShip:{tr:' Donanması olmayan devletin orduları için gemi kirası yarıya iner.',en:' For a realm without a fleet, hiring ships for its armies costs half.'},
+  req:{tr:'Denize kıyısı olan bir eyalet',en:'A province on the coast'}},
+ citadel:{cost:180,turns:6,ico:'tower',
+  n:{'*':{tr:'Hisar',en:'Citadel',tp:'Hisarı'}},
+  eff:{tr:'Bu şehrin kuşatması %50 daha uzun sürer, hücumda surların savunması %20 güçlenir.',en:'A siege of this city takes 50% longer, and its walls defend 20% better against an assault.'},
+  req:{tr:'Kalesi en az 2 olan bir eyalet',en:'A province with walls of 2 or more'}},
+ medrese:{realm:true,cost:200,turns:8,ico:'book',
+  n:{'İslam':{tr:'Medrese',en:'Madrasa',tp:'Medresesi'},'*':{tr:'Üniversite',en:'University',tp:'Üniversitesi'}},
+  eff:{tr:'Bitince eyaletin gelişimi 2 artar; sonra her beş yılda bir 1 daha artar (en çok 12).',en:'When finished the province gains 2 development, then 1 more every five years (up to 12).'},
+  req:{tr:'Gelişimi en az 5 olan bir eyalet',en:'A province of development 5 or more'}},
+};
+const WK_ORDER=['faith','bedesten','caravan','arsenal','citadel','medrese'];
+/* Historical names: type:province -> {tr,en} or by faith {'İslam':{tr,en},...}. */
+const WK_HIST={
+ 'faith:istanbul':{'Ortodoks':{tr:'Ayasofya',en:'Hagia Sophia'},'Katolik':{tr:'Ayasofya',en:'Hagia Sophia'},'İslam':{tr:'Ayasofya Camii',en:'Hagia Sophia Mosque'}},
+ 'faith:venedik':{'Katolik':{tr:'San Marco Bazilikası',en:'St Mark\'s Basilica'}},
+ 'faith:roma':{'Katolik':{tr:'Aziz Petrus Bazilikası',en:'St Peter\'s Basilica'}},
+ 'faith:budin':{'Katolik':{tr:'Meryem Ana Kilisesi',en:'Church of Our Lady'}},
+ 'faith:edirne':{'İslam':{tr:'Üç Şerefeli Cami',en:'Üç Şerefeli Mosque'}},
+ 'faith:bursa':{'İslam':{tr:'Ulu Cami',en:'Great Mosque of Bursa'}},
+ 'faith:kahire':{'İslam':{tr:'Sultan Hasan Külliyesi',en:'Complex of Sultan Hasan'}},
+ 'faith:tebriz':{'İslam':{tr:'Gök Mescid',en:'Blue Mosque of Tabriz'}},
+ 'faith:sam':{'İslam':{tr:'Emevi Camii',en:'Umayyad Mosque'}},
+ 'faith:kudus':{'İslam':{tr:'Kubbetü\'s-Sahra',en:'Dome of the Rock'}},
+ 'faith:konya':{'İslam':{tr:'Mevlana Külliyesi',en:'Complex of Rumi'}},
+ 'faith:viyana':{'Katolik':{tr:'Aziz Stephan Katedrali',en:'St Stephen\'s Cathedral'}},
+ 'faith:mistra':{'Ortodoks':{tr:'Pantanassa Manastırı',en:'Pantanassa Monastery'}},
+ 'faith:trabzon':{'Ortodoks':{tr:'Ayasofya (Trabzon)',en:'Hagia Sophia of Trebizond'}},
+ 'bedesten:istanbul':{tr:'Cevahir Bedesteni',en:'Grand Bazaar'},
+ 'bedesten:halep':{tr:'Halep Çarşısı',en:'Souq of Aleppo'},
+ 'bedesten:venedik':{tr:'Rialto Çarşısı',en:'Rialto Market'},
+ 'bedesten:kahire':{tr:'Han el-Halili',en:'Khan el-Khalili'},
+ 'arsenal:venedik':{tr:'Arsenale',en:'Venetian Arsenal'},
+ 'arsenal:istanbul':{tr:'Tersâne-i Âmire',en:'Imperial Arsenal'},
+ 'arsenal:gelibolu':{tr:'Gelibolu Tersanesi',en:'Arsenal of Gallipoli'},
+ 'citadel:istanbul':{tr:'Yedikule Hisarı',en:'Fortress of the Seven Towers'},
+ 'citadel:rodos':{tr:'Üstatlar Sarayı',en:'Palace of the Grand Master'},
+ 'medrese:istanbul':{'İslam':{tr:'Sahn-ı Seman Medresesi',en:'Sahn-ı Seman Madrasa'}},
+ 'medrese:kahire':{'İslam':{tr:'el-Ezher',en:'al-Azhar'}},
+ 'medrese:pojon':{'*':{tr:'Academia Istropolitana',en:'Academia Istropolitana'}},
+};
+/* Works standing in 1451 (raised before the game starts). */
+const WK_START=[['faith','istanbul','BYZ'],['faith','venedik','VEN'],['arsenal','venedik','VEN'],['faith','roma','PAP'],['medrese','kahire','MAM'],['bedesten','bursa','OSM'],['arsenal','gelibolu','OSM']];
+
+const wkRel=f=>FAC[f]&&FAC[f].rel||'';
+const wkPick=(o,rel)=>o[rel]||o['*']||o['Katolik']||Object.values(o)[0];
+/** Display name of work w (or of a planned work: {i,k,rel}). */
+function wkName(w){const T=WK_TYPES[w.k],rel=w.rel||wkRel(S.prov[w.i].o),h=WK_HIST[w.k+':'+PD[w.i].key];
+ if(h){const v=h.tr?h:(h[rel]||h['*']);if(v)return tx(v);}
+ const n=wkPick(T.n,rel);return EN?`${n.en} of ${PD[w.i].name}`:`${PD[w.i].name} ${n.tp}`;}
+/** Name with its place when a historical name does not say it (news, lists). */
+function wkNameAt(w){const n=wkName(w),pl=PD[w.i].name;return n.includes(pl)?n:`${n} (${pl})`;}
+/** Short type name in the current faith of realm f (for buttons). */
+const wkTypeName=(k,f)=>tx(wkPick(WK_TYPES[k].n,wkRel(f)));
+/** Effect text of type k (plain words). */
+function wkEff(k){let t=tx(WK_TYPES[k].eff);if(k==='arsenal'&&wkShipSeam())t+=tx(WK_TYPES.arsenal.effShip);return t;}
+/** Does Track B's ship hire read wkShipMul yet? (seam; until then the arsenal does not promise it) */
+let wkSeam=null;function wkShipSeam(){if(wkSeam==null){try{wkSeam=typeof armShipCost==='function'&&/wkShipMul/.test(String(armShipCost));}catch(e){wkSeam=false;}}return wkSeam;}
+/** Ship hire multiplier for realm f's armies (arsenal). */
+function wkShipMul(f){return wkRealmHas(f,'arsenal')?BAL_W.shipMul:1;}
+const wkList=()=>(S&&S.works)||[];
+/** All works (finished and unfinished) in province i. */
+const wkAt=i=>wkList().filter(w=>w.i===i);
+/** Finished work of type k in province i? */
+function wkDone(i,k){const L=S&&S.works;if(!L||!L.length)return false;for(const w of L)if(w.i===i&&w.k===k&&w.d)return true;return false;}
+/** Does realm f hold a finished work of type k (in a province it owns and does not have occupied)? */
+function wkRealmHas(f,k){const L=S&&S.works;if(!L||!L.length)return false;for(const w of L)if(w.k===k&&w.d){const p=S.prov[w.i];if(p.o===f&&!p.ctl)return true;}return false;}
+/** Building sites (unfinished works) of realm f. */
+const wkSites=f=>wkList().filter(w=>!w.d&&w.f===f);
+/** Seasons left for an unfinished work. */
+const wkLeft=w=>Math.max(0,w.n-w.p);
+/** Is province i on the coast (touches the sea on the map)? Cached after the map is built. */
+let wkCoast=null;
+function wkIsCoast(i){if(!wkCoast){if(typeof provStart==='undefined'||!provStart||!idMap)return PD[i].lanes.length>0||!!(TRD_AT[i]||[]).some(m=>trdPort(m.r,m.k));
+  wkCoast=new Uint8Array(NP);for(let k=0;k<NP;k++){let c=PD[k].lanes.length>0;for(let q=provStart[k];q<provStart[k+1]&&!c;q++){const p=provPix[q],x=p%W;
+   if((x>0&&idMap[p-1]===-1)||(x<W-1&&idMap[p+1]===-1)||(p>=W&&idMap[p-W]===-1)||(p+W<idMap.length&&idMap[p+W]===-1))c=true;}wkCoast[k]=c?1:0;}}
+ return !!wkCoast[i];}
+/** Requirement of type k at province i (ignoring gold and limits). */
+function wkReqOk(k,i){const p=S.prov[i],cap=S.fac[p.o]&&S.fac[p.o].cap===i;
+ switch(k){case 'faith':return p.dev>=5||cap;case 'bedesten':return !!p.mkt&&p.dev>=4;
+  case 'caravan':return (TRD_AT[i]||[]).some(m=>m.r.g!=='ship');case 'arsenal':return wkIsCoast(i);
+  case 'citadel':return p.fort>=2;case 'medrese':return p.dev>=5;}return false;}
+/** Can realm f begin work k in province i? -> {ok, why} (why: plain words) */
+function wkCan(f,i,k){const T=WK_TYPES[k],p=S.prov[i];if(!T||!p)return {ok:false,why:''};
+ if(p.o!==f)return {ok:false,why:lng('Bu eyalet senin değil.','This province is not yours.')};
+ if(p.ctl)return {ok:false,why:lng('İşgal altındaki eyalette inşaat yapılamaz.','Nothing can be built in an occupied province.')};
+ const here=wkAt(i);
+ if(here.some(w=>w.k===k))return {ok:false,why:here.find(w=>w.k===k).d?lng('Bu eser burada zaten var.','This work already stands here.'):lng('Bu eser burada zaten yapılıyor.','This work is already being built here.')};
+ if(here.some(w=>!w.d))return {ok:false,why:lng('Bu eyalette zaten bir inşaat sürüyor.','A building site is already at work in this province.')};
+ if(T.realm&&wkList().some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f))return {ok:false,why:lng('Devlet başına yalnız bir tane yapılabilir.','Only one may be raised per realm.')};
+ if(wkSites(f).length>=BAL_W.maxSites)return {ok:false,why:lng(`Aynı anda en çok ${BAL_W.maxSites} büyük eser yapılabilir.`,`At most ${BAL_W.maxSites} great works can be under construction at once.`)};
+ if(!wkReqOk(k,i))return {ok:false,why:tx(T.req)};
+ if(S.fac[f].gold<T.cost)return {ok:false,why:lng(`${T.cost} altın gerekiyor.`,`It costs ${T.cost} gold.`),gold:true};
+ return {ok:true,why:''};}
+/** Begin work k at province i for realm f (pays the cost). -> the work, or null */
+function wkStart(f,i,k){if(!wkCan(f,i,k).ok)return null;const T=WK_TYPES[k];S.fac[f].gold-=T.cost;
+ const w={i,k,f,p:0,n:T.turns,d:0,t:S.turn};if(k==='faith')w.rel=wkRel(f);(S.works||(S.works=[])).push(w);
+ if(f===S.player)addLog(lng(`${wkNameAt(w)} için temel atıldı.`,`The foundations of the ${wkNameAt(w)} were laid.`),'info');
+ runHooks('workStarted',w);return w;}
+/** Finish w now (also used by the start-of-game works). */
+function wkFinish(w,quiet){w.d=1;w.p=w.n;w.t=S.turn;if(w.k==='faith'&&!w.rel)w.rel=wkRel(S.prov[w.i].o);
+ if(!quiet){if(w.k==='medrese'){const p=S.prov[w.i];p.dev=Math.min(Math.max(p.dev,BAL_W.medreseMax),p.dev+BAL_W.medreseDev);}const o=S.prov[w.i].o;
+  if(o===S.player){news(lng(`${wkNameAt(w)} tamamlandı! ${tx(WK_TYPES[w.k].eff)}`,`The ${wkNameAt(w)} is complete! ${tx(WK_TYPES[w.k].eff)}`),'good');}
+  else if(S.player&&(nbrs(S.player).includes(o)||w.k==='faith'))addLog(lng(`${FAC[o].s}: ${wkNameAt(w)} tamamlandı.`,`${FAC[o].s}: the ${wkNameAt(w)} is complete.`),'info');
+  runHooks('workDone',w);}
+ polDirty=true;}
+/** Seasons of work: called each roundEnd. */
+function wkTick(){const L=S.works;if(!L||!L.length)return;
+ for(let k=L.length-1;k>=0;k--){const w=L[k];if(w.d)continue;const p=S.prov[w.i];
+  if(p.o!==w.f||!alive(w.f)){L.splice(k,1);if(w.f===S.player)news(lng(`${PD[w.i].name} elden çıktı; ${wkName(w)} inşaatı yarım kaldı.`,`${PD[w.i].name} was lost; work on the ${wkName(w)} has been abandoned.`),'war');continue;}
+  if(p.ctl||(typeof siegeAt==='function'&&siegeAt(w.i)))continue; // paused
+  w.p++;if(w.p>=w.n)wkFinish(w);}}
+hook('roundEnd',()=>{wkTick();
+ for(const w of wkList())if(w.d&&w.k==='faith'){const p=S.prov[w.i];if(!p.ctl)wkConvert(w,p.o,null);} // land ceded at a peace
+ // faith: unrest fades faster, manpower gathers faster
+ const has={};for(const w of wkList())if(w.d&&w.k==='faith'){const p=S.prov[w.i];if(!p.ctl)has[p.o]=1;}
+ for(const f in has){if(!alive(f))continue;for(let i=0;i<NP;i++){const p=S.prov[i];if(p.o===f&&p.un>0)p.un=Math.max(0,p.un-BAL_W.faithUnrest);}
+  const F=S.fac[f],ds=devSum(f);F.mp=Math.min(ds*800,F.mp+ds*110*BAL_W.faithMp);}},12);
+/* madrasa: the city keeps growing (every 5 years after it was finished) */
+hook('newTurn',()=>{for(const w of wkList()){if(!w.d||w.k!=='medrese')continue;const p=S.prov[w.i];
+ if(S.turn>w.t&&(S.turn-w.t)%BAL_W.medreseEvery===0&&p.dev<BAL_W.medreseMax&&!p.ctl){p.dev++;if(p.o===S.player)news(lng(`${wkName(w)} bilginleri yetiştiriyor: ${PD[w.i].name} gelişimi ${p.dev} oldu.`,`The scholars of the ${wkName(w)} are at work: ${PD[w.i].name} grows to development ${p.dev}.`),'good');}}},40);
+/* a conqueror converts a house of another faith; an unfinished site is lost (wkTick also catches cession) */
+function wkConvert(w,nf,of){if(w.k!=='faith'||!w.d||!wkRel(nf)||w.rel===wkRel(nf))return false;const old=wkName(w);w.rel=wkRel(nf);const nw=wkName(w);
+ const m=wkRel(nf)==='İslam'?(old===nw?lng(`${old} camiye çevrildi.`,`The ${old} has been turned into a mosque.`):lng(`${old} camiye çevrildi: ${nw}.`,`The ${old} has been turned into a mosque: the ${nw}.`)):lng(`${old} yeni inanca adandı: ${nw}.`,`The ${old} has been rededicated to a new faith: the ${nw}.`);
+ if(S.player&&(nf===S.player||of===S.player))news(m,'info');else addLog(m,'info');return true;}
+hook('capture',(i,nf,of)=>{const L=S.works;if(!L)return;
+ for(let k=L.length-1;k>=0;k--){const w=L[k];if(w.i!==i)continue;if(!w.d){L.splice(k,1);continue;}wkConvert(w,nf,of);}});
+/* citadel */
+BATTLE_MODS.push(ctx=>{if(ctx.to==null||(ctx.kind!=='siege'&&ctx.kind!=='assault')||!wkDone(ctx.to,'citadel'))return null;
+ return [{l:lng('Hisar','Citadel'),m:ctx.kind==='siege'?BAL_W.citadelSiege:BAL_W.citadelAssault,side:'def',k:'citadel'}];});
+/** Covered market: tax multiplier of province i (read by provIncome). */
+function wkTaxMul(i){return wkDone(i,'bedesten')?BAL_W.bedestenTax:1;}
+/* ---- the AI raises great works by the same rules ---- */
+function wkAiScore(f,i,k){const p=S.prov[i],F=S.fac[f],cap=F.cap===i;
+ switch(k){case 'faith':return cap?60:p.dev*6;case 'bedesten':return p.dev*7+(trdIsStop(i)?20:0);case 'caravan':return 18+(TRD_AT[i]||[]).reduce((t,m)=>t+m.r.v*m.r.stops[m.k].w/m.r.W,0)*8;
+  case 'arsenal':return (cap?30:0)+p.dev*3+(TRD_AT[i]||[]).length*10;case 'citadel':return PD[i].adj.some(j=>S.prov[j].o!==f)?(cap?45:p.dev*4):0;
+  case 'medrese':return cap?50:p.dev*5;}return 0;}
+function wkAi(f){if(!S||!alive(f)||f===S.player)return;const F=S.fac[f];
+ const war=warsOf(f).length>0,keep=war?BAL_W.aiWarReserve:BAL_W.aiReserve;if(F.gold<keep+100||R()>BAL_W.aiP)return;
+ const L=wkList(),at=new Map();let own=0;for(const w of L){if(!w.d&&w.f===f)return;(at.get(w.i)||at.set(w.i,[]).get(w.i)).push(w);if(w.d&&S.prov[w.i].o===f)own++;}
+ const ps=facProvs(f);if(own>=1+Math.floor(ps.length/BAL_W.aiPer))return;
+ let best=null,bs=0;for(const i of ps){if(S.prov[i].ctl||(at.get(i)||[]).some(w=>!w.d))continue;const here=at.get(i)||[];
+  for(const k of WK_ORDER){const T=WK_TYPES[k];if(F.gold-T.cost<keep||here.some(w=>w.k===k))continue;
+   if(T.realm&&L.some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f))continue;if(!wkReqOk(k,i))continue;
+   const sc=wkAiScore(f,i,k);if(sc>bs){bs=sc;best=[i,k];}}}
+ if(best&&bs>=20)wkStart(f,best[0],best[1]);}
+hook('preAI',f=>wkAi(f),40);
+/* ---- state ---- */
+hook('newGame',s=>{s.works=[];for(const [k,key,f] of WK_START){const i=PK[key];if(i==null||s.prov[i].o!==f)continue;const w={i,k,f,p:0,n:WK_TYPES[k].turns,d:0,t:0};if(k==='faith')w.rel=wkRel(f);s.works.push(w);wkFinish(w,true);}},30);
+hook('migrate',s=>{if(!Array.isArray(s.works))s.works=[];},30);
+KE.works={list:()=>wkList().map(w=>({...w,name:wkName(w)})),can:(f,i,k)=>wkCan(f,i,k),start:(f,i,k)=>wkStart(f,i,k),done:(i,k)=>wkDone(i,k),realmHas:(f,k)=>wkRealmHas(f,k),
+ finish:w=>wkFinish(w),tick:()=>wkTick(),coast:i=>wkIsCoast(i),types:WK_TYPES,BAL:BAL_W,shipMul:f=>wkShipMul(f),seam:()=>wkShipSeam()};
 /* ---------------- war & peace ---------------- */
 /** a declares war on b. goal (optional casus belli): {k:'claim',prov:i} (that province costs half at the peace
  table); without one the most valuable province of b on a's border is claimed. */
@@ -5754,6 +6098,129 @@ KE.sg={list:()=>aSieges().map(g=>({i:g.i,f:g.f,prog:g.prog,need:g.need,wall:aWal
   const near=(o,c)=>c&&Math.abs(d[o]-c[0])+Math.abs(d[o+1]-c[1])+Math.abs(d[o+2]-c[2])<6;
   for(let q=provStart[i];q<provStart[i+1];q++){const o=provPix[q]*4;if(near(o,cc))occ++;else if(near(o,oc))own++;}return {occ,own};}};
 /* =====================================================================
+   TRADE MAP LAYER (Track T, Wave 3): the trade roads in the manuscript / portolan style.
+   Dotted caravan roads (sepia ink) and dashed sea lanes (teal ink) with small camel, mule, ship and
+   barge glyphs, plus a medallion for every great work. Shown
+    - in the trade map mode (the scales button under the zoom buttons, or the province panel): every
+      road, its stops in their holder's colour, its name, and a red cross where war cuts it;
+    - otherwise only when zoomed in close (faint roads, no names), so the default view stays clean.
+   Static: the layer never asks for another frame (render on demand), and it does no work at all in the
+   default view except the great-work medallions (zoomed in only).
+   Hovering a road (mouse) explains it in plain words in the shared tooltip.
+   ===================================================================== */
+const TRD_V={zoomShow:2.05,zoomWorks:1.25,glyphMin:44,hoverPx:9};
+let trdScr=[],trdWk=[],trdTipOn=false,trdHovT=0;
+/** Trade map mode on? (07's mapMode; 'trade' draws the political colours light, like the terrain map) */
+const trdModeOn=()=>mapMode==='trade';
+let trdPrev='pol';
+function trdSetMode(on){if(on===trdModeOn()){trdBtnSync();polDirty=true;req();return;}if(on)trdPrev=mapMode==='ter'?'ter':'pol';mapMode=on?'trade':trdPrev;const mb=document.querySelector('#zoom [data-act="mode"]');if(mb){const p=mapMode!=='ter';mb.textContent=p?'◐':'◑';mb.title=p?lng('Arazi haritası','Terrain map'):lng('Siyasi harita','Political map');}
+ trdBtnSync();polDirty=true;req();}
+function trdBtnSync(){const b=document.getElementById('trBtn');if(b){const on=trdModeOn();if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on));}}
+/* world-space geometry of every leg (built once, after the map exists) */
+let trdGeo=null;
+function trdBuildGeo(){trdGeo=[];for(const r of TRD)for(let k=1;k<r.stops.length;k++){const a=PD[r.stops[k-1].i],b=PD[r.stops[k].i];
+ const pts=[[a.lx,a.ly],...r.stops[k].via.map(v=>P(v[0],v[1])),[b.lx,b.ly]];trdGeo.push({r,k,sea:r.stops[k].sea,pts});}}
+/* ---- glyph sprites (ink drawings, cached per kind and size) ---- */
+const trdSpr={};
+function trdSprite(kind,sz){const key=kind+sz;if(trdSpr[key])return trdSpr[key];const sc=2,c=document.createElement('canvas');c.width=c.height=Math.ceil(sz*sc);
+ const g=c.getContext('2d');g.scale(sc*sz/24,sc*sz/24);g.lineCap='round';g.lineJoin='round';g.strokeStyle='#3e2412';g.fillStyle='#f4e7c6';g.lineWidth=1.5;
+ const legs=xs=>{g.beginPath();for(const [x0,x1] of xs){g.moveTo(x0,14);g.lineTo(x1,21);}g.stroke();};
+ if(kind==='camel'){legs([[7,6],[9,10],[14,15],[16,18]]);
+  g.beginPath();g.ellipse(11.5,12.5,7,3.4,0,0,7);g.fill();g.stroke();g.beginPath();g.ellipse(10.5,9.6,3.6,3,0,Math.PI,0);g.fill();g.stroke();
+  g.beginPath();g.moveTo(17.5,12);g.quadraticCurveTo(20,10,19.5,6);g.stroke();g.beginPath();g.ellipse(21,5.6,2.3,1.3,0,0,7);g.fill();g.stroke();
+  g.beginPath();g.moveTo(4.6,12);g.lineTo(3.2,15);g.stroke();}
+ else if(kind==='mule'){legs([[7,6.5],[9,9.5],[14.5,15],[16.5,17.5]]);
+  g.beginPath();g.ellipse(12,12.5,6.6,3.2,0,0,7);g.fill();g.stroke();g.fillStyle='#c9a46a';g.fillRect(8.5,7.4,6.5,4);g.strokeRect(8.5,7.4,6.5,4);g.fillStyle='#f4e7c6';
+  g.beginPath();g.moveTo(17.8,11.5);g.lineTo(19.8,7.6);g.stroke();g.beginPath();g.ellipse(21,7.6,2.2,1.4,.5,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(19.6,6.3);g.lineTo(19,3.8);g.stroke();
+  g.beginPath();g.moveTo(5.4,12);g.lineTo(4,15.5);g.stroke();}
+ else if(kind==='ship'){g.beginPath();g.moveTo(2.5,14);g.lineTo(21.5,14);g.quadraticCurveTo(20,19,16,19.5);g.lineTo(7,19.5);g.quadraticCurveTo(3.5,18.5,2.5,14);g.closePath();g.fill();g.stroke();
+  g.beginPath();g.moveTo(12,14);g.lineTo(12,2.5);g.stroke();g.beginPath();g.moveTo(6.5,4.5);g.quadraticCurveTo(12,6.5,17.5,4.5);g.lineTo(17,12);g.quadraticCurveTo(12,13.2,7,12);g.closePath();g.fill();g.stroke();
+  g.fillStyle='#9a2b18';g.beginPath();g.moveTo(12,2.5);g.lineTo(15.5,3.4);g.lineTo(12,4.3);g.closePath();g.fill();}
+ else{g.beginPath();g.moveTo(3.5,15);g.lineTo(20.5,15);g.quadraticCurveTo(19,19,15,19);g.lineTo(8,19);g.quadraticCurveTo(4.5,18.6,3.5,15);g.closePath();g.fill();g.stroke(); // barge with a lateen sail
+  g.beginPath();g.moveTo(11,15);g.lineTo(11,6);g.stroke();g.beginPath();g.moveTo(7,13.5);g.lineTo(15.5,4.5);g.lineTo(15,13.5);g.closePath();g.fill();g.stroke();}
+ return trdSpr[key]=c;}
+/* ---- great-work medallions ---- */
+function trdMedal(c,x,y,r,k,done,frac,col){c.save();c.translate(x,y);
+ c.fillStyle='rgba(30,18,8,.3)';c.beginPath();c.arc(.8,1.1,r,0,7);c.fill();
+ c.fillStyle=done?'#f6ead0':'#e8dcc0';c.beginPath();c.arc(0,0,r,0,7);c.fill();
+ c.lineWidth=done?1.6:1.2;c.strokeStyle=done?'#b8862c':'#6e4d27';if(!done)c.setLineDash([2,1.6]);c.stroke();c.setLineDash([]);
+ if(!done&&frac>0){c.strokeStyle=col||'#b8862c';c.lineWidth=2.2;c.beginPath();c.arc(0,0,r+1.6,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);c.stroke();}
+ const s=r/8;c.scale(s,s);c.strokeStyle='#3e2412';c.fillStyle='#3e2412';c.lineWidth=1.1;c.lineJoin='round';c.lineCap='round';
+ if(!done){c.beginPath();for(const xx of [-4,0,4]){c.moveTo(xx,4.5);c.lineTo(xx,-4.5);}c.moveTo(-5,-1.5);c.lineTo(5,-1.5);c.moveTo(-5,2);c.lineTo(5,2);c.moveTo(-4,4.5);c.lineTo(4,-4.5);c.stroke();c.restore();return;}
+ c.beginPath();
+ if(k==='faith'){c.moveTo(-5,4.5);c.lineTo(5,4.5);c.lineTo(5,1);c.lineTo(-5,1);c.closePath();c.moveTo(-4,1);c.arc(0,1,4,Math.PI,0);c.moveTo(0,-3);c.lineTo(0,-5.5);c.fill();c.stroke();}
+ else if(k==='bedesten'){c.rect(-5.5,0,11,4.5);c.moveTo(-3.5,0);c.arc(-3.2,0,2,Math.PI,0);c.moveTo(1.2,0);c.arc(3.2,0,2,Math.PI,0);c.moveTo(-1,0);c.arc(0,-.4,1.6,Math.PI,0);c.stroke();}
+ else if(k==='caravan'){c.rect(-5,-3.5,10,8);c.moveTo(-1.6,4.5);c.lineTo(-1.6,1.2);c.arc(0,1.2,1.6,Math.PI,0);c.lineTo(1.6,4.5);c.moveTo(-5,-3.5);c.lineTo(-5,-5);c.moveTo(5,-3.5);c.lineTo(5,-5);c.stroke();}
+ else if(k==='arsenal'){c.moveTo(-5.5,1.5);c.lineTo(5.5,1.5);c.quadraticCurveTo(4.5,4.8,2,5);c.lineTo(-2.5,5);c.quadraticCurveTo(-5,4.6,-5.5,1.5);c.moveTo(0,1.5);c.lineTo(0,-5.5);c.moveTo(-3.5,-4);c.lineTo(3.5,-4);c.lineTo(3,0);c.lineTo(-3,0);c.closePath();c.stroke();}
+ else if(k==='citadel'){c.moveTo(-3.5,5);c.lineTo(-3.5,-3);c.lineTo(-3.5,-5);c.lineTo(-2,-5);c.lineTo(-2,-3.6);c.lineTo(-.7,-3.6);c.lineTo(-.7,-5);c.lineTo(.7,-5);c.lineTo(.7,-3.6);c.lineTo(2,-3.6);c.lineTo(2,-5);c.lineTo(3.5,-5);c.lineTo(3.5,5);c.closePath();c.fill();}
+ else{c.moveTo(0,-2.5);c.quadraticCurveTo(-3,-4.2,-5.5,-3);c.lineTo(-5.5,4);c.quadraticCurveTo(-3,2.8,0,4.3);c.quadraticCurveTo(3,2.8,5.5,4);c.lineTo(5.5,-3);c.quadraticCurveTo(3,-4.2,0,-2.5);c.lineTo(0,4.3);c.stroke();}
+ c.restore();}
+/** Smooth path through screen points (quadratic through midpoints). */
+function trdPath(c,q){c.beginPath();c.moveTo(q[0][0],q[0][1]);if(q.length===2){c.lineTo(q[1][0],q[1][1]);return;}
+ for(let k=1;k<q.length-1;k++){const mx=(q[k][0]+q[k+1][0])/2,my=(q[k][1]+q[k+1][1])/2;c.quadraticCurveTo(q[k][0],q[k][1],k===q.length-2?q[k+1][0]:mx,k===q.length-2?q[k+1][1]:my);}}
+/** Point at the middle of a projected polyline (by length) and its direction. */
+function trdMid(q){let L=0;for(let k=1;k<q.length;k++)L+=Math.hypot(q[k][0]-q[k-1][0],q[k][1]-q[k-1][1]);let h=L/2;
+ for(let k=1;k<q.length;k++){const d=Math.hypot(q[k][0]-q[k-1][0],q[k][1]-q[k-1][1]);if(h<=d||k===q.length-1){const t=d?Math.min(1,h/d):0;return {x:q[k-1][0]+(q[k][0]-q[k-1][0])*t,y:q[k-1][1]+(q[k][1]-q[k-1][1])*t,dx:q[k][0]-q[k-1][0],len:L};}h-=d;}
+ return {x:q[0][0],y:q[0][1],dx:1,len:0};}
+DRAW_LAYERS.trade=(c,now,s,g3)=>{trdBtnSync();trdScr=[];trdWk=[];if(!S)return false;
+ const mode=trdModeOn(),show=mode||s>=TRD_V.zoomShow;
+ if(show){if(!trdGeo)trdBuildGeo();const fa=mode?1:clamp((s-TRD_V.zoomShow)/.35,0,1)*.85;if(fa>0.02){
+  const flows={};for(const r of TRD)flows[r.id]=trdFlow(r);
+  c.save();c.lineCap='round';c.lineJoin='round';
+  for(const L of trdGeo){const q=[];let ok=true,on=false;for(const p of L.pts){const z=pj(p[0],p[1],0);if(!z[2]){ok=false;break;}q.push(z);if(z[0]>-40&&z[1]>-40&&z[0]<vw+40&&z[1]<vh+40)on=true;}
+   if(!ok)continue;const fl=flows[L.r.id],a=L.r.stops[L.k-1].i,b=L.r.stops[L.k].i,ca=ctl(a),cb=ctl(b),cut=ca!==cb&&atWar(ca,cb);
+   trdScr.push({r:L.r,k:L.k,q,cut});if(!on)continue;
+   const ink=L.sea?'24,70,84':'112,36,14',w=mode?1.8+fl.flow*1.2:1.6;
+   if(mode){c.globalAlpha=.8;c.strokeStyle='rgba(250,240,214,.85)';c.lineWidth=w+3.2;c.setLineDash([]);trdPath(c,q);c.stroke();}
+   c.globalAlpha=fa;c.strokeStyle=`rgba(${ink},${mode?.92:.8})`;c.lineWidth=w;c.setLineDash(L.sea?[8,5]:[.5,4.6]);trdPath(c,q);c.stroke();c.setLineDash([]);
+   const m=trdMid(q);
+   if(cut&&mode){c.globalAlpha=1;c.strokeStyle='#b0261a';c.lineWidth=2.4;c.beginPath();c.moveTo(m.x-5,m.y-5);c.lineTo(m.x+5,m.y+5);c.moveTo(m.x+5,m.y-5);c.lineTo(m.x-5,m.y+5);c.stroke();}
+   else if(m.len>=TRD_V.glyphMin*(mode?1:1.3)){const sz=mode?22:17,img=trdSprite(L.sea&&L.r.g!=='boat'?'ship':L.r.g,sz);c.globalAlpha=mode?1:fa;
+    c.save();c.translate(m.x,m.y-sz*.35);if(m.dx<0)c.scale(-1,1);c.drawImage(img,-sz/2,-sz/2,sz,sz);c.restore();}}
+  if(mode){c.globalAlpha=1;
+   for(const r of TRD){r.stops.forEach((st,k)=>{const d=PD[st.i],z=pj(d.lx,d.ly,0);if(!z[2])return;const col=FAC[ctl(st.i)].c,rad=2.2+st.w*1.1;
+     c.fillStyle=col;c.strokeStyle='#2a1a0c';c.lineWidth=1.2;c.beginPath();c.arc(z[0],z[1],rad,0,7);c.fill();c.stroke();});}
+   // road names, in italic ink, at the middle leg of each road
+   c.font='italic 600 14px "EB Garamond", Georgia, serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
+   for(const r of TRD){const legs=trdScr.filter(x=>x.r===r);if(!legs.length)continue;const L=legs[Math.floor((legs.length-1)/2)],m=trdMid(L.q),fl=flows[r.id].flow;
+    const t=tx(r.n),w=c.measureText(t).width+6;let y=null;for(const yy of [m.y+17,m.y-19,m.y+31]){if(aFree([m.x-w/2,yy-8,m.x+w/2,yy+8])){y=yy;break;}}if(y==null)y=m.y+17;aOcc.push(aTag([m.x-w/2,y-8,m.x+w/2,y+8],'tr'));
+    c.lineWidth=3.5;c.strokeStyle='rgba(250,240,214,.92)';c.strokeText(t,m.x,y);c.fillStyle=fl<.8?'#8e1f14':'#3e2412';c.fillText(t,m.x,y);}}
+  c.restore();}}
+ // great-work medallions (zoomed in, or the trade map)
+ if((mode||s>=TRD_V.zoomWorks)&&S.works&&S.works.length){const seen=new Set();
+  for(const w of S.works){if(seen.has(w.i))continue;const here=S.works.filter(x=>x.i===w.i);seen.add(w.i);const d=PD[w.i];
+   const z=g3&&G3.anchor&&G3.anchor[w.i]?pj(G3.anchor[w.i][0],G3.anchor[w.i][1],G3.anchor[w.i][2]):pj(d.lx,d.ly,0);if(!z[2]||z[0]<-20||z[1]<-20||z[0]>vw+20||z[1]>vh+20)continue;
+   const r=mode||s>2?7.5:6,site=here.find(x=>!x.d),top=site||here[0],n=here.length,ext=(n-1)*r*1.5;let x=0,y=0,rc=null;
+   for(const [ox,oy] of [[-16-r-ext,0],[-12-r-ext,r+6],[-12-r-ext,-r-8],[14+r,r+4],[14+r,-r-6]]){const t=[z[0]+ox-r-1,z[1]+oy-r-1,z[0]+ox+r+1+ext,z[1]+oy+r+1];if(aFree(t)){rc=t;x=z[0]+ox;y=z[1]+oy;break;}}
+   if(!rc){if(!(mode||site))continue;x=z[0]-16-r-ext;y=z[1];rc=[x-r-1,y-r-1,x+r+1+ext,y+r+1];}aOcc.push(aTag(rc,'w'));
+   here.slice().sort((p,q)=>(p===top?-1:q===top?1:0)).forEach((v,k)=>{trdMedal(c,x+k*r*1.5,y,r,v.k,!!v.d,v.d?1:v.p/v.n,FAC[v.f]?FAC[v.f].c:null);});
+   trdWk.push({i:w.i,x:x,y:y,r,w:here});}}
+ return false;};
+/* ---- hover tooltips on the map (mouse): a road or a great-work medallion ---- */
+function trdSegDist(px,py,q){let best=1e9;for(let k=1;k<q.length;k++){const ax=q[k-1][0],ay=q[k-1][1],bx=q[k][0],by=q[k][1],dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+ const t=l?clamp(((px-ax)*dx+(py-ay)*dy)/l,0,1):0;best=Math.min(best,Math.hypot(px-ax-dx*t,py-ay-dy*t));}return best;}
+function trdTipAt(x,y){
+ for(const m of trdWk)if(Math.hypot(x-m.x,y-m.y)<=m.r+3)return trdWorkTip(m.w);
+ let best=null,bd=TRD_V.hoverPx;for(const L of trdScr){const d=trdSegDist(x,y,L.q);if(d<bd){bd=d;best=L;}}
+ return best?trdRouteTip(best.r,best.cut):'';}
+function trdTipShow(h,x,y){if(!h){if(trdTipOn){uiTipEl.hidden=true;trdTipOn=false;}return;}
+ uiTipEl.innerHTML=h;uiTipEl.hidden=false;trdTipOn=true;const t=uiTipEl.getBoundingClientRect(),m=8;
+ uiTipEl.style.left=Math.round(clamp(x+14,m,Math.max(m,innerWidth-t.width-m)))+'px';uiTipEl.style.top=Math.round(clamp(y+16,m,Math.max(m,innerHeight-t.height-m)))+'px';}
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||trdHovT||!S||!S.player)return;if(!trdScr.length&&!trdWk.length){if(trdTipOn)trdTipShow('');return;}
+ trdHovT=setTimeout(()=>{trdHovT=0;},60);if(e.buttons){trdTipShow('');return;}trdTipShow(trdTipAt(e.clientX,e.clientY),e.clientX,e.clientY);});
+cv.addEventListener('pointerleave',()=>trdTipShow(''));
+cv.addEventListener('pointerdown',()=>trdTipShow(''));
+/* ---- the trade map button, under the map-mode button ---- */
+(()=>{const z=document.getElementById('zoom');if(!z||document.getElementById('trBtn'))return;const mb=z.querySelector('[data-act="mode"]');
+ const b=document.createElement('button');b.id='trBtn';b.dataset.act='tmode';b.dataset.tip='tmode';b.setAttribute('aria-pressed','false');
+ b.setAttribute('aria-label',lng('Ticaret yolları haritası','Trade routes map'));
+ b.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 17c3-1 4-5 8-5s5 4 10 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1 2.6" stroke-linecap="round"/><path d="M9.5 9.8c0-2 1.2-3.3 2.6-3.3S14.7 7.8 14.7 9.8M8 10h8.5M12.2 6.5V4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="4" cy="17" r="1.8" fill="currentColor"/><circle cx="20.5" cy="15" r="1.8" fill="currentColor"/></svg>';
+ if(mb&&mb.nextSibling)z.insertBefore(b,mb.nextSibling);else z.appendChild(b);})();
+ACTS.tmode=()=>{const on=!trdModeOn();trdSetMode(on);toast(on?lng('Ticaret yolları haritası','Trade routes map'):mapMode==='ter'?lng('Arazi haritası','Terrain map'):lng('Siyasi harita','Political map'));};
+QUIET.add('tmode');
+KE.tradeMap={on:()=>trdModeOn(),set:v=>trdSetMode(!!v),legs:()=>trdScr.length,medals:()=>trdWk.map(m=>({i:m.i,x:Math.round(m.x),y:Math.round(m.y)})),
+ legAt:(id,k)=>{const L=trdScr.find(x=>x.r.id===id&&x.k===k);return L?trdMid(L.q):null;},tipAt:(x,y)=>trdTipAt(x,y)};
+/* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
 const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[],
@@ -6796,6 +7263,91 @@ ADVICE.push(
   go:()=>showState(),goL:lng('Devlet defteri','State Ledger')}
 );
 KE.uiFlow=()=>({idle:uiIdleArmies(S.player).map(a=>a.id),inbox:uiInbox().length,shown:!$('#uiFlow').hidden,badge:$('#endTurn').dataset.idle||null});
+/* =====================================================================
+   TRADE AND GREAT WORKS UI (Track T, Wave 3)
+   Province panel: "Ticaret yolu" (slot 62, any trade stop) and "Büyük eserler" (slot 64: the works that
+   stand here, the building site with its progress, and what the player may raise here).
+   Modal "Ticaret ve Büyük Eserler" (ACT trades): every road with its flow and holders, the player's works
+   and sites, the famous works of the world. State book section (slot 25). Tooltips: tmode, trroute, wkt.
+   Plain words and percentages only, no formulas.
+   ===================================================================== */
+const trdPct=v=>(v>=0?'+':'−')+lng('%'+Math.abs(Math.round(v*100)),Math.abs(Math.round(v*100))+'%');
+const trdN=v=>(Math.round(v*10)/10).toLocaleString(EN?'en':'tr');
+/** Status word and colour of a road's flow. */
+function trdWord(fl){return fl>=1.15?[lng('Canlı','Thriving'),'var(--ok)']:fl>=.9?[lng('Olağan','Steady'),'#6e4d27']:fl>=.6?[lng('Yavaş','Sluggish'),'#a0521a']:[lng('Tıkanmış','Choked'),'var(--war2)'];}
+const trdGlyphU={};
+/** Small inline picture of road r's glyph (the map sprite as an image). */
+function trdGlyph(r){const k=r.g;if(!trdGlyphU[k]){try{trdGlyphU[k]=trdSprite(k,18).toDataURL();}catch(e){trdGlyphU[k]='';}}return trdGlyphU[k]?`<img class="trg" src="${trdGlyphU[k]}" alt="" width="18" height="18">`:'';}
+/** Plain-words explanation of road r (tooltip and modal). */
+function trdRouteTip(r,cut){const F=trdFlow(r),[w,cl]=trdWord(F.flow),pl=S.player;let mine=0,n=0;
+ r.stops.forEach((q,k)=>{if(ctl(q.i)===pl){mine+=trdStopVal(r,k,F.flow);n++;}});
+ let h=`<b class="tt">${esc(tx(r.n))} · <span style="color:${cl}">${w}</span></b><p>${esc(tx(r.d))}</p><div class="tl"><span>${lng('Her mevsim taşınan mal','Goods carried each season')}</span><b>${lng(`~${trdN(r.v*F.flow)} altın`,`~${trdN(r.v*F.flow)} gold`)}</b>`;
+ if(n)h+=`<span>${lng(`Senin payın (${n} durak)`,`Your share (${n} ${n===1?'stop':'stops'})`)}</span><b class="pos">+${trdN(mine)}</b>`;
+ for(const y of F.why)h+=`<span>${esc(y.l)}</span><b class="${y.v>=0?'pos':'neg'}">${trdPct(y.v)}</b>`;
+ h+='</div>';
+ if(cut)h+=`<p class="neg">${lng('Burada iki düşman devletin sınırı yolu kesiyor: kervanlar geçemiyor.','Here the border of two realms at war cuts the road: the caravans cannot pass.')}</p>`;
+ return h+`<p>${lng('Her durağı tutan devlet kendi payını alır. Pazarlar ve kervansaraylar yolu canlandırır; savaş, kuşatma ve işgal kervanları durdurur.','Whoever holds a stop takes its share. Markets and caravanserais bring the road to life; war, sieges and occupation stop the caravans.')}</p>`;}
+/** Status line of a building site. */
+function wkSiteLine(w){const p=S.prov[w.i],left=wkLeft(w),paused=p.ctl||(typeof siegeAt==='function'&&siegeAt(w.i));
+ return paused?lng('İnşaat durdu: şehir düşman elinde ya da kuşatmada.','Work has stopped: the city is besieged or in enemy hands.'):lng(`İnşa ediliyor: ~${left} tur kaldı.`,`Under construction: ~${left} ${left===1?'turn':'turns'} to go.`);}
+/** Tooltip for the works of one province (map medallion). */
+function trdWorkTip(L){return L.map(w=>`<b class="tt">${esc(wkName(w))}</b>${w.d?`<p>${esc(wkEff(w.k))}</p>`:`<p>${esc(wkSiteLine(w))}</p><p>${lng('Bitince:','When finished:')} ${esc(wkEff(w.k))}</p>`}`).join('');}
+function wkBar(w){const pc=Math.round(clamp(w.p/w.n,0,1)*100);return `<div class="wkbar" role="img" aria-label="${lng(`İnşaat yüzde ${pc} tamam`,`Construction ${pc} percent complete`)}"><i style="width:${pc}%"></i></div>`;}
+/* ---- province panel ---- */
+PANEL_SECTIONS.push({id:'trade',order:62,when:c=>c.tgt<0&&trdIsStop(c.i),html(c){const pl=c.f,holder=ctl(c.i);
+ let h=`<div class="sec trsec"><h3>${lng('Ticaret yolu','Trade road')}</h3>`;
+ for(const m of TRD_AT[c.i]){const r=m.r,F=trdFlow(r),[w,cl]=trdWord(F.flow),v=trdStopVal(r,m.k,F.flow);
+  h+=`<div class="trrow" data-tip="trroute" data-r="${r.id}" tabindex="0"><span class="trn">${trdGlyph(r)}${esc(tx(r.n))}</span><span class="trw" style="color:${cl}">${w}</span></div>
+   <div class="hint">${holder===pl?lng(`Bu durak her mevsim hazinene <b>${trdN(v)}</b> altın getiriyor.`,`This stop brings <b>${trdN(v)}</b> gold into your treasury every season.`):lng(`Bu durak her mevsim ${esc(FAC[holder].s)} hazinesine ${trdN(v)} altın getiriyor.`,`This stop brings ${trdN(v)} gold a season to the treasury of ${esc(FAC[holder].s)}.`)}${F.why.filter(y=>y.v<0).length?' '+F.why.filter(y=>y.v<0).map(y=>`${esc(y.l)} ${trdPct(y.v)}`).join(' · '):''}</div>`;}
+ h+=`<div class="acts"><button class="btn" data-act="tmode" aria-pressed="${trdModeOn()}">${trdModeOn()?lng('Siyasi harita','Political map'):lng('Ticaret haritası','Trade map')}</button><button class="btn" data-act="trades">${lng('Bütün yollar','All roads')}</button></div>`;
+ return h+'</div>';}});
+PANEL_SECTIONS.push({id:'works',order:64,when:c=>c.tgt<0&&(wkAt(c.i).length>0||(c.mine&&!c.p.ctl)),html(c){const f=c.f,here=wkAt(c.i);
+ let h=`<div class="sec wksec"><h3>${lng('Büyük eserler','Great works')}</h3>`;
+ for(const w of here){h+=`<div class="wkrow${w.d?'':' site'}" data-tip="wkt" data-k="${w.k}" data-i="${c.i}" tabindex="0"><b>${esc(wkName(w))}</b>`;
+  h+=w.d?`<div class="hint">${esc(wkEff(w.k))}</div>`:`${wkBar(w)}<div class="hint">${esc(wkSiteLine(w))}</div>`;h+='</div>';}
+ if(c.mine&&!c.p.ctl){const opts=WK_ORDER.filter(k=>wkReqOk(k,c.i)&&!here.some(w=>w.k===k)&&!(WK_TYPES[k].realm&&wkList().some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f)));
+  if(opts.length){h+=`<div class="wkopts">`;for(const k of opts){const T=WK_TYPES[k],r=wkCan(f,c.i,k),ck='wk:'+c.i+':'+k;
+    h+=`<button class="btn wkb" data-act="wkbuild" data-k="${k}" data-i="${c.i}" data-tip="wkt" ${r.ok?'':'disabled'}><span>${confirmKey===ck?lng('Emin misin? Temel at','Sure? Lay the foundations'):esc(wkTypeName(k,f))}</span><span class="c">${T.cost} · ${lng(`${T.turns} tur`,`${T.turns} turns`)}</span></button>`;}
+   h+=`</div>`;const bad=opts.map(k=>wkCan(f,c.i,k)).find(r=>!r.ok&&!r.gold);h+=`<div class="hint">${bad?esc(bad.why):lng('Büyük eserler pahalıdır ve birkaç mevsimde biter, ama etkileri kalıcıdır. Ayrıntı için düğmenin üzerinde dur.','Great works are costly and take several seasons, but their effect lasts. Hover or hold a button for details.')}</div>`;}
+  else if(!here.length)h+=`<div class="hint">${lng('Bu eyalet büyük bir eser için henüz uygun değil. Pazar, gelişim, kale ya da bir ticaret yolu yeni seçenekler açar.','This province is not yet fit for a great work. A market, more development, walls or a trade road open new choices.')}</div>`;}
+ return h+'</div>';}});
+ACTS.wkbuild=(t,f)=>{const i=+t.dataset.i,k=t.dataset.k,ck='wk:'+i+':'+k;if(!S.prov[i]||S.prov[i].o!==f)return;
+ const r=wkCan(f,i,k);if(!r.ok){toast(r.why);return;}if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
+ const w=wkStart(f,i,k);if(!w)return;SND.play('build');toast(lng(`${wkNameAt(w)} için temel atıldı: ${w.n} tur sürecek.`,`The foundations of the ${wkNameAt(w)} are laid: it will take ${w.n} turns.`),'good');renderAll();};
+OVERBLOCK.add('wkbuild');QUIET.add('wkbuild');
+/* ---- modal ---- */
+function showTrade(){const pl=S.player,all=trdAll();let h=`<div class="eyebrow">${lng('Kervanlar, kadırgalar, çarşılar','Caravans, galleys, bazaars')}</div><h2>${lng('Ticaret ve Büyük Eserler','Trade and Great Works')}</h2>`;
+ h+=`<p class="lead">${lng('Dönemin büyük ticaret yolları. Bir yolun durağını tutan devlet, oradan geçen maldan payını alır. Savaş yolu keser, pazarlar ve kervansaraylar canlandırır.','The great trade roads of the age. Whoever holds a stop on a road takes a share of the goods that pass. War cuts the roads; markets and caravanserais bring them to life.')}</p>`;
+ h+=`<div class="sec"><h3>${lng('Ticaret yolları','Trade roads')} <span class="cap">${lng('Senin payın','Your share')} +${trdN(all.by[pl]||0)}</span></h3><div class="trlist">`;
+ for(const r of TRD){const F=all.flows[r.id],[w,cl]=trdWord(F.flow),pc=Math.round(clamp(F.flow/BAL_T.flowMax,0,1)*100),hold={};
+  r.stops.forEach((q,k)=>{const c=ctl(q.i);hold[c]=(hold[c]||0)+trdStopVal(r,k,F.flow);});
+  const hs=Object.keys(hold).sort((a,b)=>hold[b]-hold[a]);
+  h+=`<div class="trcard${hold[pl]?' mine':''}" data-tip="trroute" data-r="${r.id}" tabindex="0"><div class="trhd"><b>${trdGlyph(r)}${esc(tx(r.n))}</b><span style="color:${cl}">${w}</span></div>
+   <div class="trbar" role="img" aria-label="${lng(`Akış: ${w}`,`Flow: ${w}`)}"><i style="width:${pc}%;background:${cl}"></i></div>
+   <div class="trst">${r.stops.map(q=>esc(PD[q.i].name)).join(' · ')}</div>
+   <div class="trhold">${hs.map(f=>`<span class="${f===pl?'me':''}">${shield(f)}${esc(FAC[f].s)} <b>${trdN(hold[f])}</b></span>`).join('')}</div></div>`;}
+ h+=`</div></div>`;
+ const mine=wkList().filter(w=>S.prov[w.i].o===pl||(!w.d&&w.f===pl)),others=wkList().filter(w=>w.d&&S.prov[w.i].o!==pl);
+ h+=`<div class="sec"><h3>${lng('Büyük eserlerin','Your great works')}</h3>`;
+ h+=mine.length?`<div class="wklist">${mine.map(w=>`<div class="wkrow${w.d?'':' site'}"><b>${esc(wkName(w))}</b> <small>${esc(PD[w.i].name)}</small>${w.d?`<div class="hint">${esc(wkEff(w.k))}</div>`:`${wkBar(w)}<div class="hint">${esc(wkSiteLine(w))}</div>`}</div>`).join('')}</div>`
+  :`<div class="hint">${lng('Henüz büyük bir eserin yok. Bir eyaletini seç; panelin "Büyük eserler" bölümü orada neler yapılabileceğini gösterir.','You have no great works yet. Select one of your provinces: the "Great works" part of its panel shows what can be raised there.')}</div>`;
+ h+=`</div>`;
+ if(others.length){const by={};for(const w of others){const o=S.prov[w.i].o;(by[o]||(by[o]=[])).push(w);}
+  h+=`<div class="sec"><h3>${lng('Dünyanın büyük eserleri','Great works of the world')}</h3><div class="wkworld">${Object.keys(by).map(o=>`<div>${shield(o)}<span>${by[o].map(w=>esc(wkName(w))).join(', ')}</span></div>`).join('')}</div></div>`;}
+ h+=`<div class="foot"><button class="btn" data-act="trmap">${trdModeOn()?lng('Siyasi haritaya dön','Back to the political map'):lng('Ticaret haritasını aç','Open the trade map')}</button><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`;
+ openModal(h);}
+ACTS.trades=()=>showTrade();
+ACTS.trmap=()=>{closeModal();trdSetMode(!trdModeOn());renderPanel();};
+STATE_SECTIONS.push({id:'trade',order:25,html(f){const v=trdIncome(f),n=TRD.reduce((s,r)=>s+r.stops.filter(q=>ctl(q.i)===f).length,0),w=wkList().filter(x=>x.d&&S.prov[x.i].o===f).length,st=wkSites(f).length;
+ return `<div class="sec"><h3>${lng('Ticaret ve büyük eserler','Trade and great works')}</h3><div class="meta"><span>${lng('Ticaret durağı','Trade stops')} <b>${n}</b></span><span>${lng('Ticaret geliri','Trade income')} <b>+${trdN(v)}</b></span><span>${lng('Büyük eser','Great works')} <b>${w}</b></span>${st?`<span>${lng('İnşaatta','Being built')} <b>${st}</b></span>`:''}</div>
+  <div class="acts"><button class="btn" data-act="trades">${lng('Ticaret yolları ve eserler','Trade roads and works')}</button></div></div>`;}});
+/* ---- tooltips ---- */
+TIPS.tmode=()=>uiTT(lng('Ticaret haritası','Trade map'),`<p>${lng('Dönemin büyük ticaret yollarını gösterir: kervan yolları noktalı, deniz yolları kesik çizgiyle. Durağın rengi onu tutan devleti, kırmızı çarpı savaşın kestiği yeri gösterir. Yakınlaştırınca yollar soluk olarak her haritada görünür.','Shows the great trade roads of the age: caravan roads dotted, sea routes dashed. A stop takes the colour of the realm that holds it; a red cross marks where war cuts the road. Zoom in close and the roads also show faintly on every map.')}</p>`);
+TIPS.trroute=el=>{const r=TRD_BY[el.dataset.r];return r?trdRouteTip(r,false):'';};
+TIPS.wkt=el=>{const k=el.dataset.k,T=WK_TYPES[k];if(!T)return '';const i=+el.dataset.i,w=wkAt(i).find(x=>x.k===k);
+ if(w)return trdWorkTip([w]);const f=S.player,r=wkCan(f,i,k);
+ return uiTT(esc(wkName({i,k,rel:wkRel(f)})),`<p>${esc(wkEff(k))}</p><div class="tl"><span>${lng('Maliyet','Cost')}</span><b>${T.cost} ${lng('altın','gold')}</b><span>${lng('Süre','Time')}</span><b>${lng(`${T.turns} tur`,`${T.turns} turns`)}</b></div>${T.realm?`<p>${lng('Devlet başına yalnız bir tane yapılabilir.','Only one may be raised per realm.')}</p>`:''}${r.ok?'':`<p class="neg">${esc(r.why)}</p>`}`);};
+KE.tradeUI={show:()=>showTrade()};
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
