@@ -98,7 +98,8 @@ DRAW_LAYERS.trade=(c,now,s,g3)=>{trdBtnSync();trdScr=[];trdWk=[];if(!S)return fa
    trdWk.push({i:w.i,x:x,y:y,r,w:here});}}
  return false;};
 /* ---- hover tooltips on the map (mouse): a road or a great-work medallion ---- */
-function trdSegDist(px,py,q){let best=1e9;for(let k=1;k<q.length;k++){const ax=q[k-1][0],ay=q[k-1][1],bx=q[k][0],by=q[k][1],dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+function trdSegDist(px,py,q){let best=q.length?Math.hypot(px-q[0][0],py-q[0][1]):1e9; // a one-point leg is still hoverable
+for(let k=1;k<q.length;k++){const ax=q[k-1][0],ay=q[k-1][1],bx=q[k][0],by=q[k][1],dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
  const t=l?clamp(((px-ax)*dx+(py-ay)*dy)/l,0,1):0;best=Math.min(best,Math.hypot(px-ax-dx*t,py-ay-dy*t));}return best;}
 function trdTipAt(x,y){
  for(const m of trdWk)if(Math.hypot(x-m.x,y-m.y)<=m.r+3)return trdWorkTip(m.w);

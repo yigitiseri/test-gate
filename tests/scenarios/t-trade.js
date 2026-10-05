@@ -43,11 +43,14 @@ module.exports = {
     await page.click('#zoom #trBtn'); await page.waitForFunction(() => window.__ke.tradeMap.legs() > 0, null, { timeout: 10000 });
     const d1 = await E(() => ({ legs: window.__ke.tradeMap.legs(), on: window.__ke.tradeMap.on(), pressed: document.getElementById('trBtn').getAttribute('aria-pressed') }));
     check('the trade map button draws every road', d1.on && d1.legs >= 40 && d1.pressed === 'true', d1);
-    await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 1.6); }, pv); await page.waitForTimeout(250);
+    // re-centre and wait for real redraws, so the road positions are read from the new view (headless frames are slow)
+    const dr0 = await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 1.6); return K.stats.draws; }, pv);
+    await page.waitForFunction(d => window.__ke.stats.draws >= d + 2, dr0, { timeout: 10000 }).catch(() => {});
     const mid = await E(() => window.__ke.tradeMap.legAt('levant', 5));
     const tip = mid ? await E(m => window.__ke.tradeMap.tipAt(m.x, m.y), mid) : '';
     check('a road explains itself on the map (plain words)', /Levant Deniz Yolu/.test(tip) && /altın/.test(tip) && !/[=*×]/.test(tip.replace(/<[^>]+>/g, '')), tip.slice(0, 200));
-    await page.mouse.move(mid.x, mid.y); await page.waitForTimeout(150); await page.mouse.move(mid.x + 1, mid.y);
+    // move along the road a little, as a real pointer does (the button's own tooltip closes on the first move)
+    for (let k = 0; k < 4; k++) { await page.mouse.move(mid.x + k, mid.y); await page.waitForTimeout(120); }
     await page.waitForFunction(() => !document.getElementById('uiTip').hidden, null, { timeout: 5000 }).catch(() => {});
     check('hovering the road shows the tooltip', await E(() => !document.getElementById('uiTip').hidden && /Levant/.test(document.getElementById('uiTip').textContent)));
     await page.click('#zoom #trBtn'); await page.waitForTimeout(150);
