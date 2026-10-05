@@ -2831,7 +2831,8 @@ const BAL_W={
  citadelSiege:1.5,citadelAssault:1.2, // citadel: sieges here take 50% longer, assaults meet +20% defence
  medreseDev:2,medreseEvery:20,medreseMax:12, // madrasa: +2 development, then +1 every 5 years (to 12)
  shipMul:.5,                // arsenal: ship hire for armies x0.5 (needs Track B's armShipCost to read wkShipMul)
- aiP:.25,aiReserve:180,aiWarReserve:320, // AI: chance per season to begin a work, gold it keeps back (at war: more)
+ aiP:.12,aiReserve:250,aiWarReserve:400, // AI: chance per season to begin a work, gold it keeps back (at war: more)
+ aiPer:8,                   // AI: at most 1 + one work per 8 provinces (great works stay rare)
 };
 /* Types. realm: once per realm (counting the works this realm raised and still holds), else once per province.
    n: name by faith ({tr,en}, the province name is put in front in Turkish: "Bursa Bedesteni" / "Covered Market of Bursa").
@@ -2841,11 +2842,11 @@ const WK_TYPES={
   n:{'İslam':{tr:'Külliye',en:'Mosque Complex',tp:'Külliyesi'},'Katolik':{tr:'Katedral',en:'Cathedral',tp:'Katedrali'},'Ortodoks':{tr:'Büyük Kilise',en:'Great Church',tp:'Büyük Kilisesi'}},
   eff:{tr:'Devletin her yerinde huzursuzluk iki kat hızlı söner, insan gücü %20 daha hızlı toplanır.',en:'Unrest fades twice as fast across the realm, and manpower gathers 20% faster.'},
   req:{tr:'Gelişimi en az 5 olan bir şehir ya da başkent',en:'A city of development 5 or more, or the capital'}},
- bedesten:{cost:150,turns:6,ico:'bazaar',
+ bedesten:{cost:180,turns:6,ico:'bazaar',
   n:{'İslam':{tr:'Bedesten',en:'Covered Market',tp:'Bedesteni'},'*':{tr:'Tüccar Hanı',en:'Merchants\' Hall',tp:'Tüccar Hanı'}},
   eff:{tr:'Bu eyaletin vergisi %50 artar; bir ticaret durağıysa oradan gelen kazanç da %50 artar.',en:'This province pays 50% more taxes; if it is a trade stop, its trade earnings also rise by 50%.'},
   req:{tr:'Pazarı olan, gelişimi en az 4 olan bir eyalet',en:'A province with a market and development 4 or more'}},
- caravan:{cost:80,turns:4,ico:'caravan',
+ caravan:{cost:100,turns:4,ico:'caravan',
   n:{'*':{tr:'Kervansaray',en:'Caravanserai',tp:'Kervansarayı'}},
   eff:{tr:'Bu durağın ticaret yolu %10 daha canlı akar (yoldaki herkes kazanır); durak ayrıca her mevsim 1 altın geçiş vergisi alır.',en:'The trade road through this stop flows 10% stronger (everyone on the road gains), and the stop takes a toll of 1 gold each season.'},
   req:{tr:'Bir kara ticaret yolunun durağı',en:'A stop on an overland trade road'}},
@@ -2854,7 +2855,7 @@ const WK_TYPES={
   eff:{tr:'Deniz yolu üzerindeki liman durakların %25 fazla kazanır.',en:'Your port stops on sea routes earn 25% more.'},
   effShip:{tr:' Donanması olmayan devletin orduları için gemi kirası yarıya iner.',en:' For a realm without a fleet, hiring ships for its armies costs half.'},
   req:{tr:'Denize kıyısı olan bir eyalet',en:'A province on the coast'}},
- citadel:{cost:160,turns:6,ico:'tower',
+ citadel:{cost:180,turns:6,ico:'tower',
   n:{'*':{tr:'Hisar',en:'Citadel',tp:'Hisarı'}},
   eff:{tr:'Bu şehrin kuşatması %50 daha uzun sürer, hücumda surların savunması %20 güçlenir.',en:'A siege of this city takes 50% longer, and its walls defend 20% better against an assault.'},
   req:{tr:'Kalesi en az 2 olan bir eyalet',en:'A province with walls of 2 or more'}},
@@ -2986,13 +2987,17 @@ BATTLE_MODS.push(ctx=>{if(ctx.to==null||(ctx.kind!=='siege'&&ctx.kind!=='assault
 function wkTaxMul(i){return wkDone(i,'bedesten')?BAL_W.bedestenTax:1;}
 /* ---- the AI raises great works by the same rules ---- */
 function wkAiScore(f,i,k){const p=S.prov[i],F=S.fac[f],cap=F.cap===i;
- switch(k){case 'faith':return cap?60:p.dev*6;case 'bedesten':return p.dev*7+(trdIsStop(i)?20:0);case 'caravan':return 18+trdProvVal(i)*8;
+ switch(k){case 'faith':return cap?60:p.dev*6;case 'bedesten':return p.dev*7+(trdIsStop(i)?20:0);case 'caravan':return 18+(TRD_AT[i]||[]).reduce((t,m)=>t+m.r.v*m.r.stops[m.k].w/m.r.W,0)*8;
   case 'arsenal':return (cap?30:0)+p.dev*3+(TRD_AT[i]||[]).length*10;case 'citadel':return PD[i].adj.some(j=>S.prov[j].o!==f)?(cap?45:p.dev*4):0;
   case 'medrese':return cap?50:p.dev*5;}return 0;}
-function wkAi(f){if(!S||!alive(f)||f===S.player)return;const F=S.fac[f];if(wkSites(f).length)return;
- const war=warsOf(f).length>0,keep=war?BAL_W.aiWarReserve:BAL_W.aiReserve;if(F.gold<keep+80||R()>BAL_W.aiP)return;
- let best=null,bs=0;for(const i of facProvs(f)){if(S.prov[i].ctl)continue;for(const k of WK_ORDER){const T=WK_TYPES[k];if(F.gold-T.cost<keep)continue;
-  if(!wkCan(f,i,k).ok)continue;const s=wkAiScore(f,i,k);if(s>bs){bs=s;best=[i,k];}}}
+function wkAi(f){if(!S||!alive(f)||f===S.player)return;const F=S.fac[f];
+ const war=warsOf(f).length>0,keep=war?BAL_W.aiWarReserve:BAL_W.aiReserve;if(F.gold<keep+100||R()>BAL_W.aiP)return;
+ const L=wkList(),at=new Map();let own=0;for(const w of L){if(!w.d&&w.f===f)return;(at.get(w.i)||at.set(w.i,[]).get(w.i)).push(w);if(w.d&&S.prov[w.i].o===f)own++;}
+ const ps=facProvs(f);if(own>=1+Math.floor(ps.length/BAL_W.aiPer))return;
+ let best=null,bs=0;for(const i of ps){if(S.prov[i].ctl||(at.get(i)||[]).some(w=>!w.d))continue;const here=at.get(i)||[];
+  for(const k of WK_ORDER){const T=WK_TYPES[k];if(F.gold-T.cost<keep||here.some(w=>w.k===k))continue;
+   if(T.realm&&L.some(w=>w.k===k&&w.f===f&&S.prov[w.i].o===f))continue;if(!wkReqOk(k,i))continue;
+   const sc=wkAiScore(f,i,k);if(sc>bs){bs=sc;best=[i,k];}}}
  if(best&&bs>=20)wkStart(f,best[0],best[1]);}
 hook('preAI',f=>wkAi(f),40);
 /* ---- state ---- */
