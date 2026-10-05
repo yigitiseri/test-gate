@@ -107,7 +107,12 @@ function svFileText(s,name){return JSON.stringify({app:'age-of-dynasties',kind:'
 function svFileName(s){return `age-of-dynasties-${String(s.player).toLowerCase()}-${START_YEAR+Math.floor(s.turn/4)}-t${s.turn}.json`;}
 /** Hand a save file to the player: the share sheet on touch devices that can share files (iOS: "Save to Files"),
     otherwise a download link. Runs synchronously inside the tap, which iOS requires for both. */
+/* Inside the claude.ai viewer, plain downloads are blocked: the viewer's `downloads` capability asks the player and saves. */
+let svDlNs=null;
+try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('downloads').then(ns=>{svDlNs=ns;},()=>{});}catch(e){}
 function svDownload(s,name){const txt=svFileText(s,name),fn=svFileName(s),blob=new Blob([txt],{type:'application/json'});
+ if(svDlNs){svDlNs.save({filename:fn,data:blob}).then(()=>toast(lng('Kayıt dosyası indirildi.','Save file downloaded.'))).catch(e=>{
+   if(e&&e.code==='declined')return;toast(lng('Kayıt dosyası burada indirilemiyor.','The save file cannot be downloaded here.'),'war');});return;}
  const dl=()=>{const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=fn;a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},8000);toast(lng('Kayıt dosyası indirildi.','Save file downloaded.'));};
  try{const file=typeof File==='function'?new File([blob],fn,{type:'application/json'}):null;
