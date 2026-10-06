@@ -99,11 +99,11 @@ function vmGroundPaint(g,se,r,z,k){const cells=vmCellsIn(r),px=w=>w/se,bake=!r;
  VM_RINGS.forEach(([,a],j)=>{g.strokeStyle=`rgba(52,72,68,${a})`;g.lineWidth=bake?1.05:px(1);cells.forEach(c=>g.stroke(vmCellPath(c,'r'+j)));});
  g.strokeStyle='rgba(222,214,184,.55)';g.lineWidth=bake?2.2:px(clamp(2.4*se,2.4,6));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));   // foam
  g.strokeStyle='rgba(58,42,26,.85)';g.lineWidth=bake?.95:px(clamp(.95*se,1.05,2.4));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));
- mapRivers(g,k);
+ mapRivers(g,k,r);
  if(bake){g.save();for(const o of MSYM){g.setTransform(1,0,0,1,o.x,o.y);symPaint(g,o,symSea(o,k));}g.restore();}
  else{const L=MSYM,y0=r.y0-16,y1=r.y1+40;let lo=0,hi=L.length;while(lo<hi){const m=(lo+hi)>>1;if(L[m].y<y0)lo=m+1;else hi=m;}
   for(let k=lo;k<L.length&&L[k].y<=y1;k++){const o=L[k];if(o.x<r.x0-20||o.x>r.x1+20)continue;const sp=vmSprite(o,z,symSea(o,k));g.drawImage(sp.c,o.x+sp.ox,o.y+sp.oy,sp.w,sp.h);}}
- mapDecor(g,true);}
+ mapDecor(g,true,r);}
 /** Realm borders (owners differ) and province edges (same owner). */
 function vmLinesPaint(g,se,r){if(!S)return;const cells=vmCellsIn(r),pol=mapMode!=='ter',k=Math.sqrt(clamp(se,.6,2.2));
  g.lineJoin='round';g.lineCap='round';
@@ -116,25 +116,49 @@ function vmSprite(o,z,se){if(VM.sprZ!==z){VM.spr.clear();VM.sprZ=z;}const q=Math
  g.setTransform(z,0,0,z,-b[0]*z+1,-b[1]*z+1);symPaint(g,{t:o.t,v:o.v,sz:q},se);
  sp={c,ox:b[0]-1/z,oy:b[1]-1/z,w:cw/z,h:ch/z};VM.spr.set(k,sp);return sp;}
 
-/* ---- tiles: a layer painted into 256 px tiles per zoom step (quarter octaves), LRU-cached ---- */
-const VT_T=256;
-function vtLayer(paint){return {paint,sig:'',m:new Map()};}
+/* ---- tiles: a layer painted into 256 px tiles per zoom step (quarter octaves), kept in a GPU atlas ----
+   A tile is painted with paths on a CPU scratch canvas (paths are cheap there), copied once into its slot of one
+   GPU canvas per layer (80 slots, LRU), and every frame only copies slots to the screen: no per-frame uploads.
+   Each slot keeps a 1 px gutter of real content so smoothing never bleeds a neighbour slot into a seam. */
+const VT_T=256,VT_G=VT_T+2,VT_C=10,VT_R=8,VT_N=VT_C*VT_R,VT_SCR={c:null};
+function vtLayer(paint){return {paint,sig:'',m:new Map(),atlas:null,ag:null,free:[]};}
+function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.getContext('2d');for(let k=VT_N-1;k>=0;k--)L.free.push(k);}
+ if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
+const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
 /** Draw layer L over the view (map transform set on ctx). New tiles: about 8 ms of them per frame (all on the
  first draw), the rest from cached tiles of another zoom step meanwhile (clipped), and another frame is requested. */
 function vtDraw(L,s,sig){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
- if(L.sig!==sig){L.m.clear();L.sig=sig;}
+ if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
  const tx0=Math.max(0,Math.floor(vx0/u)),ty0=Math.max(0,Math.floor(vy0/u)),tx1=Math.min(Math.ceil(W/u)-1,Math.floor(vx1/u)),ty1=Math.min(Math.ceil(H/u)-1,Math.floor(vy1/u));
- const t0=performance.now(),first=!L.m.size;let more=false,made=0;const n=(tx1-tx0+1)*(ty1-ty0+1);
+ const t0=performance.now(),first=!L.m.size,want=new Set();let more=false,made=0;
+ for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if(first||!made||performance.now()-t0<8){made++;const c=mk(VT_T,VT_T),g=c.getContext('2d',CPU2D);g.setTransform(z,0,0,z,-tx*VT_T,-ty*VT_T);
-   L.paint(g,z/dpr,{x0:tx*u,y0:ty*u,x1:(tx+1)*u,y1:(ty+1)*u},z);t={c,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;}
-  if(t){ctx.drawImage(t.c,tx*u,ty*u,u,u);continue;}
-  more=true;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
-  for(const o of L.m.values()){const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0)ctx.drawImage(o.c,ox,oy,ou,ou);}ctx.restore();}
- const cap=Math.max(24,n*3);while(L.m.size>cap)L.m.delete(L.m.keys().next().value);
+  else if((first||!made||performance.now()-t0<8)&&want.size<=VT_N){made++;
+   const slot=vtSlot(L);
+   const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
+   g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);
+   const [sx,sy]=vtXY(slot);L.ag.clearRect(sx,sy,VT_G,VT_G);L.ag.drawImage(c,sx,sy);
+   t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;}
+  if(t){const [sx,sy]=vtXY(t.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,tx*u,ty*u,u,u);continue;}
+  more=true;if(!L.atlas)continue;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
+  for(const o of L.m.values()){if(o.z===z)continue;const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0){const [sx,sy]=vtXY(o.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,ox,oy,ou,ou);}}
+  ctx.restore();}
  if(more)req();}
+
+/* ---- sprite atlas: small images drawn every frame (towns, soldiers) live on one GPU canvas, shelf-packed;
+   when it fills up it starts over (gen changes and callers repaint what they still need) ---- */
+const SA={c:null,g:null,x:0,y:0,h:0,gen:0,S:2048,scr:null};
+/** Put a w x h (device px) image painted by paint(g) on its own CPU canvas into the atlas: {gen,x,y,w,h}. */
+function saAdd(w,h,paint){w=Math.min(SA.S,Math.ceil(w));h=Math.min(SA.S,Math.ceil(h));
+ if(!SA.c){SA.c=mk(SA.S,SA.S);SA.g=SA.c.getContext('2d');}
+ if(SA.x+w>SA.S){SA.x=0;SA.y+=SA.h+1;SA.h=0;}
+ if(SA.y+h>SA.S){SA.g.clearRect(0,0,SA.S,SA.S);SA.x=SA.y=SA.h=0;SA.gen++;}
+ const c=mk(w,h),g=c.getContext('2d',CPU2D);paint(g);SA.g.drawImage(c,SA.x,SA.y);
+ const e={gen:SA.gen,x:SA.x,y:SA.y,w,h};SA.x+=w+1;SA.h=Math.max(SA.h,h);return e;}
+/** Draw an atlas entry into the rect (dx,dy,dw,dh) of context c. */
+function saDraw(c,e,dx,dy,dw,dh){c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);}
 
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
 function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf();

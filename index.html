@@ -1640,19 +1640,22 @@ function renderBase(SD,LD,MD,RD){
  b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();
  mapRivers(b3);mapDecor(b3,false);
 }
-/** Rivers, widening toward the mouth (map units); sea = season (3: the northern rivers freeze). */
-function mapRivers(b,sea=-1){b.lineJoin='round';b.lineCap='round';
- RIVERS.forEach(r=>{const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
-  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle=sea===3&&r[k][1]>44.3?'rgba(184,208,222,.95)':'rgba(46,104,146,.9)';   // frozen in a northern winterb.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
+/** Rivers, widening toward the mouth (map units); sea = season (3: the northern rivers freeze); rect: only the rivers that reach into it. */
+let RIVBOX=null;
+function mapRivers(b,sea=-1,rect=null){b.lineJoin='round';b.lineCap='round';
+ if(!RIVBOX)RIVBOX=RIVERS.map(r=>{const p=r.map(q=>P(q[0],q[1]));return [Math.min(...p.map(q=>q[0]))-4,Math.min(...p.map(q=>q[1]))-4,Math.max(...p.map(q=>q[0]))+4,Math.max(...p.map(q=>q[1]))+4];});
+ RIVERS.forEach((r,ri)=>{const bx=RIVBOX[ri];if(rect&&(bx[2]<rect.x0||bx[0]>rect.x1||bx[3]<rect.y0||bx[1]>rect.y1))return;const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
+  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle=sea===3&&r[k][1]>44.3?'rgba(184,208,222,.95)':'rgba(46,104,146,.9)';/* frozen in a northern winter */b.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
    const mx=(pts[k][0]+pts[k+1][0])/2+(hash(k,n)-.5)*4,my=(pts[k][1]+pts[k+1][1])/2+(hash(n,k)-.5)*4;b.quadraticCurveTo(mx,my,pts[k+1][0],pts[k+1][1]);b.stroke();}});}
 /** Galleys (2D only), compass roses, the cartouche, sea and region names, the graduated frame (map units). */
-function mapDecor(b,ships){
- if(ships){seaBeast(b,...P(17.4,37.3),1,0);seaBeast(b,...P(34.8,43.2),.7,1);}
- if(ships)[[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>galley(b,x,y,sc,fl));
- compass(b,...P(17.2,34.4),46);compass(b,...P(37.4,42.6),24);cartouche(b);
- REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const t=lng(t0,en);const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
+function mapDecor(b,ships,rect=null){const near=(x,y,r)=>!rect||(x+r>=rect.x0&&x-r<=rect.x1&&y+r>=rect.y0&&y-r<=rect.y1);   // rect: a tile, skip what lies outside it
+ if(ships){[[P(17.4,37.3),1,0],[P(34.8,43.2),.7,1]].forEach(([[x,y],sc,fl])=>{if(near(x,y,32))seaBeast(b,x,y,sc,fl);});
+  [[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>{if(near(x,y,44))galley(b,x,y,sc,fl);});}
+ for(const [lon,lat,r] of [[17.2,34.4,46],[37.4,42.6,24]]){const [x,y]=P(lon,lat);if(near(x,y,r+16))compass(b,x,y,r);}
+ {const [x,y]=P(23.4,29.5);if(near(x,y,220))cartouche(b);}
+ REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const [x,y]=P(lon,lat);if(!near(x,y,sz*9))return;const t=lng(t0,en);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
   if(k==='sea'){b.fillStyle='rgba(34,58,56,.62)';spaced(b,t,x,y,sz*.32);}else{b.fillStyle='rgba(92,70,40,.6)';spaced(b,t,x,y,sz*.12);}b.restore();});
- frame(b);}
+ if(!rect||rect.x0<40||rect.y0<40||rect.x1>W-40||rect.y1>H-40)frame(b);}
 function rhumbs(b){const mc=mk(W,H),m=mc.getContext('2d',CPU2D),md=m.createImageData(W,H);for(let i=0;i<W*H;i++)md.data[i*4+3]=land[i]?0:255;m.putImageData(md,0,0);
  const rc=mk(W,H),r=rc.getContext('2d',CPU2D);r.lineWidth=.85;
  [[P(17.2,34.4),1],[P(37.4,42.6),.8],[P(27.4,35.6),.6]].forEach(([[cx,cy],al])=>{for(let k=0;k<32;k++){const a=k*Math.PI/16;
@@ -6603,11 +6606,11 @@ function vmGroundPaint(g,se,r,z,k){const cells=vmCellsIn(r),px=w=>w/se,bake=!r;
  VM_RINGS.forEach(([,a],j)=>{g.strokeStyle=`rgba(52,72,68,${a})`;g.lineWidth=bake?1.05:px(1);cells.forEach(c=>g.stroke(vmCellPath(c,'r'+j)));});
  g.strokeStyle='rgba(222,214,184,.55)';g.lineWidth=bake?2.2:px(clamp(2.4*se,2.4,6));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));   // foam
  g.strokeStyle='rgba(58,42,26,.85)';g.lineWidth=bake?.95:px(clamp(.95*se,1.05,2.4));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));
- mapRivers(g,k);
+ mapRivers(g,k,r);
  if(bake){g.save();for(const o of MSYM){g.setTransform(1,0,0,1,o.x,o.y);symPaint(g,o,symSea(o,k));}g.restore();}
  else{const L=MSYM,y0=r.y0-16,y1=r.y1+40;let lo=0,hi=L.length;while(lo<hi){const m=(lo+hi)>>1;if(L[m].y<y0)lo=m+1;else hi=m;}
   for(let k=lo;k<L.length&&L[k].y<=y1;k++){const o=L[k];if(o.x<r.x0-20||o.x>r.x1+20)continue;const sp=vmSprite(o,z,symSea(o,k));g.drawImage(sp.c,o.x+sp.ox,o.y+sp.oy,sp.w,sp.h);}}
- mapDecor(g,true);}
+ mapDecor(g,true,r);}
 /** Realm borders (owners differ) and province edges (same owner). */
 function vmLinesPaint(g,se,r){if(!S)return;const cells=vmCellsIn(r),pol=mapMode!=='ter',k=Math.sqrt(clamp(se,.6,2.2));
  g.lineJoin='round';g.lineCap='round';
@@ -6620,25 +6623,49 @@ function vmSprite(o,z,se){if(VM.sprZ!==z){VM.spr.clear();VM.sprZ=z;}const q=Math
  g.setTransform(z,0,0,z,-b[0]*z+1,-b[1]*z+1);symPaint(g,{t:o.t,v:o.v,sz:q},se);
  sp={c,ox:b[0]-1/z,oy:b[1]-1/z,w:cw/z,h:ch/z};VM.spr.set(k,sp);return sp;}
 
-/* ---- tiles: a layer painted into 256 px tiles per zoom step (quarter octaves), LRU-cached ---- */
-const VT_T=256;
-function vtLayer(paint){return {paint,sig:'',m:new Map()};}
+/* ---- tiles: a layer painted into 256 px tiles per zoom step (quarter octaves), kept in a GPU atlas ----
+   A tile is painted with paths on a CPU scratch canvas (paths are cheap there), copied once into its slot of one
+   GPU canvas per layer (80 slots, LRU), and every frame only copies slots to the screen: no per-frame uploads.
+   Each slot keeps a 1 px gutter of real content so smoothing never bleeds a neighbour slot into a seam. */
+const VT_T=256,VT_G=VT_T+2,VT_C=10,VT_R=8,VT_N=VT_C*VT_R,VT_SCR={c:null};
+function vtLayer(paint){return {paint,sig:'',m:new Map(),atlas:null,ag:null,free:[]};}
+function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.getContext('2d');for(let k=VT_N-1;k>=0;k--)L.free.push(k);}
+ if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
+const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
 /** Draw layer L over the view (map transform set on ctx). New tiles: about 8 ms of them per frame (all on the
  first draw), the rest from cached tiles of another zoom step meanwhile (clipped), and another frame is requested. */
 function vtDraw(L,s,sig){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
- if(L.sig!==sig){L.m.clear();L.sig=sig;}
+ if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
  const tx0=Math.max(0,Math.floor(vx0/u)),ty0=Math.max(0,Math.floor(vy0/u)),tx1=Math.min(Math.ceil(W/u)-1,Math.floor(vx1/u)),ty1=Math.min(Math.ceil(H/u)-1,Math.floor(vy1/u));
- const t0=performance.now(),first=!L.m.size;let more=false,made=0;const n=(tx1-tx0+1)*(ty1-ty0+1);
+ const t0=performance.now(),first=!L.m.size,want=new Set();let more=false,made=0;
+ for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if(first||!made||performance.now()-t0<8){made++;const c=mk(VT_T,VT_T),g=c.getContext('2d',CPU2D);g.setTransform(z,0,0,z,-tx*VT_T,-ty*VT_T);
-   L.paint(g,z/dpr,{x0:tx*u,y0:ty*u,x1:(tx+1)*u,y1:(ty+1)*u},z);t={c,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;}
-  if(t){ctx.drawImage(t.c,tx*u,ty*u,u,u);continue;}
-  more=true;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
-  for(const o of L.m.values()){const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0)ctx.drawImage(o.c,ox,oy,ou,ou);}ctx.restore();}
- const cap=Math.max(24,n*3);while(L.m.size>cap)L.m.delete(L.m.keys().next().value);
+  else if((first||!made||performance.now()-t0<8)&&want.size<=VT_N){made++;
+   const slot=vtSlot(L);
+   const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
+   g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);
+   const [sx,sy]=vtXY(slot);L.ag.clearRect(sx,sy,VT_G,VT_G);L.ag.drawImage(c,sx,sy);
+   t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;}
+  if(t){const [sx,sy]=vtXY(t.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,tx*u,ty*u,u,u);continue;}
+  more=true;if(!L.atlas)continue;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
+  for(const o of L.m.values()){if(o.z===z)continue;const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0){const [sx,sy]=vtXY(o.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,ox,oy,ou,ou);}}
+  ctx.restore();}
  if(more)req();}
+
+/* ---- sprite atlas: small images drawn every frame (towns, soldiers) live on one GPU canvas, shelf-packed;
+   when it fills up it starts over (gen changes and callers repaint what they still need) ---- */
+const SA={c:null,g:null,x:0,y:0,h:0,gen:0,S:2048,scr:null};
+/** Put a w x h (device px) image painted by paint(g) on its own CPU canvas into the atlas: {gen,x,y,w,h}. */
+function saAdd(w,h,paint){w=Math.min(SA.S,Math.ceil(w));h=Math.min(SA.S,Math.ceil(h));
+ if(!SA.c){SA.c=mk(SA.S,SA.S);SA.g=SA.c.getContext('2d');}
+ if(SA.x+w>SA.S){SA.x=0;SA.y+=SA.h+1;SA.h=0;}
+ if(SA.y+h>SA.S){SA.g.clearRect(0,0,SA.S,SA.S);SA.x=SA.y=SA.h=0;SA.gen++;}
+ const c=mk(w,h),g=c.getContext('2d',CPU2D);paint(g);SA.g.drawImage(c,SA.x,SA.y);
+ const e={gen:SA.gen,x:SA.x,y:SA.y,w,h};SA.x+=w+1;SA.h=Math.max(SA.h,h);return e;}
+/** Draw an atlas entry into the rect (dx,dy,dw,dh) of context c. */
+function saDraw(c,e,dx,dy,dw,dh){c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);}
 
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
 function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf();
@@ -6671,10 +6698,10 @@ function ctyRel(f){const r=FAC[f]&&FAC[f].rel;return r==='İslam'?'m':r==='Katol
 function cityDraw(d,p,x,y,sz,cap){const tier=p.dev>=9||cap?3:p.dev>=6?2:p.dev>=3?1:0,walls=p.fort>=3?2:p.fort>=1||tier>=2?1:0,port=ctyPort(d.i);
  const o={tier,walls,port,mkt:p.mkt?1:0,cap:cap?1:0,rel:ctyRel(p.o),col:FAC[p.o].c,v:d.i%3},q=Math.max(3,Math.round(sz*2)/2),z=dpr;
  const k=[tier,walls,port,o.mkt,o.cap,o.rel,o.col,o.v,q,z].join('|');let sp=CTY.m.get(k);
- if(!sp){const u=q/6,bw=21*u,bh=25*u,cw=Math.ceil(bw*2*z)+4,ch=Math.ceil(bh*z)+4,c=mk(cw,ch),g=c.getContext('2d',CPU2D);
-  g.setTransform(z,0,0,z,bw*z+2,(bh-3.2*u)*z+2);cityPaint(g,o,u);sp={c,ox:-bw-2/z,oy:-(bh-3.2*u)-2/z,w:cw/z,h:ch/z};
-  CTY.m.set(k,sp);if(CTY.m.size>600)CTY.m.delete(CTY.m.keys().next().value);}
- ctx.drawImage(sp.c,x+sp.ox,y+sz*.45+sp.oy,sp.w,sp.h);}
+ if(!sp||sp.e.gen!==SA.gen){const u=q/6,bw=21*u,bh=25*u,cw=Math.ceil(bw*2*z)+4,ch=Math.ceil(bh*z)+4;
+  const e=saAdd(cw,ch,g=>{g.setTransform(z,0,0,z,bw*z+2,(bh-3.2*u)*z+2);cityPaint(g,o,u);});
+  sp={e,ox:-bw-2/z,oy:-(bh-3.2*u)-2/z,w:cw/z,h:ch/z};CTY.m.set(k,sp);if(CTY.m.size>600)CTY.m.delete(CTY.m.keys().next().value);}
+ saDraw(ctx,sp.e,x+sp.ox,y+sz*.45+sp.oy,sp.w,sp.h);}
 
 /** Paint a town at the origin (its foot), in units u (a glyph is about 24u wide). */
 function cityPaint(g,o,u){const INK='#33261a',lw=Math.max(.7,u*.38);g.lineJoin='round';g.lineCap='round';g.lineWidth=lw;g.strokeStyle=INK;
@@ -6766,14 +6793,15 @@ function figPaint(g,cul,col){const INK='#2a1a0c';g.lineJoin='round';g.lineCap='r
  g.fillStyle='#b9bbbd';g.beginPath();g.ellipse(0,-14.2,3.4,.9,0,0,7);g.fill();g.stroke();g.beginPath();g.arc(0,-14.3,1.9,Math.PI,0);g.fill();g.stroke();
  arm(3.6,-8);g.strokeStyle='#5a3a1e';g.lineWidth=.9;g.beginPath();g.moveTo(3.6,0);g.lineTo(3.6,-21);g.stroke();
  g.fillStyle='#d8d6cc';g.beginPath();g.moveTo(3.6,-21.6);g.lineTo(4.2,-19.6);g.lineTo(6.6,-19);g.quadraticCurveTo(6.8,-17.2,4.2,-16.8);g.lineTo(3.6,-16.6);g.closePath();g.fill();g.stroke();}   // halberd
-function figSprite(cul,col,z){const k=cul+col+z+'|'+dpr;let sp=FIG.m.get(k);if(sp)return sp;const sc=z*dpr*1.1,c=mk(Math.ceil(20*sc),Math.ceil(26*sc)),g=c.getContext('2d',CPU2D);
- g.setTransform(sc,0,0,sc,9*sc,24*sc);figPaint(g,cul,col);sp={c,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
+function figSprite(cul,col,z){const k=cul+col+z+'|'+dpr;let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
+ const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);figPaint(g,cul,col);});
+ sp={e,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
 /** Figures at the foot of token t (2D only), drawn before the standard. */
 function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,sp=figSprite(cul,col,z);
  const n=t.n>=15000?3:t.n>=3000?2:1,spots=[[-26,2],[25,2],[-35,-2]];
  for(let k=0;k<n;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
   c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,5.6*t.z,1.8*t.z,0,0,7);c.fill();
-  c.drawImage(sp.c,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
+  saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
 /* =====================================================================
    BATTLE SCENE: a small miniature at the head of the battle card (07e). Field battles: the two hosts face
    each other under their banners, dust where they meet. Assaults and sieges: the walls on the right with the
@@ -8409,7 +8437,7 @@ function guideBody(t){
  <p>Muharebede senin ordunla şehrin savunması karşılaşır. Şehri sadece oradaki askerler korumaz; kasabanın halkı da silaha sarılır. Büyük şehirlerde ve kaleli yerlerde bu halk savunması kalabalıktır.</p>
  <ul><li><b>Kale surları</b> savunmacıları güçlendirir; kale seviyesi yükseldikçe şehri almak zorlaşır.</li>
  <li><b>Dağlar</b> savunanın işine yarar, çöl de biraz yarar.</li>
- <li><b>Kış</b> seferleri zordur; kışın saldıran ordu yorgun düşer.</li>
+ <li><b>Kış</b> seferleri zordur; kışın saldıran ordu yorgun düşer. Haritada kış gelince kuzey ve yüksek dağlar karla örtülür.</li>
  <li><b>Toplar</b> surları yıkar. Osmanlı 1453'te Urban'ın dev toplarını alır, diğer devletler 1460'ta barutlu toplara kavuşur. Toplu bir ordunun karşısında kale eski gücünü büyük ölçüde kaybeder.</li>
  <li>Her muharebede biraz da <b>şans</b> vardır; kıl payı üstün bir ordu kaybedebilir.</li></ul>
  <h3>Muharebeden sonra</h3>
@@ -8502,7 +8530,7 @@ function guideBodyEn(t,half){
  <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>
  <ul><li><b>Fortress walls</b> strengthen the defenders; the higher the fortress, the harder the city is to take.</li>
  <li><b>Mountains</b> favour the defender, and desert helps a little too.</li>
- <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out.</li>
+ <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out. When winter comes, snow covers the north and the high mountains on the map.</li>
  <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
  <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
  <h3>After the battle</h3>

@@ -160,19 +160,22 @@ function renderBase(SD,LD,MD,RD){
  b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();
  mapRivers(b3);mapDecor(b3,false);
 }
-/** Rivers, widening toward the mouth (map units); sea = season (3: the northern rivers freeze). */
-function mapRivers(b,sea=-1){b.lineJoin='round';b.lineCap='round';
- RIVERS.forEach(r=>{const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
-  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle=sea===3&&r[k][1]>44.3?'rgba(184,208,222,.95)':'rgba(46,104,146,.9)';   // frozen in a northern winterb.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
+/** Rivers, widening toward the mouth (map units); sea = season (3: the northern rivers freeze); rect: only the rivers that reach into it. */
+let RIVBOX=null;
+function mapRivers(b,sea=-1,rect=null){b.lineJoin='round';b.lineCap='round';
+ if(!RIVBOX)RIVBOX=RIVERS.map(r=>{const p=r.map(q=>P(q[0],q[1]));return [Math.min(...p.map(q=>q[0]))-4,Math.min(...p.map(q=>q[1]))-4,Math.max(...p.map(q=>q[0]))+4,Math.max(...p.map(q=>q[1]))+4];});
+ RIVERS.forEach((r,ri)=>{const bx=RIVBOX[ri];if(rect&&(bx[2]<rect.x0||bx[0]>rect.x1||bx[3]<rect.y0||bx[1]>rect.y1))return;const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
+  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle=sea===3&&r[k][1]>44.3?'rgba(184,208,222,.95)':'rgba(46,104,146,.9)';/* frozen in a northern winter */b.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
    const mx=(pts[k][0]+pts[k+1][0])/2+(hash(k,n)-.5)*4,my=(pts[k][1]+pts[k+1][1])/2+(hash(n,k)-.5)*4;b.quadraticCurveTo(mx,my,pts[k+1][0],pts[k+1][1]);b.stroke();}});}
 /** Galleys (2D only), compass roses, the cartouche, sea and region names, the graduated frame (map units). */
-function mapDecor(b,ships){
- if(ships){seaBeast(b,...P(17.4,37.3),1,0);seaBeast(b,...P(34.8,43.2),.7,1);}
- if(ships)[[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>galley(b,x,y,sc,fl));
- compass(b,...P(17.2,34.4),46);compass(b,...P(37.4,42.6),24);cartouche(b);
- REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const t=lng(t0,en);const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
+function mapDecor(b,ships,rect=null){const near=(x,y,r)=>!rect||(x+r>=rect.x0&&x-r<=rect.x1&&y+r>=rect.y0&&y-r<=rect.y1);   // rect: a tile, skip what lies outside it
+ if(ships){[[P(17.4,37.3),1,0],[P(34.8,43.2),.7,1]].forEach(([[x,y],sc,fl])=>{if(near(x,y,32))seaBeast(b,x,y,sc,fl);});
+  [[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>{if(near(x,y,44))galley(b,x,y,sc,fl);});}
+ for(const [lon,lat,r] of [[17.2,34.4,46],[37.4,42.6,24]]){const [x,y]=P(lon,lat);if(near(x,y,r+16))compass(b,x,y,r);}
+ {const [x,y]=P(23.4,29.5);if(near(x,y,220))cartouche(b);}
+ REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const [x,y]=P(lon,lat);if(!near(x,y,sz*9))return;const t=lng(t0,en);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
   if(k==='sea'){b.fillStyle='rgba(34,58,56,.62)';spaced(b,t,x,y,sz*.32);}else{b.fillStyle='rgba(92,70,40,.6)';spaced(b,t,x,y,sz*.12);}b.restore();});
- frame(b);}
+ if(!rect||rect.x0<40||rect.y0<40||rect.x1>W-40||rect.y1>H-40)frame(b);}
 function rhumbs(b){const mc=mk(W,H),m=mc.getContext('2d',CPU2D),md=m.createImageData(W,H);for(let i=0;i<W*H;i++)md.data[i*4+3]=land[i]?0:255;m.putImageData(md,0,0);
  const rc=mk(W,H),r=rc.getContext('2d',CPU2D);r.lineWidth=.85;
  [[P(17.2,34.4),1],[P(37.4,42.6),.8],[P(27.4,35.6),.6]].forEach(([[cx,cy],al])=>{for(let k=0;k<32;k++){const a=k*Math.PI/16;

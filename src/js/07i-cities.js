@@ -14,10 +14,10 @@ function ctyRel(f){const r=FAC[f]&&FAC[f].rel;return r==='İslam'?'m':r==='Katol
 function cityDraw(d,p,x,y,sz,cap){const tier=p.dev>=9||cap?3:p.dev>=6?2:p.dev>=3?1:0,walls=p.fort>=3?2:p.fort>=1||tier>=2?1:0,port=ctyPort(d.i);
  const o={tier,walls,port,mkt:p.mkt?1:0,cap:cap?1:0,rel:ctyRel(p.o),col:FAC[p.o].c,v:d.i%3},q=Math.max(3,Math.round(sz*2)/2),z=dpr;
  const k=[tier,walls,port,o.mkt,o.cap,o.rel,o.col,o.v,q,z].join('|');let sp=CTY.m.get(k);
- if(!sp){const u=q/6,bw=21*u,bh=25*u,cw=Math.ceil(bw*2*z)+4,ch=Math.ceil(bh*z)+4,c=mk(cw,ch),g=c.getContext('2d',CPU2D);
-  g.setTransform(z,0,0,z,bw*z+2,(bh-3.2*u)*z+2);cityPaint(g,o,u);sp={c,ox:-bw-2/z,oy:-(bh-3.2*u)-2/z,w:cw/z,h:ch/z};
-  CTY.m.set(k,sp);if(CTY.m.size>600)CTY.m.delete(CTY.m.keys().next().value);}
- ctx.drawImage(sp.c,x+sp.ox,y+sz*.45+sp.oy,sp.w,sp.h);}
+ if(!sp||sp.e.gen!==SA.gen){const u=q/6,bw=21*u,bh=25*u,cw=Math.ceil(bw*2*z)+4,ch=Math.ceil(bh*z)+4;
+  const e=saAdd(cw,ch,g=>{g.setTransform(z,0,0,z,bw*z+2,(bh-3.2*u)*z+2);cityPaint(g,o,u);});
+  sp={e,ox:-bw-2/z,oy:-(bh-3.2*u)-2/z,w:cw/z,h:ch/z};CTY.m.set(k,sp);if(CTY.m.size>600)CTY.m.delete(CTY.m.keys().next().value);}
+ saDraw(ctx,sp.e,x+sp.ox,y+sz*.45+sp.oy,sp.w,sp.h);}
 
 /** Paint a town at the origin (its foot), in units u (a glyph is about 24u wide). */
 function cityPaint(g,o,u){const INK='#33261a',lw=Math.max(.7,u*.38);g.lineJoin='round';g.lineCap='round';g.lineWidth=lw;g.strokeStyle=INK;
