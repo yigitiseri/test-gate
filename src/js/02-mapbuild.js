@@ -5,12 +5,17 @@ function hash(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263))|0;h
 function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
  const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
 function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.07+5.2,y*2.07+1.3)*.3+vnoise(x*4.3+9.1,y*4.3+3.7)*.15;}
+/** Offscreen layers painted with many paths render on the CPU: on a GPU canvas thousands of small paths can stall the
+ compositor for seconds on weak or software GPUs; the finished image is uploaded once. */
+const CPU2D={willReadFrequently:true};
+/** A GPU-side copy of a finished CPU layer, for layers drawn to the screen every frame (uploaded once, not per frame). */
+function gpuCopy(c){const d=mk(c.width,c.height);d.getContext('2d').drawImage(c,0,0);return d;}
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 const hex2=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-let idMap,land,provStart,provPix,baseC,base3C,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
+let idMap,land,provStart,provPix,baseC,baseC0,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
 function chamfer(D){
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;let v=D[i];if(!v)continue;
   if(x>0&&D[i-1]+3<v)v=D[i-1]+3;
@@ -97,7 +102,8 @@ function buildMap(){
  // sea distance to coast
  const SD=new Uint16Array(N);for(let i=0;i<N;i++)SD[i]=land[i]?0:65535;chamfer(SD);
  const LD=new Uint16Array(N);for(let i=0;i<N;i++)LD[i]=land[i]?65535:0;chamfer(LD);
- renderBase(SD,LD,rasterLines(MOUNTAINS,3),rasterLines(RIVERS,2));
+ SEAD=SD;renderBase(SD,LD,rasterLines(MOUNTAINS,3),rasterLines(RIVERS,2));
+ vmBuild();   // crisp coast, sea rings and borders (07h); composes baseC, the low-zoom map
  polC=mk(W,H);polImg=polC.getContext('2d').createImageData(W,H);
  hlC=mk(W,H);hctx=hlC.getContext('2d');hlImg=hctx.createImageData(W,H);
 }
@@ -125,14 +131,15 @@ function renderBase(SD,LD,MD,RD){
   M[i]=.5+(lat-38.5)*.07+(fbm(x/90+20,y/90+40)-.5)*.55+.14*Math.exp(-ld/28)+(lat<34?1.1:.35)*Math.exp(-rd/6)-(lat<34?(34-lat)*.22:0)-bumpSum(DRY,x,y)+bumpSum(WET,x,y);}}
  SURF=new Float32Array(N);BED=new Float32Array(N);
  for(let i=0;i<N;i++){if(land[i]){const h=.9+E[i]*40;SURF[i]=h;BED[i]=h;}else{SURF[i]=.5;BED[i]=-.8-Math.min(SD[i]/3,40)*.06;}}
- baseC=mk(W,H);const b=baseC.getContext('2d');const img=b.createImageData(W,H),d=img.data;
+ // two images: the soft wash for 2D (its coast line, sea rings and symbols are drawn over it as crisp lines, 07h) and the 3D texture
+ baseC0=mk(W,H);const b=baseC0.getContext('2d',CPU2D);const img=b.createImageData(W,H),d=img.data;
+ base3C=mk(W,H);const b3=base3C.getContext('2d',CPU2D);const img3=b3.createImageData(W,H),d3=img3.data;
  const SH=[186,206,186],DP=[110,148,146];
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c,c3;
   if(!land[i]){const sd=SD[i]/3,t=Math.pow(Math.min(sd/70,1),.7);c=lerp3(SH,DP,t);
    const v=(fbm(x/60+50,y/60+80)-.5)*18;c[0]+=v*.7;c[1]+=v*.8;c[2]+=v*.8;
-   if(sd<1.6)c=lerp3(c,[238,228,198],.55);
-   else{for(const [r0,a] of [[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]])if(Math.abs(sd-r0)<.55){c=lerp3(c,[52,72,68],a);break;}}
-   if(sd>18&&y%5===0&&hash(x>>3,y)>.5)c=lerp3(c,[70,95,90],.1);
+   if(sd<1.6)c=lerp3(c,[238,228,198],.55);else if(sd<4)c=lerp3(c,[226,224,196],.3*(4-sd)/2.4);
+   c3=c;for(const [r0,a] of [[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]])if(Math.abs(sd-r0)<.55){c3=lerp3(c,[52,72,68],a);break;}
   }else{const e=E[i],m=M[i];
    const gx=(x<W-1&&land[i+1]?E[i+1]:e)-(x>0&&land[i-1]?E[i-1]:e),gy=(y<H-1&&land[i+W]?E[i+W]:e)-(y>0&&land[i-W]?E[i-W]:e);
    const sh=clamp(1+(-gx*1.1-gy)*12,.58,1.38);
@@ -140,46 +147,46 @@ function renderBase(SD,LD,MD,RD){
    if(e>.36)c=lerp3(c,[150,134,114],Math.min(1,(e-.36)/.22)*.85);
    if(e>.64)c=lerp3(c,[246,244,238],Math.min(1,(e-.64)/.1));
    if(LD[i]/3<2.6&&e<.3)c=lerp3(c,[228,210,164],.5);
-   const gr=(hash(x,y)-.5)*9+(vnoise(x/3.1,y/3.1)-.5)*12;
+   const gr=(hash(x,y)-.5)*3+(vnoise(x/3.1,y/3.1)-.5)*6+(vnoise(x/11+3,y/11+8)-.5)*14;   // pigment pooling, soft enough to magnify
    c=[c[0]*sh+gr,c[1]*sh+gr,c[2]*sh+gr*.8];
    {const L=c[0]*.3+c[1]*.59+c[2]*.11;c=lerp3(c,[L*1.1+8,L*.98+4,L*.78],.36);}
-   if((x>0&&!land[i-1])||(x<W-1&&!land[i+1])||(y>0&&!land[i-W])||(y<H-1&&!land[i+W]))c=[c[0]*.6,c[1]*.6,c[2]*.62];}
-  {const mo=.93+.11*fbm(x/150+7,y/150+3);c[0]*=mo;c[1]*=mo;c[2]*=mo*.97;}
-  d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;}
- b.putImageData(img,0,0);rhumbs(b);
- b.lineJoin='round';b.lineCap='round';
- // forests
- for(let y=3;y<H;y+=5)for(let x=3;x<W;x+=5){const jx=Math.round(x+(hash(x,y*3)-.5)*5),jy=Math.round(y+(hash(y,x*7)-.5)*5);if(jx<1||jy<1||jx>=W-1||jy>=H-1)continue;
-  const i=jy*W+jx;if(!land[i])continue;const m=M[i],e=E[i];if(m<.72||e>.46||LD[i]<9)continue;if(hash(x+17,y*3+1)>(m-.66)*1.5)continue;
-  const g=hash(jx,jy+9)*16;
-  b.fillStyle='rgba(28,40,20,.3)';b.beginPath();b.ellipse(jx+1.3,jy+1.4,2.6,1.7,0,0,7);b.fill();
-  b.fillStyle=`rgb(${60+g|0},${90+g|0},${46+g*.5|0})`;b.beginPath();b.arc(jx,jy,2.3,0,7);b.fill();
-  b.fillStyle='rgba(160,190,112,.55)';b.beginPath();b.arc(jx-.8,jy-.9,.95,0,7);b.fill();}
- // rivers, widening toward the mouth
- RIVERS.forEach(r=>{const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
-  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle='rgba(46,104,146,.9)';b.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
-   const mx=(pts[k][0]+pts[k+1][0])/2+(hash(k,n)-.5)*4,my=(pts[k][1]+pts[k+1][1])/2+(hash(n,k)-.5)*4;b.quadraticCurveTo(mx,my,pts[k+1][0],pts[k+1][1]);b.stroke();}});
- base3C=mk(W,H);base3C.getContext('2d').drawImage(baseC,0,0);
- // peaks
- for(let y=6;y<H;y+=10)for(let x=5;x<W;x+=9){const jx=x+(hash(x,y)-.5)*8,jy=y+(hash(y,x)-.5)*8;const xi=Math.round(jx),yi=Math.round(jy);if(xi<0||yi<0||xi>=W||yi>=H)continue;
-  const i=yi*W+xi;if(!land[i])continue;const e=E[i];if(e<.42||hash(x*3,y*7)>.72)continue;
-  const s=4+(e-.42)*16+hash(x,y+1)*2.2;
-  b.fillStyle='rgba(236,228,212,.92)';b.beginPath();b.moveTo(jx-s,jy+s*.5);b.lineTo(jx,jy-s);b.lineTo(jx+s*.1,jy+s*.5);b.closePath();b.fill();
-  b.fillStyle='rgba(104,90,76,.9)';b.beginPath();b.moveTo(jx,jy-s);b.lineTo(jx+s,jy+s*.5);b.lineTo(jx+s*.1,jy+s*.5);b.closePath();b.fill();
-  if(e>.6){b.fillStyle='#fbfaf6';b.beginPath();b.moveTo(jx,jy-s);b.lineTo(jx-s*.38,jy-s*.3);b.lineTo(jx,jy-s*.42);b.lineTo(jx+s*.36,jy-s*.3);b.closePath();b.fill();}
-  b.strokeStyle='rgba(60,46,32,.55)';b.lineWidth=.6;b.beginPath();b.moveTo(jx-s,jy+s*.5);b.lineTo(jx,jy-s);b.lineTo(jx+s,jy+s*.5);b.stroke();}
- [[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>galley(b,x,y,sc,fl));
- [b,base3C.getContext('2d')].forEach(b=>{compass(b,...P(17.2,34.4),46);compass(b,...P(37.4,42.6),24);cartouche(b);
- REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const t=lng(t0,en);const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
-  if(k==='sea'){b.fillStyle='rgba(34,58,56,.62)';spaced(b,t,x,y,sz*.32);}else{b.fillStyle='rgba(92,70,40,.6)';spaced(b,t,x,y,sz*.12);}b.restore();});});
- // frame
- frame(b);frame(base3C.getContext('2d'));
+   c3=((x>0&&!land[i-1])||(x<W-1&&!land[i+1])||(y>0&&!land[i-W])||(y<H-1&&!land[i+W]))?[c[0]*.6,c[1]*.6,c[2]*.62]:c;}
+  const mo=.93+.11*fbm(x/150+7,y/150+3);
+  d[o]=c[0]*mo;d[o+1]=c[1]*mo;d[o+2]=c[2]*mo*.97;d[o+3]=255;d3[o]=c3[0]*mo;d3[o+1]=c3[1]*mo;d3[o+2]=c3[2]*mo*.97;d3[o+3]=255;}
+ b.putImageData(img,0,0);rhumbs(b);b3.putImageData(img3,0,0);rhumbs(b3);
+ baseC0=gpuCopy(baseC0);
+ MSYM=tSymPlace(E,M,LD,RD);
+ // 3D: woods, palms, dunes and reeds painted on the ground (the relief brings its own mountains), rivers, compass roses and names
+ b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();
+ mapRivers(b3);mapDecor(b3,false);
 }
-function rhumbs(b){const mc=mk(W,H),m=mc.getContext('2d'),md=m.createImageData(W,H);for(let i=0;i<W*H;i++)md.data[i*4+3]=land[i]?0:255;m.putImageData(md,0,0);
- const rc=mk(W,H),r=rc.getContext('2d');r.lineWidth=.85;
+/** Rivers, widening toward the mouth (map units); sea = season (3: the northern rivers freeze). */
+function mapRivers(b,sea=-1){b.lineJoin='round';b.lineCap='round';
+ RIVERS.forEach(r=>{const pts=r.map(q=>P(q[0],q[1]));const n=pts.length;
+  for(let k=0;k<n-1;k++){const w=.8+1.6*(k+1)/n;b.strokeStyle=sea===3&&r[k][1]>44.3?'rgba(184,208,222,.95)':'rgba(46,104,146,.9)';   // frozen in a northern winterb.lineWidth=w;b.beginPath();b.moveTo(pts[k][0],pts[k][1]);
+   const mx=(pts[k][0]+pts[k+1][0])/2+(hash(k,n)-.5)*4,my=(pts[k][1]+pts[k+1][1])/2+(hash(n,k)-.5)*4;b.quadraticCurveTo(mx,my,pts[k+1][0],pts[k+1][1]);b.stroke();}});}
+/** Galleys (2D only), compass roses, the cartouche, sea and region names, the graduated frame (map units). */
+function mapDecor(b,ships){
+ if(ships){seaBeast(b,...P(17.4,37.3),1,0);seaBeast(b,...P(34.8,43.2),.7,1);}
+ if(ships)[[P(19.8,35.6),1,0],[P(29.3,34.1),.9,1],[P(35.6,43.9),.85,0],[P(17.6,41.9),.75,1],[P(25.0,39.9),.7,0]].forEach(([[x,y],sc,fl])=>galley(b,x,y,sc,fl));
+ compass(b,...P(17.2,34.4),46);compass(b,...P(37.4,42.6),24);cartouche(b);
+ REGION_LABELS.forEach(([t0,lon,lat,sz,k,en])=>{const t=lng(t0,en);const [x,y]=P(lon,lat);b.save();b.textAlign='center';b.textBaseline='middle';b.font=`italic 500 ${sz*1.15}px "EB Garamond", Georgia, serif`;
+  if(k==='sea'){b.fillStyle='rgba(34,58,56,.62)';spaced(b,t,x,y,sz*.32);}else{b.fillStyle='rgba(92,70,40,.6)';spaced(b,t,x,y,sz*.12);}b.restore();});
+ frame(b);}
+function rhumbs(b){const mc=mk(W,H),m=mc.getContext('2d',CPU2D),md=m.createImageData(W,H);for(let i=0;i<W*H;i++)md.data[i*4+3]=land[i]?0:255;m.putImageData(md,0,0);
+ const rc=mk(W,H),r=rc.getContext('2d',CPU2D);r.lineWidth=.85;
  [[P(17.2,34.4),1],[P(37.4,42.6),.8],[P(27.4,35.6),.6]].forEach(([[cx,cy],al])=>{for(let k=0;k<32;k++){const a=k*Math.PI/16;
   r.strokeStyle=k%4===0?`rgba(40,32,22,${.45*al})`:k%2===0?`rgba(34,96,54,${.4*al})`:`rgba(150,40,28,${.36*al})`;r.beginPath();r.moveTo(cx,cy);r.lineTo(cx+Math.cos(a)*2600,cy+Math.sin(a)*2600);r.stroke();}});
  r.globalCompositeOperation='destination-in';r.drawImage(mc,0,0);b.drawImage(rc,0,0);}
+/** A sea serpent in the old chart manner: coils above the waves (2D only). */
+function seaBeast(b,x,y,s,fl){b.save();b.translate(x,y);b.scale(fl?-s:s,s);b.lineJoin='round';b.lineCap='round';
+ b.strokeStyle='rgba(52,40,26,.8)';b.lineWidth=1.1;b.fillStyle='rgba(126,150,120,.9)';
+ for(const [cx,r] of [[-14,5],[-3,6],[8,5]]){b.beginPath();b.arc(cx,4,r,Math.PI,0);b.lineTo(cx+r-2.2,4);b.arc(cx,4,r-2.2,0,Math.PI,true);b.closePath();b.fill();b.stroke();}
+ b.beginPath();b.moveTo(13,4);b.quadraticCurveTo(15,-6,20,-8);b.quadraticCurveTo(26,-9,27,-5);b.lineTo(22,-4);b.quadraticCurveTo(19,-3,17.5,4);b.closePath();b.fill();b.stroke();
+ b.fillStyle='rgba(160,60,40,.9)';b.beginPath();b.moveTo(18,-8);b.lineTo(17,-13);b.lineTo(20.5,-9);b.lineTo(21,-14);b.lineTo(23,-8.6);b.closePath();b.fill();b.stroke();
+ b.fillStyle='#2a1a0c';b.beginPath();b.arc(23.4,-6.6,.8,0,7);b.fill();
+ b.beginPath();b.moveTo(-19,4);b.quadraticCurveTo(-23,-2,-20,-6);b.quadraticCurveTo(-22,-1,-17,2);b.stroke();
+ b.strokeStyle='rgba(40,70,72,.6)';b.lineWidth=.8;b.beginPath();for(let k=-24;k<28;k+=6){b.moveTo(k,6);b.quadraticCurveTo(k+3,4.4,k+6,6);}b.stroke();b.restore();}
 function galley(b,x,y,s,fl){b.save();b.translate(x,y);b.scale(fl?-s:s,s);b.lineJoin='round';b.lineCap='round';
  b.strokeStyle='rgba(58,38,20,.75)';b.lineWidth=.9;for(let k=-15;k<=15;k+=3.8){b.beginPath();b.moveTo(k,1);b.lineTo(k-3.5,9);b.stroke();}
  b.fillStyle='rgba(74,46,22,.92)';b.beginPath();b.moveTo(-24,-4);b.quadraticCurveTo(-2,8,24,-1);b.lineTo(31,-4);b.lineTo(24,-5);b.quadraticCurveTo(0,1,-21,-7);b.closePath();b.fill();

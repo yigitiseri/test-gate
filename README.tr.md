@@ -69,6 +69,14 @@ Arayüz bir el yazması gibi tasarlandı: parşömen paneller, deri üst çubuk,
 için SVG arma. Harita eski bir portolan gibi: pusula gülleri, rüzgâr çizgileri ve kadırgalar. 3D'de şehirlerde
 kubbe ve minare, kilise ya da çan kulesi, başkentlerde armalı bayrak ve denizde latin yelkenli kadırgalar var.
 
+Harita her yakınlıkta keskin kalır: kıyılar, sınırlar ve nehirler mürekkep çizgileriyle çizilir; arazide dağlar,
+tepeler, meşe ve çam ormanları, Nil boyunca hurmalıklar, çöl kumulları, bataklık sazları, deniz dalgaları ve
+birkaç deniz canavarı var. Mevsimler haritayı değiştirir: ilkbaharda taze yeşil, güneyde kurak yazlar, sonbaharda
+kızıl ormanlar, kışın kuzeyde ve yüksek dağlarda kar, yapraksız ağaçlar ve donmuş nehirler. Şehirler ne iseler öyle
+görünür (birkaç damlı köy, camisi ya da kilisesi etrafında kasaba, surlu şehir, iç kalesiyle büyük şehir); limanı,
+pazarı ve başkentin sancağıyla. Ordular, devletlerinin askerleriyle yürür. Muharebe kartları ve fermanlar küçük
+bir minyatürle açılır, portreler altın çerçeveli nişlerde durur.
+
 ## iPhone / Android'e yükleme
 
 Oyun bir web uygulamasıdır (PWA): ikonu, tam ekran açılışı ve çevrimdışı önbelleği vardır.

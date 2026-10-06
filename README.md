@@ -72,6 +72,14 @@ an SVG coat of arms for every realm. The map is drawn like an old portolan chart
 lines and galleys. In 3D, cities get domes and minarets, churches or bell towers, capitals fly their banners,
 and lateen-sailed galleys cross the sea.
 
+The map stays sharp at any zoom: coasts, borders and rivers are drawn as ink lines, and the land is painted
+with mountains, hills, oak and pine woods, palm groves along the Nile, desert dunes, marsh reeds, sea waves
+and a couple of sea serpents. The seasons change it: fresh green in spring, dry summers in the south, russet
+woods in autumn, and in winter snow over the north and the high mountains, bare trees and frozen rivers.
+Towns look like what they are (a hamlet, a town round its mosque or church, a walled city, a great city with
+its citadel), with harbours, markets and the capital's banner; armies march with soldiers dressed as their
+realm fought. Battle cards and decrees open with a small painted miniature, and portraits sit in gilt niches.
+
 ## Install on iPhone or Android
 
 The game is a web app (PWA) with an icon, full-screen launch and an offline cache.

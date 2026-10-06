@@ -3,7 +3,7 @@ async function boot(){
  resize();addEventListener('resize',resize);
  try{await Promise.race([Promise.all([document.fonts.load('700 20px Cinzel'),document.fonts.load('italic 500 20px "EB Garamond"'),document.fonts.load('700 13px "EB Garamond"')]),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
  await new Promise(r=>setTimeout(r,30));
- buildMap();
+ {const t0=performance.now();buildMap();KE.stats.mapMs=Math.round(performance.now()-t0);}
  G3.set(G3.wantOnBoot());
  $('#loading').remove();
  showStart();

@@ -35,6 +35,7 @@ function aCardHTML(rep,m){const pl=S.player,att=rep.att,def=rep.def,d=PD[rep.to]
  return `<div class="band"></div><div class="a-bc-in">
  <div class="a-bc-eye">${esc(A_KIND[m.kind]||lng('Muharebe','Battle'))} · ${esc(dateStr(rep.turn!=null?rep.turn:S.turn))}</div>
  <h3>${lng(`${place} Muharebesi`,`Battle of ${place}`)}</h3>
+ ${scnScene(rep,m)}
  <div class="a-bc-sides"><div class="a-bc-side att${mineA?' me':''}">${shield(att,true)}<div><b>${nm(att)}</b><small>${lng('Saldıran','Attacker')} · ${fmtK(rep.n||0)}</small></div></div>
   <div class="a-bc-vs" aria-hidden="true">⚔</div>
   <div class="a-bc-side def${mineD?' me':''}"><div><b>${nm(def)}</b><small>${lng('Savunan','Defender')} · ${fmtK(m.defN)}</small></div>${shield(def,true)}</div></div>

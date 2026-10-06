@@ -36,7 +36,7 @@ function aSgSide(g){const d=PD[g.i];let best=null;
  if(best==null)return 2.4+hash(g.i,7)*.8;return Math.atan2(PD[best].ly-d.ly,PD[best].lx-d.lx);}
 /** Number of tents: grows with the besieging army (3..6). */
 const aSgTents=g=>clamp(2+Math.round(Math.log2(Math.max(1,(g.army?g.army.n:6000))/2500)),3,6);
-/** City glyph size at zoom s (as drawCity in 07). */
+/** City glyph size at zoom s (as in 07 draw; the glyph itself is 07i cityDraw). */
 function aSgCitySz(i,s){const p=S.prov[i],cap=S.fac[p.o]&&S.fac[p.o].cap===i;return clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(cap?1.3:1);}
 /** The siege an army is conducting at its own province, as {i,ang} (its token stands in the camp), or null. */
 function aSgCampOf(a){const L=S&&S.sieges;if(!L||!a)return null;const s=L[a.loc];if(!s||s.f!==a.f)return null;const aid=s.a!=null?s.a:s.army;

@@ -28,9 +28,12 @@ function renderPol(){
   if(!src&&y<H-1){const b=idMap[i+W];if(b===-2||(b>=0&&oi[b]!==o))src=true;}
   D[i]=src?0:65535;}
  chamfer(D);
- const pol=mapMode==='pol',baseA=pol?.3:0,grad=pol?.4:.26;
+ const pol=mapMode==='pol',baseA=pol?.3:0,grad=pol?.4:.26,soft=!G3.on,gr=VM.gran;   // 2D: borders are vector lines (07h), the wash gets a pigment grain
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4,id=idMap[i];if(id<0){d[o+3]=0;continue;}
   const c=col[oi[id]],dist=D[i]/3;
+  if(soft){let a=baseA+grad*Math.max(0,1-dist/12)+(pol&&dist<1.5?.08:0);a*=.82+gr[i]*.0014;
+   if(anyOc&&oc[id]>=0){const m=(x+y)%9;if(m<4){const q=col[oc[id]],e=m===0||m===3?.72:1;d[o]=q[0]*e;d[o+1]=q[1]*e;d[o+2]=q[2]*e;d[o+3]=pol?205:170;continue;}if(a<.42)a=.42;}
+   d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=a*255;continue;}
   if(dist<1){d[o]=c[0]*.34;d[o+1]=c[1]*.34;d[o+2]=c[2]*.34;d[o+3]=235;continue;}
   if(dist<2.1){d[o]=c[0]*.8;d[o+1]=c[1]*.8;d[o+2]=c[2]*.8;d[o+3]=pol?200:150;continue;}
   let a=baseA+grad*Math.max(0,1-(dist-2)/11);
@@ -54,7 +57,7 @@ function computeFacLabels(){
 function renderHL(){
  const d=hlImg.data;d.fill(0);const paint=(k,fc,ec)=>{for(let q=provStart[k];q<provStart[k+1];q++){const i=provPix[q],o=i*4,x=i%W;
   const e=(x>0&&idMap[i-1]!==k)||(x<W-1&&idMap[i+1]!==k)||idMap[i-W]!==k||idMap[i+W]!==k||(x>1&&idMap[i-2]!==k)||(x<W-2&&idMap[i+2]!==k)||idMap[i-2*W]!==k||idMap[i+2*W]!==k;
-  const c=e?ec:fc;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];}};
+  const c=e&&G3.on?ec:fc;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];}};
  if(startPick){facProvs(startPick).forEach(k=>paint(k,[255,248,225,70],[255,236,190,255]));}
  else if(sel>=0){
   if(S.prov[sel].o===S.player&&S.player){PD[sel].adj.forEach(j=>{const o=S.prov[j].o;if(o===S.player)paint(j,[60,190,180,60],[40,160,150,200]);else if(atWar(S.player,o))paint(j,[225,70,50,80],[200,50,35,230]);});}
@@ -90,7 +93,7 @@ function draw(){
  else{ctx.fillStyle='#1c120a';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=40;ctx.fillStyle='#2e2114';ctx.fillRect(cam.x,cam.y,W*s,H*s);ctx.shadowBlur=0;
   ctx.setTransform(dpr*s,0,0,dpr*s,dpr*cam.x,dpr*cam.y);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  ctx.drawImage(baseC,0,0);ctx.drawImage(polC,0,0);ctx.drawImage(hlC,0,0);}
+  const fm=19;vmGround(s);ctx.drawImage(polC,fm,fm,W-2*fm,H-2*fm,fm,fm,W-2*fm,H-2*fm);vmLines(s);ctx.drawImage(hlC,0,0);vmSel(s);}   // the wash stays inside the graduated frame   // 07h: crisp coast, borders and outlines
  ctx.setTransform(dpr,0,0,dpr,0,0);
  // sea lanes
  ctx.setLineDash([6,6]);ctx.lineWidth=1.5;ctx.strokeStyle='rgba(70,44,20,.6)';
@@ -120,7 +123,7 @@ function draw(){
  const szs={},phone=vw<760;
  for(const d of vis){const p=S.prov[d.i],[sx,sy]=P0[d.i],isCap=S.fac[p.o]&&S.fac[p.o].cap===d.i;
   if(g3){szs[d.i]=(1.9+p.dev*.3)*s*1.4;continue;}
-  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;drawCity(sx,sy,sz,FAC[p.o].c,isCap);aOcc.push(aTag([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6],'c'));}
+  if(s>=.55){const sz=clamp((2.4+p.dev*.42)*Math.sqrt(s),3,12)*(isCap?1.3:1);szs[d.i]=sz;cityDraw(d,p,sx,sy,sz,isCap);aOcc.push(aTag([sx-sz*.9,sy-sz*1.1,sx+sz*.9,sy+sz*.6],'c'));}
   else if(isCap){szs[d.i]=4;ctx.font='13px Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle='rgba(20,14,8,.7)';ctx.strokeText('★',sx,sy);ctx.fillStyle='#f1cf72';ctx.fillText('★',sx,sy);}}
  aSgReserve(P0,szs,s,g3);   // siege camps and wall plaques (07f) claim their space before chips and names
  aSgUnder(ctx,now,g3);       // ...and the camps are drawn under them
@@ -171,20 +174,6 @@ function drawGar(x,y,w,txt,col,mine,war,dim,force){const h=15;
  ctx.fillStyle='#2a1a0c';ctx.beginPath();ctx.arc(tx+tw/2,tb-2.4,1.5,Math.PI,0);ctx.lineTo(tx+tw/2+1.5,tb);ctx.lineTo(tx+tw/2-1.5,tb);ctx.closePath();ctx.fill();
  ctx.font='700 12px "EB Garamond", Georgia, serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=war?'#7d1a10':'#2a1a0c';ctx.fillText(txt,x+15,y+h/2+.5);
  ctx.globalAlpha=1;
-}
-function drawCity(x,y,sz,col,cap){
- const w=sz*1.8,h=sz*.85,x0=x-w/2,yb=y+sz*.45;
- ctx.fillStyle='rgba(25,18,8,.35)';ctx.beginPath();ctx.ellipse(x+1.5,yb+1,w*.62,sz*.32,0,0,7);ctx.fill();
- ctx.lineWidth=Math.max(.8,sz*.09);ctx.strokeStyle='#33261a';ctx.lineJoin='miter';
- ctx.fillStyle='#e6d9bb';ctx.fillRect(x0,yb-h,w,h);
- const mw=w/7;ctx.fillStyle='#e6d9bb';for(let k=0;k<4;k++){const mx=x0+k*(w-mw)/3;ctx.fillRect(mx,yb-h-sz*.22,mw,sz*.22);ctx.strokeRect(mx,yb-h-sz*.22,mw,sz*.22);}
- ctx.fillStyle='rgba(0,0,0,.14)';ctx.fillRect(x,yb-h,w/2,h);ctx.strokeRect(x0,yb-h,w,h);
- const tw=w*.42,th=h*1.6,tx=x-tw/2,ty=yb-th;
- ctx.fillStyle='#f1e7cd';ctx.fillRect(tx,ty,tw,th);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(x,ty,tw/2,th);ctx.strokeRect(tx,ty,tw,th);
- ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(tx-sz*.12,ty);ctx.lineTo(x,ty-sz*.8);ctx.lineTo(tx+tw+sz*.12,ty);ctx.closePath();ctx.fill();ctx.stroke();
- ctx.fillStyle='#33261a';ctx.beginPath();ctx.arc(x,yb-sz*.22,sz*.15,Math.PI,0);ctx.lineTo(x+sz*.15,yb);ctx.lineTo(x-sz*.15,yb);ctx.closePath();ctx.fill();
- if(cap){const py=ty-sz*.8;ctx.lineWidth=Math.max(1,sz*.1);ctx.beginPath();ctx.moveTo(x,py);ctx.lineTo(x,py-sz*.95);ctx.stroke();
-  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x,py-sz*.95);ctx.lineTo(x+sz*.85,py-sz*.78);ctx.lineTo(x,py-sz*.55);ctx.closePath();ctx.fill();ctx.lineWidth=.8;ctx.stroke();}
 }
 function drawBanner(px,base,txt,col,mine,dim,f){
  ctx.font='700 13px "EB Garamond", Georgia, serif';const ai=f&&ARMSIMG[f],ok=ai&&ai.complete&&ai.naturalWidth,tw=ctx.measureText(txt).width+13+(ok?12:0),fh=16,top=base-26;

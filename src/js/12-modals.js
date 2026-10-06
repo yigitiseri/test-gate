@@ -6,7 +6,7 @@ function queueModal(fn){if($('#modal').hidden)fn();else modalQ.push(fn);}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!$('#modal .ev')&&!$('#modal .endm'))closeModal();});
 function eventModal(ev){evChoices=ev.ch;evTitle=ev.t;evPend=!!ev.pend;SND.play(/Fethedildi|Fall of Constantinople|Constantinople Falls|Conquered/.test(ev.t)?'fanfare':'event');
  {const y=START_YEAR+Math.floor(S.turn/4);ev={...ev,e:`${ev.e||''} · ${roman(y)} · ${hijri(y)} ${lng('H','AH')}`};}
- openModal(`${S.player?`<div class="seal">${shield(S.player)}</div>`:''}<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2><p class="lead">${esc(ev.d)}</p>
+ openModal(`${S.player?`<div class="seal">${shield(S.player)}</div>`:''}<div class="ev eyebrow">${esc(ev.e||'')}</div><h2>${esc(ev.t)}</h2>${evaImg(ev)}<p class="lead">${esc(ev.d)}</p>
  <div class="choices">${ev.ch.map((c,k)=>`<button class="btn ${k===0?'primary':''}" style="justify-content:center" data-act="ev" data-k="${k}" ${c.dis?'disabled':''}>${esc(c.l)}</button>`).join('')}</div>`);}
 function showReport(){pruneOffers();
  let h=`<div class="eyebrow">${dateStr(S.turn)}</div><h2>${lng('Mevsim Raporu','Season Report')}</h2>`;
@@ -26,7 +26,7 @@ STATE_SECTIONS.push({id:'meta',order:20,html(f){const F=S.fac[f],ps=facProvs(f),
  return `<div class="meta"><span>${lng('Eyalet','Provinces')} <b>${ps.length}</b></span><span>${lng('Pazar','Markets')} <b>${mk}</b></span><span>${lng('Huzursuz','Unrest')} <b>${un}</b></span><span>${lng('İnsan gücü','Manpower')} <b>${fmtK(F.mp)}</b> / ${fmtK(ds*800)}</span><span>${lng('Topçu','Cannon')} <b>${F.cannon?lng('var','yes'):lng('yok','none')}</b></span><span>${lng('Puan','Score')} <b>${score(f)}</b></span><span>${lng('Zafer/yenilgi','Won/lost')} <b>${S.stats.won}/${S.stats.lost}</b></span></div>`;}});
 ACTS.ev=t=>{const c=evChoices[+t.dataset.k];if(evPend){delete S.pendEv;evPend=false;}closeModal();if(c&&c.f)c.f();if(c&&c.l)addLog(`${evTitle}: ${c.l}`,'info');renderAll();};
 ACTS.mclose=()=>closeModal();
-KE.showReport=()=>showReport();
+KE.showReport=()=>showReport();KE.eventModal=ev=>eventModal(ev);
 KE.declareWar=(a,b)=>declareWar(a,b);
 KE.modalQ=()=>modalQ.map(f=>f.name||String(f).slice(0,60));
 ACTS.state=()=>showState();

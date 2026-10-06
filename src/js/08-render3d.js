@@ -180,7 +180,7 @@ G3.touch=()=>{G3.dirty=true;G3.hot=performance.now()+3000;};
   const sc=sun.shadow.camera;sc.left=-span;sc.right=span;sc.top=span;sc.bottom=-span;sc.near=1;sc.far=span*5;sc.updateProjectionMatrix();
  }
  G3.render=function(now){
-  if(G3.texDirty){const c=texCv.getContext('2d');c.drawImage(base3C,0,0);c.drawImage(polC,0,0);c.drawImage(hlC,0,0);tex.needsUpdate=true;G3.texDirty=false;}
+  if(G3.texDirty){const c=texCv.getContext('2d');c.drawImage(base3C,0,0);c.drawImage(seasonCanvas(),0,0);c.drawImage(polC,0,0);c.drawImage(hlC,0,0);tex.needsUpdate=true;G3.texDirty=false;}
   if(G3.objDirty){sync();G3.objDirty=false;}
   if(G3.armyDirty){armySync();G3.armyDirty=false;}
   if(G3.sgDirty){sgSync();G3.sgDirty=false;}

@@ -32,7 +32,7 @@ function guideBody(t){
  <p>Muharebede senin ordunla şehrin savunması karşılaşır. Şehri sadece oradaki askerler korumaz; kasabanın halkı da silaha sarılır. Büyük şehirlerde ve kaleli yerlerde bu halk savunması kalabalıktır.</p>
  <ul><li><b>Kale surları</b> savunmacıları güçlendirir; kale seviyesi yükseldikçe şehri almak zorlaşır.</li>
  <li><b>Dağlar</b> savunanın işine yarar, çöl de biraz yarar.</li>
- <li><b>Kış</b> seferleri zordur; kışın saldıran ordu yorgun düşer.</li>
+ <li><b>Kış</b> seferleri zordur; kışın saldıran ordu yorgun düşer. Haritada kış gelince kuzey ve yüksek dağlar karla örtülür.</li>
  <li><b>Toplar</b> surları yıkar. Osmanlı 1453'te Urban'ın dev toplarını alır, diğer devletler 1460'ta barutlu toplara kavuşur. Toplu bir ordunun karşısında kale eski gücünü büyük ölçüde kaybeder.</li>
  <li>Her muharebede biraz da <b>şans</b> vardır; kıl payı üstün bir ordu kaybedebilir.</li></ul>
  <h3>Muharebeden sonra</h3>
@@ -125,7 +125,7 @@ function guideBodyEn(t,half){
  <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>
  <ul><li><b>Fortress walls</b> strengthen the defenders; the higher the fortress, the harder the city is to take.</li>
  <li><b>Mountains</b> favour the defender, and desert helps a little too.</li>
- <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out.</li>
+ <li><b>Winter</b> campaigns are hard; an army attacking in winter is worn out. When winter comes, snow covers the north and the high mountains on the map.</li>
  <li><b>Cannon</b> bring walls down. The Ottomans get Urban's great guns in 1453; the other realms gain gunpowder artillery in 1460. Against an army with cannon, a fortress loses much of its old strength.</li>
  <li>Every battle has a little <b>luck</b> in it; an army that is only slightly stronger can still lose.</li></ul>
  <h3>After the battle</h3>

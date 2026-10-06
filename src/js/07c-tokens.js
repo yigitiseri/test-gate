@@ -73,6 +73,7 @@ function tokDraw(c,t,now){const z=t.z,fx=t.fx,fy=t.fy,top=fy-52*z;if(t.al<=0)ret
   c.strokeStyle=`rgba(243,210,122,${.6+.4*pu})`;c.lineWidth=2.2;c.beginPath();c.ellipse(fx,fy,(15+3*pu)*z,(5.2+1*pu)*z,0,0,7);c.stroke();
   c.strokeStyle='rgba(60,30,8,.55)';c.lineWidth=1;c.beginPath();c.ellipse(fx,fy,(18.5+3*pu)*z,(6.6+1.1*pu)*z,0,0,7);c.stroke();}
  c.fillStyle='rgba(25,14,4,.38)';c.beginPath();c.ellipse(fx+2.5*z,fy,11*z,3.4*z,0,0,7);c.fill();
+ figDraw(c,t);   // soldiers at the foot of the standard (07j, 2D)
  // pole and spear-head finial
  c.strokeStyle='#23150a';c.lineWidth=2.8*z;c.beginPath();c.moveTo(fx,fy);c.lineTo(fx,top-3*z);c.stroke();
  c.strokeStyle='#9a6c3a';c.lineWidth=1.1*z;c.beginPath();c.moveTo(fx-.5*z,fy-1.2*z);c.lineTo(fx-.5*z,top-2*z);c.stroke();

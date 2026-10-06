@@ -34,8 +34,12 @@ function aPtBuild(sp,o,h){const R=k=>hash(h&0xffff,k*131+(h>>>16)),id='apt'+h.to
  const hat=fem?'veil':(sp.hat||'kavuk'),gold='#e2b857',ink='#23150a';
  const P=[];
  // background medallion and bust
- P.push(`<defs><clipPath id="${id}c"><ellipse cx="32" cy="38" rx="29.5" ry="35.5"/></clipPath><radialGradient id="${id}g" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="${aMix(col,'#f3e6c4',.5)}"/><stop offset="1" stop-color="${aMix(col,'#2a1a0c',.45)}"/></radialGradient><linearGradient id="${id}r" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs>`);
+ P.push(`<defs><clipPath id="${id}c"><ellipse cx="32" cy="38" rx="29.5" ry="35.5"/></clipPath><radialGradient id="${id}g" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="${aMix(col,'#f3e6c4',.5)}"/><stop offset="1" stop-color="${aMix(col,'#2a1a0c',.45)}"/></radialGradient><linearGradient id="${id}r" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient><radialGradient id="${id}f" cx="40%" cy="34%" r="68%"><stop offset="0" stop-color="#fff" stop-opacity=".24"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3a1a08" stop-opacity=".3"/></radialGradient><pattern id="${id}p" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="2.2" r=".75" fill="${gold}"/><circle cx="3.4" cy="2.2" r=".75" fill="${gold}"/><circle cx="2.5" cy="3.7" r=".75" fill="${gold}"/><path d="M4.4 5.6 q.8 -.8 1.6 0" stroke="${gold}" stroke-width=".4" fill="none"/></pattern></defs>`);
  P.push(`<g clip-path="url(#${id}c)"><rect width="64" height="76" fill="url(#${id}g)"/>`);
+ {const isl=['tr','tk','mm','ar','tt'].includes(cul),ac=aMix(col,'#f3e6c4',.62);   // a niche behind the sitter, as in a miniature: pointed for the East, round for the West
+  P.push(isl?`<path d="M10 76 L10 30 C10 16 22 9 32 4 C42 9 54 16 54 30 L54 76 Z" fill="${ac}" fill-opacity=".38" stroke="${gold}" stroke-opacity=".55" stroke-width=".7"/>`
+   :`<path d="M10 76 L10 28 A22 22 0 0 1 54 28 L54 76 Z" fill="${ac}" fill-opacity=".38" stroke="${gold}" stroke-opacity=".55" stroke-width=".7"/>`);
+  P.push(`<path d="M0 0 L16 0 C13 14 15 30 10 46 C8 52 4 58 0 60 Z" fill="${aMix(col,'#1a0f06',.35)}" fill-opacity=".85"/><path d="M5 0 C4 18 6 34 2 52 M10 0 C9 14 11 28 7 44" stroke="#000" stroke-opacity=".18" stroke-width=".8" fill="none"/>`);}
  // hair behind the head (women, and European men under crowns and caps)
  if(fem)P.push(`<path d="M19 36 C17 50 18 60 22 66 L42 66 C46 60 47 50 45 36 C44 28 39 24 32 24 C25 24 20 28 19 36 Z" fill="${hair}"/>`);
  else if(hat==='taç'||hat==='bere')P.push(`<path d="M20 33 C19 42 20 48 23.5 51 L40.5 51 C44 48 45 42 44 33 C43 27 38 24 32 24 C26 24 21 27 20 33 Z" fill="${hair}"/>`);
@@ -45,6 +49,7 @@ function aPtBuild(sp,o,h){const R=k=>hash(h&0xffff,k*131+(h>>>16)),id='apt'+h.to
  else if(role==='gen'){P.push(`<path d="${bust}" fill="#8d9096"/><path d="${bust}" fill="url(#${id}r)"/><path d="M14 66 Q32 60 50 66 M11 71 Q32 64.5 53 71" stroke="#4a4c52" stroke-width=".8" fill="none"/>`);
   P.push(`<path d="M10 72 L48 58 L52 61 L15 76 Z" fill="${col}" stroke="${ink}" stroke-width=".5"/><circle cx="20" cy="64" r="1" fill="#e8e4da"/><circle cx="44" cy="64" r="1" fill="#e8e4da"/>`);}
  else{const robe=aMix(col,'#1a0f06',role==='ruler'?.3:.12);P.push(`<path d="${bust}" fill="${robe}"/><path d="${bust}" fill="url(#${id}r)"/>`);
+  if(role==='ruler')P.push(`<path d="${bust}" fill="url(#${id}p)" opacity=".5"/>`);
   if(A_FUR.has(cul)&&role==='ruler')P.push(`<path d="M8 70 C12 61 20 58 32 58 C44 58 52 61 56 70 C50 66 42 64.5 32 64.5 C22 64.5 14 66 8 70 Z" fill="#f4efe4"/>${[14,20,26,38,44,50].map((x,k)=>`<path d="M${x} ${63+(k%3)*.6} l.6 2 l-.6 -.5 l-.6 .5 Z" fill="${ink}"/>`).join('')}`);
   else P.push(`<path d="M24 58 L32 71 L40 58" stroke="${gold}" stroke-width="1.6" fill="none"/><path d="M27 58 L32 66 L37 58 Z" fill="${aMix(col,'#f3e6c4',.55)}"/>${role==='ruler'?[66,69.5,73].map(y=>`<rect x="30.5" y="${y}" width="3" height="1.4" rx=".6" fill="${gold}"/>`).join(''):''}`);}
  // neck, ears, face
@@ -53,11 +58,13 @@ function aPtBuild(sp,o,h){const R=k=>hash(h&0xffff,k*131+(h>>>16)),id='apt'+h.to
  const jaw=fem?51.5:52.5+R(5)*1.5;
  P.push(`<path d="M21.6 38 C21.6 29.5 26 25.5 32 25.5 C38 25.5 42.4 29.5 42.4 38 C42.4 46.5 38.2 ${jaw} 32 ${jaw} C25.8 ${jaw} 21.6 46.5 21.6 38 Z" fill="${skin}"/>`);
  P.push(`<path d="M32 25.5 C38 25.5 42.4 29.5 42.4 38 C42.4 46.5 38.2 ${jaw} 32 ${jaw}" fill="#5a2e18" fill-opacity=".1"/>`);
+ P.push(`<path d="M21.6 38 C21.6 29.5 26 25.5 32 25.5 C38 25.5 42.4 29.5 42.4 38 C42.4 46.5 38.2 ${jaw} 32 ${jaw} C25.8 ${jaw} 21.6 46.5 21.6 38 Z" fill="url(#${id}f)"/><path d="M31.2 40 Q31 43 30.6 44.2" stroke="#fff" stroke-opacity=".35" stroke-width=".7" fill="none" stroke-linecap="round"/>`);
  P.push(`<circle cx="26.8" cy="44" r="2.4" fill="#c85a46" fill-opacity="${fem?.2:.1}"/><circle cx="37.2" cy="44" r="2.4" fill="#c85a46" fill-opacity="${fem?.2:.1}"/>`);
  if(tr.has('hasta'))P.push(`<path d="M25.5 42 Q27.5 43.4 29.5 42 M34.5 42 Q36.5 43.4 38.5 42" stroke="#7a6a8a" stroke-opacity=".45" stroke-width=".9" fill="none"/>`);
  // eyes and brows
  const cruel=tr.has('zalim'),ey=39+R(6)*.6,br=aMix(hair,'#1a0f06',.2);
  P.push(`<ellipse cx="28" cy="${ey}" rx="1.9" ry="1.05" fill="#f6efe2"/><ellipse cx="36" cy="${ey}" rx="1.9" ry="1.05" fill="#f6efe2"/><circle cx="${28.3+R(7)*.3}" cy="${ey}" r=".95" fill="#2a1a10"/><circle cx="${36.3+R(7)*.3}" cy="${ey}" r=".95" fill="#2a1a10"/>`);
+ P.push(`<path d="M25.9 ${ey-.3} Q28 ${ey-1.5} 30.1 ${ey-.3} M33.9 ${ey-.3} Q36 ${ey-1.5} 38.1 ${ey-.3}" stroke="${ink}" stroke-width=".55" fill="none" stroke-linecap="round"/><circle cx="28.7" cy="${ey-.35}" r=".3" fill="#fff"/><circle cx="36.7" cy="${ey-.35}" r=".3" fill="#fff"/>`);
  P.push(cruel?`<path d="M25.4 35.4 L30.2 36.9 M38.6 35.4 L33.8 36.9" stroke="${br}" stroke-width="1.3" stroke-linecap="round"/>`:`<path d="M25.4 36.6 Q28 35.2 30.2 36.2 M38.6 36.6 Q36 35.2 33.8 36.2" stroke="${br}" stroke-width="${fem?.8:1.2}" fill="none" stroke-linecap="round"/>`);
  // nose and mouth
  const nl=R(8);P.push(`<path d="M32.4 39.5 Q${31+nl} 43.5 ${30.4-nl*.6} 45 Q32 46.2 33.6 45.2" stroke="${skinD}" stroke-width=".9" fill="none" stroke-linecap="round"/>`);
@@ -88,6 +95,7 @@ function aPtBuild(sp,o,h){const R=k=>hash(h&0xffff,k*131+(h>>>16)),id='apt'+h.to
  P.push('</g>');
  // gilt oval frame
  P.push(`<ellipse cx="32" cy="38" rx="29.5" ry="35.5" fill="none" stroke="#b8862c" stroke-width="2.6"/><ellipse cx="32" cy="38" rx="30.9" ry="36.9" fill="none" stroke="${ink}" stroke-width=".8"/><ellipse cx="32" cy="38" rx="28" ry="34" fill="none" stroke="#f3d27a" stroke-opacity=".6" stroke-width=".5"/>`);
+ P.push(`<ellipse cx="32" cy="38" rx="29.5" ry="35.5" fill="none" stroke="#fbe7a6" stroke-width="1.1" stroke-dasharray=".1 2.3" stroke-linecap="round"/>${[[32,1.6],[32,74.4]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.4" fill="${gold}" stroke="${ink}" stroke-width=".6"/><circle cx="${x}" cy="${y}" r=".9" fill="#a8281c"/>`).join('')}`);
  const sz=o.size?` width="${Math.round(o.size*64/76)}" height="${o.size}"`:'';
  return `<svg class="a-pt" viewBox="-1.5 -1.5 67 79"${sz} ${o.label?`role="img" aria-label="${esc(o.label)}"`:'aria-hidden="true"'} focusable="false">${P.join('')}</svg>`;}
 KE.portraitSVG=(sp,o)=>portraitSVG(sp,o);KE.portraitFor=(id,o)=>{const c=S&&S.chars&&S.chars[id];return c?aPortraitFor(c,o):'';};
