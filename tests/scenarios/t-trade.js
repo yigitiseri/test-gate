@@ -54,7 +54,9 @@ module.exports = {
     await page.waitForFunction(() => !document.getElementById('uiTip').hidden, null, { timeout: 5000 }).catch(() => {});
     check('hovering the road shows the tooltip', await E(() => !document.getElementById('uiTip').hidden && /Levant/.test(document.getElementById('uiTip').textContent)));
     await page.click('#zoom #trBtn'); await page.waitForTimeout(150);
-    await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 2.6); }, pv); await page.waitForTimeout(250);
+    { const d = await E(() => window.__ke.stats.draws);
+      await E(i => { const K = window.__ke; K.centerOn(K.PD[i].lx, K.PD[i].ly, 2.6); }, pv);
+      await page.waitForFunction(d => window.__ke.stats.draws >= d + 2, d, { timeout: 15000 }).catch(() => {}); }
     const d2 = await E(() => ({ legs: window.__ke.tradeMap.legs(), on: window.__ke.tradeMap.on() }));
     check('zoomed in close, the roads show faintly on the political map', !d2.on && d2.legs > 0, d2);
     // the panel of a stop
