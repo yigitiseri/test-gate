@@ -52,8 +52,27 @@ function computeFacLabels(){
   if(!best||ba<2500)return;let cx=0,cy=0;best.forEach(i=>{cx+=PD[i].lx*PD[i].area;cy+=PD[i].ly*PD[i].area;});cx/=ba;cy/=ba;
   const id=idMap[Math.round(cy)*W+Math.round(cx)];
   if(id<0||S.prov[id].o!==f){let bd=1e9;best.forEach(i=>{const dd=(PD[i].lx-cx)**2+(PD[i].ly-cy)**2;if(dd<bd){bd=dd;cx=PD[i].lx;cy=PD[i].ly;}});}
-  facLabels.push({f,x:cx,y:cy,sz:clamp(Math.sqrt(ba)/7.5,10,46)});});
+  const cv=facCurve(best),n=[...FAC[f].s].length;
+  facLabels.push({f,x:cx,y:cy,sz:cv?clamp(Math.min(cv.len/(n*1.02),Math.sqrt(ba)/5.5,cv.thick*.75),10,46):clamp(Math.sqrt(ba)/7.5,10,46),cv});});
 }
+/** The realm's lie of the land for its name, as on old maps: the main axis of its provinces (area-weighted), a gentle
+ parabola through them in that frame, the usable length and thickness. Null for one or two provinces. */
+function facCurve(L){if(L.length<3)return null;let W0=0,mx=0,my=0;L.forEach(i=>{const w=PD[i].area;W0+=w;mx+=PD[i].lx*w;my+=PD[i].ly*w;});mx/=W0;my/=W0;
+ let xx=0,yy=0,xy=0;L.forEach(i=>{const w=PD[i].area,dx=PD[i].lx-mx,dy=PD[i].ly-my;xx+=w*dx*dx;yy+=w*dy*dy;xy+=w*dx*dy;});
+ let th=.5*Math.atan2(2*xy,xx-yy);th=clamp(th,-.75,.75);const co=Math.cos(th),si=Math.sin(th);
+ // weighted least squares v = a u^2 + b u + c
+ const M=[[0,0,0],[0,0,0],[0,0,0]],R=[0,0,0];let umin=1e9,umax=-1e9,vv=0;
+ L.forEach(i=>{const w=PD[i].area,dx=PD[i].lx-mx,dy=PD[i].ly-my,u=dx*co+dy*si,v=-dx*si+dy*co,r=Math.sqrt(PD[i].area)*.45,X=[u*u,u,1];
+  umin=Math.min(umin,u-r);umax=Math.max(umax,u+r);vv+=w*v*v;for(let a=0;a<3;a++){R[a]+=w*X[a]*v;for(let b=0;b<3;b++)M[a][b]+=w*X[a]*X[b];}});
+ const det=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+ const D=det(M);let a=0,b=0,c=0;if(Math.abs(D)>1e-9){const col=(k)=>M.map((row,r)=>row.map((x,j)=>j===k?R[r]:x));a=det(col(0))/D;b=det(col(1))/D;c=det(col(2))/D;}
+ const len=(umax-umin)*.82,u0=(umin+umax)/2,lim=.9/Math.max(60,len);a=clamp(a,-lim,lim);b=clamp(b,-.35,.35);
+ const cv={mx,my,th,a,b,c:clamp(c,-30,30),u0,len,thick:2*Math.sqrt(vv/W0)*1.7+18},M0=46,inside=u=>{const q=facCurveAt(cv,u);return q[0]>M0&&q[0]<W-M0&&q[1]>M0&&q[1]<H-M0;};
+ for(let k=0;k<12&&!(inside(cv.u0-cv.len/2)&&inside(cv.u0+cv.len/2));k++){   // keep the name inside the frame: slide it inward, then shorten it
+  const lo=inside(cv.u0-cv.len/2),hi=inside(cv.u0+cv.len/2);if(lo!==hi)cv.u0+=(lo?-1:1)*cv.len*.06;else cv.len*=.9;cv.len*=.97;}
+ return cv;}
+/** Point and direction of the label curve at u (map units). */
+function facCurveAt(cv,u){const v=cv.a*u*u+cv.b*u+cv.c,co=Math.cos(cv.th),si=Math.sin(cv.th);return [cv.mx+u*co-v*si,cv.my+u*si+v*co,cv.th+Math.atan(2*cv.a*u+cv.b)];}
 function renderHL(){
  const d=hlImg.data;d.fill(0);const paint=(k,fc,ec)=>{for(let q=provStart[k];q<provStart[k+1];q++){const i=provPix[q],o=i*4,x=i%W;
   const e=(x>0&&idMap[i-1]!==k)||(x<W-1&&idMap[i+1]!==k)||idMap[i-W]!==k||idMap[i+W]!==k||(x>1&&idMap[i-2]!==k)||(x<W-2&&idMap[i+2]!==k)||idMap[i-2*W]!==k||idMap[i+2*W]!==k;
@@ -103,8 +122,12 @@ function draw(){
  if(s<1.5){ctx.textBaseline='middle';
   facLabels.forEach(l=>{const fs=l.sz*s;if(fs<9)return;const q=pj(l.x,l.y,g3?14:0);if(!q[2])return;const c=FCOL[l.f];ctx.font=`800 ${fs}px "Cinzel", Georgia, serif`;
    ctx.globalAlpha=clamp((1.5-s)/.4,0,1)*.92;ctx.lineWidth=Math.max(2.5,fs*.14);ctx.strokeStyle='rgba(248,240,218,.6)';ctx.lineJoin='round';
-   const txt=FAC[l.f].s.toLocaleUpperCase('tr'),sp=fs*.2,chars=[...txt],ws=chars.map(ch=>ctx.measureText(ch).width),tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);let cx=q[0]-tot/2;
-   ctx.textAlign='left';ctx.fillStyle=`rgb(${c[0]*.3|0},${c[1]*.3|0},${c[2]*.3|0})`;chars.forEach((ch,k)=>{ctx.strokeText(ch,cx,q[1]);ctx.fillText(ch,cx,q[1]);cx+=ws[k]+sp;});
+   const txt=FAC[l.f].s.toLocaleUpperCase('tr'),sp=fs*.2,chars=[...txt],ws=chars.map(ch=>ctx.measureText(ch).width),tot=ws.reduce((a,b)=>a+b,0)+sp*(chars.length-1);
+   ctx.fillStyle=`rgb(${c[0]*.3|0},${c[1]*.3|0},${c[2]*.3|0})`;
+   if(l.cv){const cv=l.cv;let u=cv.u0-tot/2/s;ctx.textAlign='center';   // letters follow the curve of the realm (map units: screen px / s)
+    chars.forEach((ch,k)=>{const w=(ws[k]+(k<chars.length-1?sp:0))/s,[x0,y0,ang]=facCurveAt(cv,u+ws[k]/2/s),p=pj(x0,y0,g3?14:0);u+=w/Math.sqrt(1+Math.pow(2*cv.a*u+cv.b,2));if(!p[2])return;
+     ctx.save();ctx.translate(p[0],p[1]);ctx.rotate(ang);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore();});}
+   else{let cx=q[0]-tot/2;ctx.textAlign='left';chars.forEach((ch,k)=>{ctx.strokeText(ch,cx,q[1]);ctx.fillText(ch,cx,q[1]);cx+=ws[k]+sp;});}
    // far zoom: the realm's total troops (garrisons + field armies) instead of hundreds of small chips
    if(s<.95&&fs>=11){const ts=clamp(fs*.42,10,15);ctx.globalAlpha=clamp((.95-s)/.2,0,1)*.9;ctx.font=`700 ${ts}px "EB Garamond", Georgia, serif`;ctx.textAlign='center';
     const tt='⚔ '+fmtK(strength(l.f)),ty=q[1]+fs*.62+ts*.2;ctx.lineWidth=3;ctx.strokeStyle='rgba(248,240,218,.75)';ctx.strokeText(tt,q[0],ty);ctx.fillText(tt,q[0],ty);}});

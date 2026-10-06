@@ -51,7 +51,7 @@ function seasonCanvas(k=seasonOf(),cpu=false){if(TSEA.k===k&&TSEA.g)return cpu?T
   const v=VEGM[i]/255,sn=SNOWM[i]/255;
   if(k===0){d[o]=118;d[o+1]=160;d[o+2]=70;d[o+3]=clamp(v-.35,0,.6)*70;}
   else if(k===1){d[o]=206;d[o+1]=168;d[o+2]=96;d[o+3]=clamp(.75-v,0,.75)*60;}
-  else if(k===2){d[o]=184;d[o+1]=104;d[o+2]=46;d[o+3]=clamp(v-.45,0,.6)*80;}
+  else if(k===2){const h=(i*2654435761>>>0)%997/997;d[o]=196+h*20;d[o+1]=110+h*40;d[o+2]=40;d[o+3]=clamp(v-.3,0,.7)*150;}   // russet and gold, speckled
   else{d[o]=246;d[o+1]=247;d[o+2]=250;d[o+3]=sn>0?clamp(sn*1.15,0,1)*205:0;}}
  g.putImageData(img,0,0);TSEA.c=c;TSEA.g=gpuCopy(c);return cpu?c:TSEA.g;}
 /** Seasonal look of one symbol: 'w' snowy winter, 'a' autumn leaves, '' as drawn. */
