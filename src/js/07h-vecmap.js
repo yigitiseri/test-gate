@@ -6,7 +6,7 @@
    Far out the baked map (wash + season tint + the same detail painted once) is used, crossfading in between.
    Seasons (02b): the tint, the symbols (bare and snowy trees, autumn leaves) and frozen rivers follow S.turn.
    ===================================================================== */
-const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,baked:new Map()};
+const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,baked:new Map(),cam:'',camT:0};
 const VM_RINGS=[[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]];   // distance from the coast (px), ink strength
 
 /** Douglas-Peucker on a flat [x,y,...] list; keeps the ends. */
@@ -82,7 +82,7 @@ function vmBuild(){const t0=performance.now();
  VM.ms=Math.round(performance.now()-t0);KE.stats.vmMs=VM.ms;}
 /** The low-zoom map of a season (the two latest kept). */
 function vmBake(k){let c=VM.baked.get(k);if(c){VM.baked.delete(k);VM.baked.set(k,c);return c;}
- c=mk(W,H);const g=c.getContext('2d',CPU2D);g.drawImage(baseC0,0,0);g.drawImage(seasonCanvas(k),0,0);vmGroundPaint(g,1,null,0,k);c=gpuCopy(c);
+ c=mk(W,H);const g=c.getContext('2d',CPU2D);g.drawImage(baseC0,0,0);g.drawImage(seasonCanvas(k,true),0,0);vmGroundPaint(g,1,null,0,k);c=gpuCopy(c);
  VM.baked.set(k,c);while(VM.baked.size>2)VM.baked.delete(VM.baked.keys().next().value);return c;}
 /** Cells whose pieces reach into rect r (null: all). */
 function vmCellsIn(r){return r?VM.cells.filter(c=>c.pieces.length&&c.x1>=r.x0&&c.x0<=r.x1&&c.y1>=r.y0&&c.y0<=r.y1):VM.cells.filter(c=>c.pieces.length);}
@@ -125,27 +125,29 @@ function vtLayer(paint){return {paint,sig:'',m:new Map(),atlas:null,ag:null,free
 function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.getContext('2d');for(let k=VT_N-1;k>=0;k--)L.free.push(k);}
  if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
 const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
-/** Draw layer L over the view (map transform set on ctx). New tiles: about 8 ms of them per frame (all on the
- first draw), the rest from cached tiles of another zoom step meanwhile (clipped), and another frame is requested. */
-function vtDraw(L,s,sig){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
+/** Draw layer L over the view (map transform set on ctx). New tiles: about 40 ms of them per frame (a tile takes ~2 ms; all on the
+ first draw; none while the camera moves, still=false), the rest from cached tiles of another zoom step meanwhile
+ (clipped), and another frame is requested. */
+function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
  if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
  const tx0=Math.max(0,Math.floor(vx0/u)),ty0=Math.max(0,Math.floor(vy0/u)),tx1=Math.min(Math.ceil(W/u)-1,Math.floor(vx1/u)),ty1=Math.min(Math.ceil(H/u)-1,Math.floor(vy1/u));
- const t0=performance.now(),first=!L.m.size,want=new Set();let more=false,made=0;
+ const t0=performance.now(),first=!L.m.size,want=new Set(),q0=ctx.imageSmoothingQuality;let more=false,made=0;
+ ctx.imageSmoothingQuality='low';   // slots are drawn near 1:1; 'high' would rebuild the atlas mipmaps whenever a tile is added
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if((first||!made||performance.now()-t0<8)&&want.size<=VT_N){made++;
+  else if((first||(still&&(!made||performance.now()-t0<40)))&&want.size<=VT_N){made++;const t1=performance.now();
    const slot=vtSlot(L);
    const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
    g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);
    const [sx,sy]=vtXY(slot);L.ag.clearRect(sx,sy,VT_G,VT_G);L.ag.drawImage(c,sx,sy);
-   t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;}
+   t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;KE.stats.vtMs=(KE.stats.vtMs||0)+performance.now()-t1;}
   if(t){const [sx,sy]=vtXY(t.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,tx*u,ty*u,u,u);continue;}
   more=true;if(!L.atlas)continue;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
   for(const o of L.m.values()){if(o.z===z)continue;const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0){const [sx,sy]=vtXY(o.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,ox,oy,ou,ou);}}
   ctx.restore();}
- if(more)req();}
+ ctx.imageSmoothingQuality=q0;if(more)req();}
 
 /* ---- sprite atlas: small images drawn every frame (towns, soldiers) live on one GPU canvas, shelf-packed;
    when it fills up it starts over (gen changes and callers repaint what they still need) ---- */
@@ -158,12 +160,16 @@ function saAdd(w,h,paint){w=Math.min(SA.S,Math.ceil(w));h=Math.min(SA.S,Math.cei
  const c=mk(w,h),g=c.getContext('2d',CPU2D);paint(g);SA.g.drawImage(c,SA.x,SA.y);
  const e={gen:SA.gen,x:SA.x,y:SA.y,w,h};SA.x+=w+1;SA.h=Math.max(SA.h,h);return e;}
 /** Draw an atlas entry into the rect (dx,dy,dw,dh) of context c. */
-function saDraw(c,e,dx,dy,dw,dh){c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);}
+function saDraw(c,e,dx,dy,dw,dh){const q=c.imageSmoothingQuality;c.imageSmoothingQuality='low';c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);c.imageSmoothingQuality=q;}
 
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
-function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf();
- if(f<1)ctx.drawImage(vmBake(k),0,0);
- if(f>0){ctx.save();ctx.globalAlpha=f;ctx.drawImage(baseC0,0,0);ctx.drawImage(seasonCanvas(k),0,0);vtDraw(VM.ground,s,'g'+k);ctx.restore();}}
+function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf(),still=vmStill(s);
+ if(f<1||!still)ctx.drawImage(vmBake(k),0,0);   // moving: the baked map shows under the tiles not painted yet
+ if(f>0){ctx.save();ctx.globalAlpha=f;if(still){ctx.drawImage(baseC0g,0,0);ctx.drawImage(seasonCanvas(k),0,0);}vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
+/** Has the camera stayed put since the last frame? While it moves (a drag, a replay) no new ground tiles are painted;
+ a frame is asked for shortly after it stops, to paint them. */
+function vmStill(s){const sig=cam.x.toFixed(1)+','+cam.y.toFixed(1)+','+s.toFixed(4),still=sig===VM.cam;VM.cam=sig;
+ if(!still){clearTimeout(VM.camT);VM.camT=setTimeout(req,180);}return still;}
 function vmLines(s){if(!S)return;const sig=S.prov.map(p=>p.o).join()+mapMode;if(sig!==VM.polSig)VM.polSig=sig;vtDraw(VM.lines,s,sig);}
 /** Outline of the selected province, the target, or the realm being picked on the start screen. */
 function vmSel(s){if(!S)return;const key=hlKey;if(key!==VM.selKey){VM.selKey=key;VM.sel=VM.tgt=VM.pick=null;

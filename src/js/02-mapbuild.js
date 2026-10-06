@@ -8,14 +8,15 @@ function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.07+5.2,y*2.07+1.3)*.3+vnoise
 /** Offscreen layers painted with many paths render on the CPU: on a GPU canvas thousands of small paths can stall the
  compositor for seconds on weak or software GPUs; the finished image is uploaded once. */
 const CPU2D={willReadFrequently:true};
-/** A GPU-side copy of a finished CPU layer, for layers drawn to the screen every frame (uploaded once, not per frame). */
+/** A GPU-side copy of a finished CPU layer, for layers drawn to the screen every frame (uploaded once, not per frame).
+ Never draw a GPU canvas into a CPU one: that reads the GPU back and stalls it. */
 function gpuCopy(c){const d=mk(c.width,c.height);d.getContext('2d').drawImage(c,0,0);return d;}
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 const hex2=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-let idMap,land,provStart,provPix,baseC,baseC0,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
+let idMap,land,provStart,provPix,baseC,baseC0,baseC0g,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
 function chamfer(D){
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;let v=D[i];if(!v)continue;
   if(x>0&&D[i-1]+3<v)v=D[i-1]+3;
@@ -154,7 +155,7 @@ function renderBase(SD,LD,MD,RD){
   const mo=.93+.11*fbm(x/150+7,y/150+3);
   d[o]=c[0]*mo;d[o+1]=c[1]*mo;d[o+2]=c[2]*mo*.97;d[o+3]=255;d3[o]=c3[0]*mo;d3[o+1]=c3[1]*mo;d3[o+2]=c3[2]*mo*.97;d3[o+3]=255;}
  b.putImageData(img,0,0);rhumbs(b);b3.putImageData(img3,0,0);rhumbs(b3);
- baseC0=gpuCopy(baseC0);
+ baseC0g=gpuCopy(baseC0);   // baseC0 stays on the CPU (it is painted into other CPU layers); the copy is for the screen
  MSYM=tSymPlace(E,M,LD,RD);
  // 3D: woods, palms, dunes and reeds painted on the ground (the relief brings its own mountains), rivers, compass roses and names
  b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();

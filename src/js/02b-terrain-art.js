@@ -41,10 +41,11 @@ function tSymPlace(E,M,LD,RD){tSeasonMasks(E,M);
   const sd=SEAD[i]/3;if(sd<16||hash(x*13,y*3)>.4)continue;add(jx,jy,'wave',(hash(x,y+13)*3)|0,3+hash(y,x+2)*1.6);}
  out.sort((a,b)=>a.y-b.y);return out;}
 
-/** The season's tint over the wash (cached per season): spring green, summer dry, autumn russet, winter snow. */
+/** The season's tint over the wash (cached per season): spring green, summer dry, autumn russet, winter snow.
+ cpu: the CPU image (to paint into CPU layers), else its GPU copy (for the screen). */
 const TSEA={k:-1,c:null,g:null};   // c: the CPU image, g: its GPU copy for drawing
 function seasonOf(){return S&&S.turn!=null?((S.turn%4)+4)%4:0;}
-function seasonCanvas(k=seasonOf()){if(TSEA.k===k&&TSEA.g)return TSEA.g;TSEA.k=k;const c=TSEA.c||mk(W,H),g=c.getContext('2d',CPU2D),img=g.createImageData(W,H),d=img.data;
+function seasonCanvas(k=seasonOf(),cpu=false){if(TSEA.k===k&&TSEA.g)return cpu?TSEA.c:TSEA.g;TSEA.k=k;const c=TSEA.c||mk(W,H),g=c.getContext('2d',CPU2D),img=g.createImageData(W,H),d=img.data;
  for(let i=0;i<W*H;i++){const o=i*4;
   if(!land[i]){if(k===3){d[o]=120;d[o+1]=136;d[o+2]=140;d[o+3]=30;}continue;}
   const v=VEGM[i]/255,sn=SNOWM[i]/255;
@@ -52,7 +53,7 @@ function seasonCanvas(k=seasonOf()){if(TSEA.k===k&&TSEA.g)return TSEA.g;TSEA.k=k
   else if(k===1){d[o]=206;d[o+1]=168;d[o+2]=96;d[o+3]=clamp(.75-v,0,.75)*60;}
   else if(k===2){d[o]=184;d[o+1]=104;d[o+2]=46;d[o+3]=clamp(v-.45,0,.6)*80;}
   else{d[o]=246;d[o+1]=247;d[o+2]=250;d[o+3]=sn>0?clamp(sn*1.15,0,1)*205:0;}}
- g.putImageData(img,0,0);TSEA.c=c;TSEA.g=gpuCopy(c);return TSEA.g;}
+ g.putImageData(img,0,0);TSEA.c=c;TSEA.g=gpuCopy(c);return cpu?c:TSEA.g;}
 /** Seasonal look of one symbol: 'w' snowy winter, 'a' autumn leaves, '' as drawn. */
 function symSea(o,k){if(o.t==='wave')return '';if(k===3&&o.snow>.3&&o.t!=='palm'&&o.t!=='dune')return 'w';if(k===2&&(o.t==='tree'||o.t==='marsh'))return 'a';if(k===3&&o.t==='mtn')return 'm';return '';}
 
