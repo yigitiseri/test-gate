@@ -127,9 +127,9 @@ function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.get
  if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
 const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
 /** Draw layer L over the view (map transform set on ctx). Missing tiles are all painted in one go once the camera
- is still (a tile takes a few ms; spreading them over frames costs more in atlas updates than it saves), none while
- it moves (still=false); meanwhile cached tiles of another zoom step stand in (clipped) and another frame is asked for. */
-function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
+ is still (a tile takes a few ms; spreading them over frames costs more in atlas updates than it saves); while it
+ moves (still=false) only moveMs worth a frame (0: none); meanwhile cached tiles of another zoom step stand in (clipped) and another frame is asked for. */
+function vtDraw(L,s,sig,still=true,moveMs=0){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
  if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
  const tx0=Math.max(0,Math.floor(vx0/u)),ty0=Math.max(0,Math.floor(vy0/u)),tx1=Math.min(Math.ceil(W/u)-1,Math.floor(vx1/u)),ty1=Math.min(Math.ceil(H/u)-1,Math.floor(vy1/u));
@@ -138,7 +138,7 @@ function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if((first||still)&&want.size<=VT_N){made++;const t1=performance.now();
+  else if((first||still||(moveMs>0&&performance.now()-t0<moveMs))&&want.size<=VT_N){made++;const t1=performance.now();
    const slot=vtSlot(L);
    const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
    g.save();g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);g.restore();
@@ -166,16 +166,16 @@ function saDraw(c,e,dx,dy,dw,dh){const q=c.imageSmoothingQuality;c.imageSmoothin
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
 /** How far into the close-up look the view is (0 far: baked map and raster colours; 1 near: tiles). */
 const vmF=s=>clamp((s*dpr-1.2)/.35,0,1);
-function vmGround(s){const f=vmF(s),k=seasonOf(),still=vmStill(s);
+function vmGround(s){const f=vmF(s),k=seasonOf(),still=vmStill(s);VM.still=still;
  ctx.drawImage(vmBake(k),0,0);   // under the tiles: shows where tiles are still to be painted (none while the camera moves)
  if(f>0){ctx.save();ctx.globalAlpha=f;vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
 /** Political colours up close, from the province outlines (07l), inside the graduated frame. */
-function vmPol(s,f){const fm=19;ctx.save();ctx.globalAlpha=f;ctx.beginPath();ctx.rect(fm,fm,W-2*fm,H-2*fm);ctx.clip();vtDraw(VM.pol,s,hrPolSig());ctx.restore();}
+function vmPol(s,f){const fm=19;ctx.save();ctx.globalAlpha=f;ctx.beginPath();ctx.rect(fm,fm,W-2*fm,H-2*fm);ctx.clip();vtDraw(VM.pol,s,hrPolSig(),VM.still!==false,8);ctx.restore();}
 /** Has the camera stayed put since the last frame? While it moves (a drag, a replay) no new ground tiles are painted;
  a frame is asked for shortly after it stops, to paint them. */
 function vmStill(s){const sig=cam.x.toFixed(1)+','+cam.y.toFixed(1)+','+s.toFixed(4),still=sig===VM.cam;VM.cam=sig;
  if(!still){clearTimeout(VM.camT);VM.camT=setTimeout(req,180);}return still;}
-function vmLines(s){if(!S)return;const sig=S.prov.map(p=>p.o).join()+mapMode;if(sig!==VM.polSig)VM.polSig=sig;vtDraw(VM.lines,s,sig);}
+function vmLines(s){if(!S)return;const sig=S.prov.map(p=>p.o).join()+mapMode;if(sig!==VM.polSig)VM.polSig=sig;vtDraw(VM.lines,s,sig,VM.still!==false,8);}   // moving: a few tiles a frame
 /** Outline of the selected province, the target, or the realm being picked on the start screen. */
 function vmSel(s){if(!S)return;const key=hlKey;if(key!==VM.selKey){VM.selKey=key;VM.sel=VM.tgt=VM.pick=null;
   const path=list=>{const p=new Path2D();list.forEach(k=>{const c=VM.chains[k];vmAdd(p,c.p,c.closed);});return p;};

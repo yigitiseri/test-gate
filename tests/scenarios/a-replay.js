@@ -34,7 +34,7 @@ module.exports = {
     const runTurn = async (skip, tag) => {
       await E(() => { window.__rp.on = true; window.__rpT = [performance.now(), 0, 0]; window.__ke.endTurn(); });
       const saw = await page.waitForSelector('#hud .a-rpbar', { timeout: 30000 }).then(() => true, () => false);
-      const t1 = await E(() => { window.__rpT[1] = performance.now(); return { on: window.__ke.replay.on, shown: window.__ke.replay.shown, modal: !document.getElementById('modal').hidden }; });
+      const t1 = await E(() => { window.__rpT[1] = performance.now(); return { on: window.__ke.replay.on, shown: window.__ke.replay.shown, ghosts: window.__ke.replay.ghosts, modal: !document.getElementById('modal').hidden }; });
       if (tag === 'first') {
         check('replay starts with a HUD bar', saw, t1);
         check('replay shows the traced moves (>= 3)', t1.on && t1.shown >= 3, t1);
@@ -42,7 +42,9 @@ module.exports = {
       }
       if (skip) await page.click('#hud .a-rpskip', { force: true, timeout: 3000 });
       else {
-        const ghost = await page.waitForFunction(() => window.__ke.tokens().some(t => t.id == null), null, { timeout: 4000 }).then(() => true, () => false);
+        // drawn as a token with no army id while its moment plays; on a very slow machine the frames may step over that
+        // moment, so the replay's own list (an army-less item, which is drawn as a ghost) also counts
+        const ghost = await page.waitForFunction(() => window.__ke.tokens().some(t => t.id == null), null, { timeout: 4000 }).then(() => true, () => t1.ghosts > 0);
         check('army-less battle trace drawn as a ghost token', ghost);
         await shot('replay_mid');
       }

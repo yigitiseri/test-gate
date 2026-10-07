@@ -10,7 +10,7 @@
 {const k=PRESENTERS.findIndex(p=>p.id==='fx');if(k>=0)PRESENTERS.splice(k,1);}
 const A_RP={max:12,budget:3700,step:560,pause:430,gap:240,fade:380,booms:14,pan:420,perFac:4};
 const aRp={on:false,items:[],byArmy:{},t0:0,T:0,timer:0,done:null,pan:null,bar:null};
-KE.replay={get on(){return aRp.on;},get lastMs(){return aRp.lastMs;},get shown(){return aRp.items.length;},get plan(){return aRp.lastPlan||[];},skip:()=>aRpFinish(true),opt:aOpt,build:()=>aRpBuild(),rank:()=>{const a=aRpBuild();return a.length?aRpPlan(a).shown.map(aRpSum):[];}};
+KE.replay={get on(){return aRp.on;},get lastMs(){return aRp.lastMs;},get shown(){return aRp.items.length;},get ghosts(){return aRp.items.filter(it=>!it.live).length;},get plan(){return aRp.lastPlan||[];},skip:()=>aRpFinish(true),opt:aOpt,build:()=>aRpBuild(),rank:()=>{const a=aRpBuild();return a.length?aRpPlan(a).shown.map(aRpSum):[];}};
 const aRpSum=it=>({f:it.f,army:it.army,pr:Math.round(it.pr),mine:it.mine,threat:!!it.threat,fell:it.evs.some(e=>e.fell),battles:it.evs.filter(e=>e.rep).length,pts:it.pts.length});
 
 /** Build replay items from TURN_TRACE: one item per army (its moves chained), or per army-less battle. */
