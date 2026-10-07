@@ -6,6 +6,7 @@
 function armyCreate(f,loc,n,o={}){
  const used=new Set(S.armies.filter(x=>x.f===f).map(x=>x.no));let no=1;while(used.has(no))no++;
  const a={id:S.seq++,f,loc,n,gen:null,mp:0,mpMax:BAL_B.mpMax,path:[],morale:1,st:'idle',no,...o};
+ if(!a.mix)a.mix=unitDefMix(f);   // troop types (04i)
  S.armies.push(a);runHooks('armyCreated',a);return a;}
 function armyRemove(id,reason){const k=S.armies.findIndex(a=>a.id===id);if(k<0)return null;
  const a=S.armies.splice(k,1)[0];if(selArmy===id)selArmy=null;runHooks('armyRemoved',a,reason);return a;}

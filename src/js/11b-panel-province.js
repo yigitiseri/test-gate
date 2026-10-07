@@ -19,6 +19,7 @@ PANEL_SECTIONS.push({id:'armies',order:30,when:c=>armyAt(c.i).length>0||c.mine,h
  let h=`<div class="sec armsec"><h3>${lng('Ordular','Armies')} <span class="cap">${cnt}/${cap}</span></h3>`;
  if(!here.length)h+=`<div class="hint">${lng('Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.','No field army here. Raise troops below and a new army is formed.')}</div>`;
  else h+=`<div class="arms">${here.map(a=>armRow(a,on&&on.id===a.id)).join('')}</div>`;
+ if(on)h+=unitBar(on);   // what the selected army is made of (04i)
  if(on&&c.tgt<0){const others=mineH.filter(a=>a.id!==on.id).length,ck='dis:'+on.id;
   h+=`<div class="hint">${on.mp>0?lng(`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`,`Tap a province to march there. This army can march ${on.mp} more ${on.mp===1?'province':'provinces'} this season; an army that enters enemy land stops there.`):lng('Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.','This army has finished its march for the season. It can set out again after you end the turn.')}</div>
   <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">${lng('Orduları birleştir','Merge armies')}</button>`:''}
@@ -69,8 +70,10 @@ PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,htm
  const where=d.to==='army'?lng(`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`,`New troops join the ranks of <b>${esc(armName(d.army))}</b>.`):d.to==='new'?lng(`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`,`A new field army is formed (${cnt+1}/${cap}).`):d.to==='gar'?lng(`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`,`You have reached the army limit (${cnt}/${cap}): troops join the garrison.`):esc(d.reason||'');
  const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i,sure=confirmKey===ck;
  return `<div class="sec garsec"><h3>${lng('Asker topla','Raise troops')}</h3><div class="hint" style="margin-bottom:6px">${where}</div><div class="btiles">
-   ${bTile({act:'rec1',icon:bIcon('rec1'),name:lng('Alay','Regiment'),sub:lng('+1.000 asker','+1,000 men'),cost:RC,dis:!d.to||F.gold<RC||F.mp<1000,tip:lng('Bin kişilik bir alay toplar. Altın ve insan gücü ister.','Raises a regiment of a thousand men. Costs gold and manpower.')})}
-   ${bTile({act:'rec5',icon:bIcon('rec5'),name:lng('Tümen','Division'),sub:lng('+5.000 asker','+5,000 men'),cost:RC*5,dis:!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000,tip:lng('Beş bin kişilik büyük bir birlik toplar.','Raises a large body of five thousand men.')})}
+   ${bTile({act:'rec1',icon:bIcon('rec1'),name:unitName(f,'i'),sub:lng('+1.000 piyade','+1,000 foot'),cost:unitRecruitCost(f,'i',1000),dis:!d.to||F.gold<unitRecruitCost(f,'i',1000)||F.mp<1000,tip:lng('Piyade dağda ve sur saldırısında güçlüdür, ucuzdur.','Foot soldiers are strong in the mountains and against walls, and cheap.')})}
+   ${bTile({act:'recc',icon:bIcon('recc'),name:unitName(f,'c'),sub:lng('+1.000 süvari','+1,000 horse'),cost:unitRecruitCost(f,'c',1000),dis:!d.to||F.gold<unitRecruitCost(f,'c',1000)||F.mp<1000,tip:lng('Süvari açık arazide ve çölde üstündür, dağda ve surlar önünde zayıftır; daha pahalıdır.','Horsemen rule the open field and the desert but are weak in the mountains and against walls; they cost more.')})}
+   ${bTile({act:'reca',icon:bIcon('reca'),name:unitName(f,'a'),sub:F.cannon?lng('+500 topçu','+500 gunners'):lng('Henüz yok','Not yet'),cost:F.cannon?unitRecruitCost(f,'a',500):'—',coin:!!F.cannon,dis:!F.cannon||!d.to||F.gold<unitRecruitCost(f,'a',500)||F.mp<500,tip:F.cannon?lng('Toplar kuşatmayı hızlandırır ve surlara saldırıda ağır basar; en pahalı birliktir.','Guns speed up sieges and weigh heavily against walls; the dearest troops.'):lng('Top dökmeyi henüz bilmiyorsun (Osmanlı 1453, diğerleri 1460).','Your realm cannot cast cannon yet (the Ottomans in 1453, the others in 1460).')})}
+   ${bTile({act:'rec5',icon:bIcon('rec5'),name:lng('Tümen','Division'),sub:lng('+5.000 karma','+5,000 mixed'),cost:unitRecruitCost(f,null,5000),dis:!d.to||d.to==='gar'||F.gold<unitRecruitCost(f,null,5000)||F.mp<5000,tip:lng('Devletinin olağan karışımıyla beş bin kişilik bir birlik.','Five thousand men in your realm\'s usual mix.')})}
    ${bTile({act:'grec',icon:bIcon('grec'),name:lng('Garnizon','Garrison'),sub:`${fmtK(p.t)} / ${fmtK(gm)}`,cost:room<100?lng('dolu','full'):`+${fmtK(gn)} · ${Math.ceil(RC*gn/1000)}`,coin:room>=100,dis:room<100||F.gold<RC*gn/1000||F.mp<gn,tip:lng('Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.','A garrison guards its province but cannot go on campaign. Its pay is half that of a field army.')})}
    ${bTile({act:'gdisband',icon:bIcon('gdis'),name:sure?lng('Emin misin?','Sure?'):lng('Terhis','Release'),sub:sure?lng('Bir daha bas','Tap again'):lng('Garnizonu azalt','Fewer guards'),cost:lng('maaş azalır','less pay'),coin:false,dis:p.t<=garMin(i),tip:lng('Garnizondan asker terhis eder; maaş azalır ama eyalet zayıflar.','Sends garrison troops home: less pay, but a weaker province.')})}</div></div>`;}});
 
@@ -94,6 +97,7 @@ PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
 
 /* ---- actions ---- */
 ['amove','amerge','asplit','adisband','gdisband','grec','astorm'].forEach(a=>OVERBLOCK.add(a));
+['recc','reca'].forEach(a=>{OVERBLOCK.add(a);QUIET.add(a);});
 ['asel','amove','grec','astorm'].forEach(a=>QUIET.add(a));
 ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
@@ -130,7 +134,7 @@ ACTS.adisband=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;cons
 ACTS.gdisband=(t,f)=>{const i=sel,p=S.prov[i];if(!p||p.o!==f)return;const ck='gdis:'+i;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
  const n=garDisband(i);if(n){SND.play('coin');toast(lng(`${PD[i].name} garnizonundan ${fmtK(n)} asker terhis edildi.`,`${fmtK(n)} troops released from the ${PD[i].name} garrison.`),'good');}renderAll();};
 ACTS.grec=(t,f,F)=>{if(sel<0||S.prov[sel].o!==f)return;const r=armRecruit(f,sel,1000,{gar:true});if(!r.to){toast(r.reason);return;}SND.play('recruit');renderAll();};
-ACTS.rec1=ACTS.rec5=(t,f,F)=>{if(sel<0)return;const n=t.dataset.act==='rec1'?1000:5000,r=armRecruit(f,sel,n,{army:selArmy});
+ACTS.rec1=ACTS.rec5=ACTS.recc=ACTS.reca=(t,f,F)=>{if(sel<0)return;const k=t.dataset.act,n=k==='rec5'?5000:k==='reca'?BAL_U.artBatch:1000,type=k==='rec1'?'i':k==='recc'?'c':k==='reca'?'a':undefined,r=armRecruit(f,sel,n,{army:selArmy,type});
  if(!r.to){toast(r.reason);return;}if(r.army)selArmy=r.army.id;SND.play('recruit');
  if(r.to==='new')toast(lng(`${armName(r.army)} kuruldu. Yeni askerler bu mevsim eğitimde, gelecek mevsim yürüyebilir.`,`${armName(r.army)} formed. The new troops train this season and can march next season.`),'good');else if(r.to==='gar')toast(lng(`${fmtK(r.n)} asker garnizona yazıldı.`,`${fmtK(r.n)} troops joined the garrison.`));renderAll();};
 ACTS.bdev=(t,f,F)=>{const p=S.prov[sel];if(!p||p.o!==f||p.ctl)return;const c=25*p.dev;if(F.gold<c||p.dev>=12)return;F.gold-=c;p.dev++;SND.play('build');renderAll();};

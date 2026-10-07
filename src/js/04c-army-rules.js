@@ -67,7 +67,7 @@ function fieldBattle(att,defs,i){
  if(att!=null&&typeof att!=='object')att=armyById(att);if(!att)return null;
  defs=(defs||[]).map(d=>d!=null&&typeof d==='object'?d:armyById(d)).filter(d=>d&&d.loc===i&&d.f!==att.f);if(!defs.length)return null;
  const big=defs.slice().sort((x,y)=>y.n-x.n)[0],from=att.loc,n=att.n,dn=defs.reduce((s,d)=>s+d.n,0);
- const ctx={kind:'field',att:att.f,def:big.f,from,to:i,n},mods=battleMods(ctx),nz=BAL_B.fieldNoise,ra=rnd(1-nz,1+nz),rd=rnd(1-nz,1+nz);
+ const ctx={kind:'field',att:att.f,def:big.f,from,to:i,n,uA:[att],uD:defs},mods=battleMods(ctx),nz=BAL_B.fieldNoise,ra=rnd(1-nz,1+nz),rd=rnd(1-nz,1+nz);
  const aP=modMul(n*att.morale,mods,'att')*ra,dP=modMul(defs.reduce((s,d)=>s+d.n*d.morale,0),mods,'def')*rd,r=aP/dP,win=r>1,q=win?r:1/r;
  const wF=clamp(.12/q,.03,.15),lF=clamp(.2*q,.2,.5),aF=(win?wF:lF)*modLoss(mods,'def'),dF=(win?lF:wF)*modLoss(mods,'att');
  const defFs=[...new Set(defs.map(d=>d.f))];
@@ -92,13 +92,13 @@ function fieldBattle(att,defs,i){
 /** Merge army b into army a (same faction, same province). -> a, or null */
 function armyMerge(a,b){if(typeof a!=='object')a=armyById(a);if(typeof b!=='object')b=armyById(b);
  if(!a||!b||a===b||a.f!==b.f||a.loc!==b.loc)return null;
- a.morale=+((a.n*a.morale+b.n*b.morale)/Math.max(1,a.n+b.n)).toFixed(2);a.n+=b.n;a.mp=Math.min(a.mp,b.mp);
+ a.morale=+((a.n*a.morale+b.n*b.morale)/Math.max(1,a.n+b.n)).toFixed(2);a.mix=mixBlend(armMix(a),a.n,armMix(b),b.n);a.n+=b.n;a.mp=Math.min(a.mp,b.mp);
  if(a.gen==null&&b.gen!=null){a.gen=b.gen;b.gen=null;}
  armyRemove(b.id,'merged');return a;}
 /** Split n troops (default: half) off army `id` into a new army in the same province (needs room under armyCap). -> new army or null */
 function armySplit(id,n){const a=armyById(id);if(!a||armyList(a.f).length>=armyCap(a.f))return null;
  n=Math.round((n==null?a.n/2:n)/100)*100;if(n<100||a.n-n<100)return null;
- a.n-=n;return armyCreate(a.f,a.loc,n,{mp:a.mp,mpMax:a.mpMax,morale:a.morale});}
+ a.n-=n;return armyCreate(a.f,a.loc,n,{mp:a.mp,mpMax:a.mpMax,morale:a.morale,mix:armMix(a).slice()});}
 /** Manpower a faction may hold. */
 function armMpCap(f){return devSum(f)*800;}
 /** Disband army `id`: half of its troops return home as manpower, no gold. -> manpower returned */
@@ -118,16 +118,19 @@ function armRecruitDest(f,i,o={}){
  if(here)return {to:'army',army:here};
  if(armyList(f).length<armyCap(f))return {to:'new'};
  return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Ordu sınırına ulaştın ve garnizon dolu.','You have reached the army limit and the garrison is full.')};}
-/** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?}.
+/** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?,type?}
+ type 'i'|'c'|'a' (04i: infantry, cavalry, artillery; artillery needs cannon); none: the realm's usual mix.
  -> {to:'army'|'new'|'gar', army?, n} or {to:null, reason} */
 function armRecruit(f,i,n,o={}){const F=S.fac[f],d=armRecruitDest(f,i,o);if(!d.to)return d;
  if(d.to==='gar')n=Math.min(n,garRoom(i));n=Math.floor(n/100)*100;
- const cost=RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
+ if(o.type==='a'&&!F.cannon)return {to:null,reason:lng('Top dökmeyi henüz bilmiyorsun.','Your realm cannot cast cannon yet.')};
+ const tm=d.to==='gar'?null:o.type?UNIT_K.map(k=>k===o.type?1:0):unitDefMix(f);
+ const cost=tm?unitRecruitCost(f,o.type,n):RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
  if(F.gold<cost)return {to:null,reason:lng('Hazinede yeterli altın yok.','Not enough gold in the treasury.')};if(F.mp<n)return {to:null,reason:lng('Yeterli insan gücü yok.','Not enough manpower.')};
  F.gold-=cost;F.mp-=n;
  if(d.to==='gar'){S.prov[i].t+=n;return {to:'gar',n};}
- if(d.to==='army'){d.army.n+=n;return {to:'army',army:d.army,n};}
- const a=armyCreate(f,i,n,{mp:0});return {to:'new',army:a,n};}
+ if(d.to==='army'){d.army.mix=mixBlend(armMix(d.army),d.army.n,tm,n);d.army.n+=n;return {to:'army',army:d.army,n};}
+ const a=armyCreate(f,i,n,{mp:0,mix:tm});return {to:'new',army:a,n};}
 
 /** Distance (steps over any land/lane) from province s to every province. */
 function armDistFrom(s){const d=new Int16Array(NP).fill(-1);d[s]=0;const q=[s];

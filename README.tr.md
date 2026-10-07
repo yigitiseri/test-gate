@@ -31,6 +31,8 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
   alırsın; komutanı ölen ya da esir düşen ordunun başına tur sonunda boştaki bir paşa geçer.
 - **Uzun sefer.** Ordun seçiliyken uzak bir eyalete dokunup Sefere çık de: ordu her tur sonunda kendiliğinden
   gidebildiği kadar yürür, varınca düşman şehrini kuşatır.
+- **Asker türleri.** Ordular piyade, süvari ve topçudan oluşur; her devletin kendi askeri vardır (Yeniçeri,
+  Sipahi, Memlük süvarisi, Tatar atlıları...). Süvari açık arazide, piyade dağda ve surlarda üstün, toplar kuşatmayı kısaltır.
 - **Kısayollar.** Üst çubukta **Ordu**'ya ya da **Eyalet**'e dokununca ordularını ya da eyaletlerini sırayla
   gösterir; unuttuğun bir ada ya da kaybolan bir ordu hep bir dokunuş uzağındadır.
 - **Vasallar.** Yendiğin devleti ilhak etmek yerine Barış Masası'nda haraçgüzar yap: toprağı kendinde kalır, her

@@ -110,7 +110,7 @@ function armBattleEnd(rep){
  owner changes only at peace), the army moves in and leaves a small garrison. */
 function armAssault(a,from,to){
  const D=S.prov[to],att=a.f,def=ctl(to);if(att===def||!atWar(att,def))return null;
- const br=armBreach(to,att),n=a.n,ctx={kind:'assault',att,def,from,to,n,breach:br},mods=battleMods(ctx),need=armAssaultNeed(to,br),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
+ const br=armBreach(to,att),n=a.n,ctx={kind:'assault',att,def,from,to,n,breach:br,uA:[a]},mods=battleMods(ctx),need=armAssaultNeed(to,br),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
  const aP=modMul(n*a.morale,mods,'att')*ra,dP=modMul(defBase(to),mods,'def')*rd,r=aP/dP/need,defT=D.t,lm=modLoss(mods,'def');
  const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0,kind:'assault',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},army:a.id,need};
  const w=S.war[key(att,def)];

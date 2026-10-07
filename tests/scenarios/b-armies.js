@@ -48,7 +48,8 @@ module.exports = {
     const g0 = await E(() => window.__ke.S.fac.OSM.gold);
     await click('#panel [data-act="rec1"]');
     const a2 = await army(pick.id), g1 = await E(() => window.__ke.S.fac.OSM.gold);
-    check('recruit joins the selected army and costs 12 gold', a2.n === a1.n + 1000 && Math.abs(g0 - g1 - 12) < 1e-6, { n1: a1.n, n2: a2.n, g0, g1 });
+    const foot = await E(() => window.__ke.units.cost('OSM', 'i', 1000)); // troop types (04i): 1,000 foot
+    check('recruit (1,000 foot) joins the selected army and costs the foot price', a2.n === a1.n + 1000 && Math.abs(g0 - g1 - foot) < 1e-6 && foot === 10, { n1: a1.n, n2: a2.n, g0, g1, foot });
 
     // garrison: reduce to its minimum (two taps), then strengthen
     const gi = await E(j => { const K = window.__ke; return { t: K.S.prov[j].t, max: K.garrisonMax(j) }; }, pick.j);

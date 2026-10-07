@@ -2,7 +2,8 @@
    ARMY FIGURES (2D): small soldiers at the foot of an army's standard, dressed as their realm fought:
    janissaries for the Ottomans, turbaned archers for the Turkmen and Persian realms, Mamluk lancers,
    Crimean horse-archers in fur caps, Catholic halberdiers in kettle hats, Orthodox spearmen with round
-   shields; the coat takes the realm's colour. One figure for a small army, two from 3,000, three from 15,000.
+   shields; the coat takes the realm's colour. One figure for a small army, two from 3,000, three from 15,000;
+   armies rich in horse (04i) show horsemen among them.
    Sprites are cached per culture, colour and scale.
    ===================================================================== */
 const FIG={m:new Map()};
@@ -42,12 +43,22 @@ function figPaint(g,cul,col){const INK='#2a1a0c';g.lineJoin='round';g.lineCap='r
  g.fillStyle='#b9bbbd';g.beginPath();g.ellipse(0,-14.2,3.4,.9,0,0,7);g.fill();g.stroke();g.beginPath();g.arc(0,-14.3,1.9,Math.PI,0);g.fill();g.stroke();
  arm(3.6,-8);g.strokeStyle='#5a3a1e';g.lineWidth=.9;g.beginPath();g.moveTo(3.6,0);g.lineTo(3.6,-21);g.stroke();
  g.fillStyle='#d8d6cc';g.beginPath();g.moveTo(3.6,-21.6);g.lineTo(4.2,-19.6);g.lineTo(6.6,-19);g.quadraticCurveTo(6.8,-17.2,4.2,-16.8);g.lineTo(3.6,-16.6);g.closePath();g.fill();g.stroke();}   // halberd
-function figSprite(cul,col,z){const k=cul+col+z+'|'+dpr;let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
- const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);figPaint(g,cul,col);});
+/** A horseman: the culture's soldier (without his legs) on a horse, feet of the horse at the origin, facing right. */
+function figHorse(g,cul,col){const INK='#2a1a0c',hc=cul==='kn'?'#d8d2c4':cul==='tat'||cul==='turk'||cul==='qiz'?'#8a6a44':'#6b4a2e';g.lineJoin='round';g.lineCap='round';
+ g.strokeStyle=INK;g.lineWidth=.7;g.fillStyle=hc;
+ g.beginPath();for(const [x0,x1] of [[-5.2,-5.8],[-3.4,-3],[3.6,3.2],[5.4,6]]){g.moveTo(x0,-6);g.lineTo(x1,0);}g.lineWidth=1.3;g.strokeStyle=hc;g.stroke();g.lineWidth=.7;g.strokeStyle=INK;
+ g.beginPath();g.ellipse(0,-7.4,7,3.2,0,0,7);g.fill();g.stroke();
+ g.beginPath();g.moveTo(5.4,-8.6);g.quadraticCurveTo(7.6,-12,8.4,-13.4);g.lineTo(10.6,-12.2);g.lineTo(10.2,-10.8);g.quadraticCurveTo(8.4,-10.4,7.2,-7.4);g.closePath();g.fill();g.stroke();
+ g.beginPath();g.moveTo(-6.8,-8.2);g.quadraticCurveTo(-9.4,-6.6,-9,-3.4);g.stroke();
+ if(cul==='kn'){g.fillStyle=col;g.beginPath();g.moveTo(-6,-9.6);g.lineTo(5,-9.6);g.lineTo(5.6,-5.2);g.lineTo(-6.6,-5.2);g.closePath();g.fill();g.stroke();}   // a barding in the realm's colour
+ g.save();g.translate(-.6,-7.8);g.scale(.82,.82);g.beginPath();g.rect(-12,-30,24,23.6);g.clip();figPaint(g,cul,col);g.restore();}
+function figSprite(cul,col,z,horse){const k=cul+col+z+'|'+dpr+(horse?'h':'');let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
+ const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);horse?figHorse(g,cul,col):figPaint(g,cul,col);});
  sp={e,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
 /** Figures at the foot of token t (2D only), drawn before the standard. */
-function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,sp=figSprite(cul,col,z);
+function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,a=t.id!=null?armyById(t.id):null,cav=a?armMix(a)[1]:0;
+ const horse=k=>(k===0&&cav>=.35)||(k===2&&cav>=.6)||(k===1&&cav>=.8);   // horse-heavy armies show horsemen (04i)
  const n=t.n>=15000?3:t.n>=3000?2:1,spots=[[-26,2],[25,2],[-35,-2]];
  for(let k=0;k<n;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
   c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,5.6*t.z,1.8*t.z,0,0,7);c.fill();
-  saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
+  const sp=figSprite(cul,col,z,horse(k));saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}

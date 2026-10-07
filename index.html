@@ -959,6 +959,12 @@ img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
 .pick .sv-start .sv-ld{flex:0 1 40%}
 .sv-ra .btn.danger{flex:0 1 auto;padding:8px 12px}
 @media (min-width:761px){.sv-ra{flex-wrap:nowrap}.sv-ra .btn{flex:1 1 0}.sv-ra .btn.danger{flex:0 0 auto}}
+/* troop types (04i): the mix bar of the selected army */
+.ubar{display:flex;height:9px;border-radius:5px;overflow:hidden;margin:8px 0 4px;box-shadow:inset 0 0 0 1px rgba(40,24,8,.35)}
+.ubar i{display:block;height:100%}
+.ulegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.ulegend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.garsec .btiles{grid-template-columns:repeat(4,minmax(0,1fr))}
 </style>
 </head>
 <body>
@@ -1895,7 +1901,8 @@ function upkeep(f){let s=0;for(const e of econRows(f))if(e.k==='exp')s+=e.v;retu
 ECON_ROWS.push(f=>{let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=provIncome(i);return [{id:'tax',l:lng('Eyalet vergileri','Provincial taxes'),v:s,k:'inc'}];}); // occupied land pays its occupier (04d)
 ECON_ROWS.push(f=>{const n=facProvs(f).length,v=n<BAL_B.smallAid.length?BAL_B.smallAid[n]:0;
  return v>0?[{id:'small',l:lng('Küçük devlet desteği','Small realm support'),v,k:'inc',tip:lng('Küçük devletler komşu hanedanlardan, tüccarlardan ve kiliseden yardım alır. Devlet büyüdükçe bu yardım azalır ve dokuz eyaletten sonra kesilir.','Small realms receive help from neighbouring dynasties, merchants and the Church. The help shrinks as the realm grows and stops once it holds nine provinces.')}]:null;});
-ECON_ROWS.push(f=>{const a=armTotal(f);return [{id:'army',l:lng(`Ordu maaşları (${fmtK(a)})`,`Army pay (${fmtK(a)})`),v:a/1000*UPK,k:'exp',tip:lng('Sahra orduları: her 1.000 asker için tur başına 1 altın.','Field armies: 1 gold per turn for every 1,000 troops.')}];});
+ECON_ROWS.push(f=>{const a=armTotal(f);let v=0;for(const x of armyList(f))v+=x.n/1000*UPK*mixCost(armMix(x),BAL_U.upk);   // troop types (04i): horse and guns cost more
+ return [{id:'army',l:lng(`Ordu maaşları (${fmtK(a)})`,`Army pay (${fmtK(a)})`),v,k:'exp',tip:lng('Sahra orduları: her 1.000 asker için tur başına yaklaşık 1 altın; süvari ve top daha pahalı, piyade daha ucuz.','Field armies: about 1 gold per turn for every 1,000 troops; horsemen and guns cost more, foot soldiers less.')}];});
 ECON_ROWS.push(f=>{const g=garTotal(f);return [{id:'gar',l:lng(`Garnizon maaşları (${fmtK(g)})`,`Garrison pay (${fmtK(g)})`),v:g/1000*UPK*BAL_B.garUpk,k:'exp',tip:lng('Kale ve şehir muhafızları: her 1.000 asker için tur başına yarım altın.','Fortress and city guards: half a gold per turn for every 1,000 troops.')}];});
 function warsOf(f){return FK.filter(g=>g!==f&&alive(g)&&atWar(f,g));}
 function alliesOf(f){return FK.filter(g=>g!==f&&alive(g)&&isAlly(f,g));}
@@ -3425,7 +3432,7 @@ function armBattleEnd(rep){
  owner changes only at peace), the army moves in and leaves a small garrison. */
 function armAssault(a,from,to){
  const D=S.prov[to],att=a.f,def=ctl(to);if(att===def||!atWar(att,def))return null;
- const br=armBreach(to,att),n=a.n,ctx={kind:'assault',att,def,from,to,n,breach:br},mods=battleMods(ctx),need=armAssaultNeed(to,br),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
+ const br=armBreach(to,att),n=a.n,ctx={kind:'assault',att,def,from,to,n,breach:br,uA:[a]},mods=battleMods(ctx),need=armAssaultNeed(to,br),ra=rnd(.85,1.2),rd=rnd(.85,1.2);
  const aP=modMul(n*a.morale,mods,'att')*ra,dP=modMul(defBase(to),mods,'def')*rd,r=aP/dP/need,defT=D.t,lm=modLoss(mods,'def');
  const rep={from,to,att,def,n,defT,turn:S.turn,win:false,aLoss:0,dLoss:0,kind:'assault',mods,roll:{a:Math.round(ra*1e3)/1e3,d:Math.round(rd*1e3)/1e3},army:a.id,need};
  const w=S.war[key(att,def)];
@@ -3497,6 +3504,7 @@ function eliminate(f,by){const F=S.fac[f];F.alive=false;
 function armyCreate(f,loc,n,o={}){
  const used=new Set(S.armies.filter(x=>x.f===f).map(x=>x.no));let no=1;while(used.has(no))no++;
  const a={id:S.seq++,f,loc,n,gen:null,mp:0,mpMax:BAL_B.mpMax,path:[],morale:1,st:'idle',no,...o};
+ if(!a.mix)a.mix=unitDefMix(f);   // troop types (04i)
  S.armies.push(a);runHooks('armyCreated',a);return a;}
 function armyRemove(id,reason){const k=S.armies.findIndex(a=>a.id===id);if(k<0)return null;
  const a=S.armies.splice(k,1)[0];if(selArmy===id)selArmy=null;runHooks('armyRemoved',a,reason);return a;}
@@ -3589,7 +3597,7 @@ function fieldBattle(att,defs,i){
  if(att!=null&&typeof att!=='object')att=armyById(att);if(!att)return null;
  defs=(defs||[]).map(d=>d!=null&&typeof d==='object'?d:armyById(d)).filter(d=>d&&d.loc===i&&d.f!==att.f);if(!defs.length)return null;
  const big=defs.slice().sort((x,y)=>y.n-x.n)[0],from=att.loc,n=att.n,dn=defs.reduce((s,d)=>s+d.n,0);
- const ctx={kind:'field',att:att.f,def:big.f,from,to:i,n},mods=battleMods(ctx),nz=BAL_B.fieldNoise,ra=rnd(1-nz,1+nz),rd=rnd(1-nz,1+nz);
+ const ctx={kind:'field',att:att.f,def:big.f,from,to:i,n,uA:[att],uD:defs},mods=battleMods(ctx),nz=BAL_B.fieldNoise,ra=rnd(1-nz,1+nz),rd=rnd(1-nz,1+nz);
  const aP=modMul(n*att.morale,mods,'att')*ra,dP=modMul(defs.reduce((s,d)=>s+d.n*d.morale,0),mods,'def')*rd,r=aP/dP,win=r>1,q=win?r:1/r;
  const wF=clamp(.12/q,.03,.15),lF=clamp(.2*q,.2,.5),aF=(win?wF:lF)*modLoss(mods,'def'),dF=(win?lF:wF)*modLoss(mods,'att');
  const defFs=[...new Set(defs.map(d=>d.f))];
@@ -3614,13 +3622,13 @@ function fieldBattle(att,defs,i){
 /** Merge army b into army a (same faction, same province). -> a, or null */
 function armyMerge(a,b){if(typeof a!=='object')a=armyById(a);if(typeof b!=='object')b=armyById(b);
  if(!a||!b||a===b||a.f!==b.f||a.loc!==b.loc)return null;
- a.morale=+((a.n*a.morale+b.n*b.morale)/Math.max(1,a.n+b.n)).toFixed(2);a.n+=b.n;a.mp=Math.min(a.mp,b.mp);
+ a.morale=+((a.n*a.morale+b.n*b.morale)/Math.max(1,a.n+b.n)).toFixed(2);a.mix=mixBlend(armMix(a),a.n,armMix(b),b.n);a.n+=b.n;a.mp=Math.min(a.mp,b.mp);
  if(a.gen==null&&b.gen!=null){a.gen=b.gen;b.gen=null;}
  armyRemove(b.id,'merged');return a;}
 /** Split n troops (default: half) off army `id` into a new army in the same province (needs room under armyCap). -> new army or null */
 function armySplit(id,n){const a=armyById(id);if(!a||armyList(a.f).length>=armyCap(a.f))return null;
  n=Math.round((n==null?a.n/2:n)/100)*100;if(n<100||a.n-n<100)return null;
- a.n-=n;return armyCreate(a.f,a.loc,n,{mp:a.mp,mpMax:a.mpMax,morale:a.morale});}
+ a.n-=n;return armyCreate(a.f,a.loc,n,{mp:a.mp,mpMax:a.mpMax,morale:a.morale,mix:armMix(a).slice()});}
 /** Manpower a faction may hold. */
 function armMpCap(f){return devSum(f)*800;}
 /** Disband army `id`: half of its troops return home as manpower, no gold. -> manpower returned */
@@ -3640,16 +3648,19 @@ function armRecruitDest(f,i,o={}){
  if(here)return {to:'army',army:here};
  if(armyList(f).length<armyCap(f))return {to:'new'};
  return garRoom(i)>=100?{to:'gar'}:{to:null,reason:lng('Ordu sınırına ulaştın ve garnizon dolu.','You have reached the army limit and the garrison is full.')};}
-/** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?}.
+/** Recruit n troops (multiple of 100) for faction f in province i, paying gold and manpower. o={army?,gar?,type?}
+ type 'i'|'c'|'a' (04i: infantry, cavalry, artillery; artillery needs cannon); none: the realm's usual mix.
  -> {to:'army'|'new'|'gar', army?, n} or {to:null, reason} */
 function armRecruit(f,i,n,o={}){const F=S.fac[f],d=armRecruitDest(f,i,o);if(!d.to)return d;
  if(d.to==='gar')n=Math.min(n,garRoom(i));n=Math.floor(n/100)*100;
- const cost=RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
+ if(o.type==='a'&&!F.cannon)return {to:null,reason:lng('Top dökmeyi henüz bilmiyorsun.','Your realm cannot cast cannon yet.')};
+ const tm=d.to==='gar'?null:o.type?UNIT_K.map(k=>k===o.type?1:0):unitDefMix(f);
+ const cost=tm?unitRecruitCost(f,o.type,n):RC*n/1000;if(n<100)return {to:null,reason:lng('Garnizon dolu.','The garrison is full.')};
  if(F.gold<cost)return {to:null,reason:lng('Hazinede yeterli altın yok.','Not enough gold in the treasury.')};if(F.mp<n)return {to:null,reason:lng('Yeterli insan gücü yok.','Not enough manpower.')};
  F.gold-=cost;F.mp-=n;
  if(d.to==='gar'){S.prov[i].t+=n;return {to:'gar',n};}
- if(d.to==='army'){d.army.n+=n;return {to:'army',army:d.army,n};}
- const a=armyCreate(f,i,n,{mp:0});return {to:'new',army:a,n};}
+ if(d.to==='army'){d.army.mix=mixBlend(armMix(d.army),d.army.n,tm,n);d.army.n+=n;return {to:'army',army:d.army,n};}
+ const a=armyCreate(f,i,n,{mp:0,mix:tm});return {to:'new',army:a,n};}
 
 /** Distance (steps over any land/lane) from province s to every province. */
 function armDistFrom(s){const d=new Int16Array(NP).fill(-1);d[s]=0;const q=[s];
@@ -4319,6 +4330,80 @@ hook('turnStart',()=>{if(!S||!S.player)return;for(const a of armyList(S.player).
 /** Keep the drawn roads current (owners and enemies change). */
 hook('renderAll',()=>{if(!S||!S.player)return;for(const a of armyList(S.player))if(a.dest!=null){const p=armyPath(a.id,a.dest);a.path=p||[];}});
 KE.march={set:(id,to)=>marchSet(armyById(id),to),step:id=>marchStep(armyById(id)),seasons:(id,cost)=>marchSeasons(armyById(id),cost)};
+/* =====================================================================
+   UNIT TYPES: every field army is a mix of infantry (i), cavalry (c) and artillery (a), kept as shares
+   a.mix=[i,c,a] (sum 1) beside its head count a.n, so losses, merges and splits keep working on a.n alone.
+    - Cavalry rules the open field and the desert, struggles in the mountains and is useless against walls.
+    - Infantry holds the mountains and storms walls.
+    - Artillery (once the realm has cannon) batters walls: faster sieges, stronger assaults, a little help in the field.
+    - Each culture fields its own troops (janissaries and sipahis, Mamluk horse, Tatar riders, hussars, knights...)
+      and its default mix; some are better than others.
+    - Cavalry costs more to raise and to pay; artillery the most.
+   ===================================================================== */
+const BAL_U={
+ cost:{i:.85,c:1.3,a:2.5},                   // gold to raise per man, x RC per 1,000 (a usual mix costs about what an army cost before)
+ upk:{i:.85,c:1.3,a:2},                      // pay per man, x UPK per 1,000
+ field:{plainsCav:.3,desCav:.4,mtnCav:-.25,mtnInf:.12,art:.4},   // field battle: +share x term
+ assault:{inf:.3,cav:-.35,art:1.5},          // storming walls
+ siegeArt:2.5,siegeArtCap:.5,                // siege speed: +share x 2.5, at most +50%
+ artBatch:500                                // a battery is raised 500 men at a time
+};
+/* default mixes and troops by culture */
+const UNIT_CUL={
+ OSM:{mix:[.5,.45,.05],q:{i:1.15,c:1},n:{i:['Yeniçeri','Janissaries'],c:['Sipahi','Sipahis'],a:['Topçu Ocağı','Artillery Corps']}},
+ TRK:{mix:[.35,.65,0],q:{i:1,c:1.05},n:{i:['Azaplar','Azaps'],c:['Türkmen atlıları','Turkmen horse'],a:['Topçular','Gunners']}},
+ SAF:{mix:[.3,.7,0],q:{i:1,c:1.1},n:{i:['Piyade','Foot'],c:['Kızılbaş süvarisi','Qizilbash horse'],a:['Topçular','Gunners']}},
+ MAM:{mix:[.35,.65,0],q:{i:1,c:1.15},n:{i:['Piyade','Foot'],c:['Memlük süvarisi','Mamluk horse'],a:['Topçular','Gunners']}},
+ KRM:{mix:[.15,.85,0],q:{i:.95,c:1.1},n:{i:['Piyade','Foot'],c:['Tatar atlıları','Tatar riders'],a:['Topçular','Gunners']}},
+ HUN:{mix:[.55,.45,0],q:{i:1,c:1.1},n:{i:['Piyade','Foot'],c:['Hafif süvari (hussar)','Hussars'],a:['Topçular','Gunners']}},
+ KN:{mix:[.65,.35,0],q:{i:1,c:1.1},n:{i:['Mızraklı piyade','Pikemen'],c:['Şövalyeler','Knights'],a:['Topçular','Gunners']}},
+ SEA:{mix:[.75,.25,0],q:{i:1.05,c:1},n:{i:['Arbaletçiler','Crossbowmen'],c:['Stradiotlar','Stradioti'],a:['Topçular','Gunners']}},
+ ORT:{mix:[.6,.4,0],q:{i:1,c:1},n:{i:['Piyade','Foot'],c:['Süvari','Horse'],a:['Topçular','Gunners']}},
+ WAL:{mix:[.45,.55,0],q:{i:1,c:1.05},n:{i:['Köylü piyade','Peasant foot'],c:['Boyar süvarisi','Boyar horse'],a:['Topçular','Gunners']}}};
+const UNIT_OF={OSM:'OSM',CLM:'OSM',KAR:'TRK',CAN:'TRK',DUL:'TRK',AKK:'TRK',KKY:'TRK',SAF:'SAF',MAM:'MAM',HAF:'MAM',KRM:'KRM',HUN:'HUN',
+ VEN:'SEA',GEN:'SEA',RHO:'SEA',CYP:'SEA',WAL:'WAL',MOL:'WAL'};
+function unitCul(f){return UNIT_CUL[UNIT_OF[f]||(FAC[f]&&FAC[f].rel==='Ortodoks'?'ORT':FAC[f]&&FAC[f].rel==='İslam'?'TRK':'KN')];}
+/** The realm's own name for a troop type ('i'|'c'|'a'). */
+function unitName(f,t){const n=unitCul(f).n[t];return lng(n[0],n[1]);}
+/** Default mix of realm f (artillery only once it has cannon). */
+function unitDefMix(f){const m=unitCul(f).mix.slice();if(!(S.fac[f]&&S.fac[f].cannon)){m[0]+=m[2];m[2]=0;}else if(m[2]<.05){const d=.05-m[2];m[2]=.05;m[0]-=d;}return m;}
+/** Mix of army a ([i,c,a], sum 1); armies from older saves get their realm's default. */
+function armMix(a){if(!a.mix||a.mix.length!==3){a.mix=unitDefMix(a.f);}return a.mix;}
+function mixBlend(m1,n1,m2,n2){const t=Math.max(1,n1+n2);return [0,1,2].map(k=>+((m1[k]*n1+m2[k]*n2)/t).toFixed(3));}
+const UNIT_K=['i','c','a'];
+/** Gold per 1,000 men of mix m, relative to infantry. */
+function mixCost(m,tab){return m[0]*tab.i+m[1]*tab.c+m[2]*tab.a;}
+/** Gold to raise n men of type t ('i'|'c'|'a', or none: the realm's usual mix), whole coins. */
+function unitRecruitCost(f,t,n){const m=t?UNIT_K.map(k=>k===t?1:0):unitDefMix(f);return Math.max(1,Math.round(RC*n/1000*mixCost(m,BAL_U.cost)));}
+/** Head-count-weighted mix of several armies. */
+function mixOf(L){let n=0;const m=[0,0,0];for(const a of L){const x=armMix(a);for(let k=0;k<3;k++)m[k]+=x[k]*a.n;n+=a.n;}return n?m.map(v=>v/n):null;}
+
+/* --- battle: the mix counts --- */
+function unitFieldMods(f,m,to,side,out){const B=BAL_U.field,mtn=armMtn(to),des=!!PD[to].des,q=unitCul(f).q,cannon=S.fac[f]&&S.fac[f].cannon;
+ const cav=m[1]*(mtn?B.mtnCav:des?B.desCav:B.plainsCav)*(mtn?1:q.c),inf=mtn?m[0]*B.mtnInf*q.i:0,art=cannon?m[2]*B.art:0,qual=m[0]*(q.i-1)+(mtn?0:m[1]*(q.c-1));
+ if(Math.abs(cav)>=.015)out.push({l:cav>0?(des?lng('Süvari çölde at koşturuyor','Horsemen at home in the desert'):lng('Süvari açık arazide üstün','Horsemen rule the open field')):lng('Süvari dağda zorlanıyor','Horsemen struggle in the mountains'),m:1+cav,side,k:'ucav'});
+ if(inf>=.015)out.push({l:lng('Piyade dağ yollarını tutuyor','Foot soldiers hold the mountain passes'),m:1+inf,side,k:'uinf'});
+ if(art>=.015)out.push({l:lng('Sahra topları','Field guns'),m:1+art,side,k:'uart'});
+ if(qual>=.015){const best=m[0]*(q.i-1)>=m[1]*(q.c-1)?'i':'c';out.push({l:unitName(f,best),m:1+qual,side,k:'uq'});}}
+BATTLE_MODS.push(ctx=>{if(ctx.to==null||!ctx.att)return null;const out=[],kind=ctx.kind;
+ const own=ctx.uA||(ctx.army!=null?[typeof ctx.army==='object'?ctx.army:armyById(ctx.army)].filter(Boolean):null);
+ if(kind==='field'){if(!own||!own.length)return null;   // both sides or neither (odds without a known army stay as they were)
+  const mA=mixOf(own),def=ctx.uD||armyAt(ctx.to).filter(x=>x.f!==ctx.att&&atWar(ctx.att,x.f)),mD=def.length?mixOf(def):null;
+  if(mA)unitFieldMods(ctx.att,mA,ctx.to,'att',out);if(mD)unitFieldMods(def[0].f,mD,ctx.to,'def',out);return out;}
+ if(kind==='assault'&&own&&own.length){const m=mixOf(own),B=BAL_U.assault,q=unitCul(ctx.att).q,cannon=S.fac[ctx.att]&&S.fac[ctx.att].cannon;
+  const inf=m[0]*B.inf*q.i,cav=m[1]*B.cav,art=cannon?m[2]*B.art:0;
+  if(inf>=.015)out.push({l:lng('Piyade surlara tırmanıyor','Foot soldiers scale the walls'),m:1+inf,side:'att',k:'uinf'});
+  if(cav<=-.015)out.push({l:lng('Süvari surlar önünde işe yaramaz','Horsemen are of no use against walls'),m:1+cav,side:'att',k:'ucav'});
+  if(art>=.015)out.push({l:lng('Toplar surları dövüyor','The guns pound the walls'),m:1+art,side:'att',k:'uart'});return out;}
+ if(kind==='siege'){const s=siegeAt(ctx.to),L=own&&own.length?own:s&&s.f===ctx.att?siegeArmies(s):[];if(!L.length||!(S.fac[ctx.att]&&S.fac[ctx.att].cannon))return null;
+  const art=Math.min(BAL_U.siegeArtCap,mixOf(L)[2]*BAL_U.siegeArt);if(art>=.015)out.push({l:lng('Kuşatma topları','Siege guns'),m:1+art,side:'att',k:'uart'});return out;}
+ return null;});
+
+/* --- the army panel: what the army is made of --- */
+function unitBar(a){const m=armMix(a),f=a.f,cl=['#8a5a2a','#3d6b8a','#5a5a5a'],pc=m.map(v=>Math.round(v*100));
+ return `<div class="ubar" role="img" aria-label="${UNIT_K.map((k,j)=>`${unitName(f,k)} ${pc[j]}%`).join(', ')}">${m.map((v,j)=>v>0?`<i style="width:${v*100}%;background:${cl[j]}"></i>`:'').join('')}</div>
+  <div class="ulegend">${UNIT_K.map((k,j)=>m[j]>0?`<span><b style="background:${cl[j]}"></b>${esc(unitName(f,k))} ${pc[j]}%</span>`:'').join('')}</div>`;}
+KE.units={cost:(f,t,n)=>unitRecruitCost(f,t,n),mix:id=>{const a=armyById(id);return a?armMix(a).slice():null;},def:f=>unitDefMix(f),name:(f,t)=>unitName(f,t),bal:BAL_U};
 /* ---------------- AI ----------------
    The AI plays by the player's rules: garrisons defend, field armies (04c) march and attack.
    Strategy comes from Track D: aiTargets(f) (what to attack) and aiDefendNeeds(f) (what to hold). */
@@ -6834,7 +6919,8 @@ function cityPaint(g,o,u){const INK='#33261a',lw=Math.max(.7,u*.38);g.lineJoin='
    ARMY FIGURES (2D): small soldiers at the foot of an army's standard, dressed as their realm fought:
    janissaries for the Ottomans, turbaned archers for the Turkmen and Persian realms, Mamluk lancers,
    Crimean horse-archers in fur caps, Catholic halberdiers in kettle hats, Orthodox spearmen with round
-   shields; the coat takes the realm's colour. One figure for a small army, two from 3,000, three from 15,000.
+   shields; the coat takes the realm's colour. One figure for a small army, two from 3,000, three from 15,000;
+   armies rich in horse (04i) show horsemen among them.
    Sprites are cached per culture, colour and scale.
    ===================================================================== */
 const FIG={m:new Map()};
@@ -6874,15 +6960,25 @@ function figPaint(g,cul,col){const INK='#2a1a0c';g.lineJoin='round';g.lineCap='r
  g.fillStyle='#b9bbbd';g.beginPath();g.ellipse(0,-14.2,3.4,.9,0,0,7);g.fill();g.stroke();g.beginPath();g.arc(0,-14.3,1.9,Math.PI,0);g.fill();g.stroke();
  arm(3.6,-8);g.strokeStyle='#5a3a1e';g.lineWidth=.9;g.beginPath();g.moveTo(3.6,0);g.lineTo(3.6,-21);g.stroke();
  g.fillStyle='#d8d6cc';g.beginPath();g.moveTo(3.6,-21.6);g.lineTo(4.2,-19.6);g.lineTo(6.6,-19);g.quadraticCurveTo(6.8,-17.2,4.2,-16.8);g.lineTo(3.6,-16.6);g.closePath();g.fill();g.stroke();}   // halberd
-function figSprite(cul,col,z){const k=cul+col+z+'|'+dpr;let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
- const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);figPaint(g,cul,col);});
+/** A horseman: the culture's soldier (without his legs) on a horse, feet of the horse at the origin, facing right. */
+function figHorse(g,cul,col){const INK='#2a1a0c',hc=cul==='kn'?'#d8d2c4':cul==='tat'||cul==='turk'||cul==='qiz'?'#8a6a44':'#6b4a2e';g.lineJoin='round';g.lineCap='round';
+ g.strokeStyle=INK;g.lineWidth=.7;g.fillStyle=hc;
+ g.beginPath();for(const [x0,x1] of [[-5.2,-5.8],[-3.4,-3],[3.6,3.2],[5.4,6]]){g.moveTo(x0,-6);g.lineTo(x1,0);}g.lineWidth=1.3;g.strokeStyle=hc;g.stroke();g.lineWidth=.7;g.strokeStyle=INK;
+ g.beginPath();g.ellipse(0,-7.4,7,3.2,0,0,7);g.fill();g.stroke();
+ g.beginPath();g.moveTo(5.4,-8.6);g.quadraticCurveTo(7.6,-12,8.4,-13.4);g.lineTo(10.6,-12.2);g.lineTo(10.2,-10.8);g.quadraticCurveTo(8.4,-10.4,7.2,-7.4);g.closePath();g.fill();g.stroke();
+ g.beginPath();g.moveTo(-6.8,-8.2);g.quadraticCurveTo(-9.4,-6.6,-9,-3.4);g.stroke();
+ if(cul==='kn'){g.fillStyle=col;g.beginPath();g.moveTo(-6,-9.6);g.lineTo(5,-9.6);g.lineTo(5.6,-5.2);g.lineTo(-6.6,-5.2);g.closePath();g.fill();g.stroke();}   // a barding in the realm's colour
+ g.save();g.translate(-.6,-7.8);g.scale(.82,.82);g.beginPath();g.rect(-12,-30,24,23.6);g.clip();figPaint(g,cul,col);g.restore();}
+function figSprite(cul,col,z,horse){const k=cul+col+z+'|'+dpr+(horse?'h':'');let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
+ const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);horse?figHorse(g,cul,col):figPaint(g,cul,col);});
  sp={e,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
 /** Figures at the foot of token t (2D only), drawn before the standard. */
-function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,sp=figSprite(cul,col,z);
+function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,a=t.id!=null?armyById(t.id):null,cav=a?armMix(a)[1]:0;
+ const horse=k=>(k===0&&cav>=.35)||(k===2&&cav>=.6)||(k===1&&cav>=.8);   // horse-heavy armies show horsemen (04i)
  const n=t.n>=15000?3:t.n>=3000?2:1,spots=[[-26,2],[25,2],[-35,-2]];
  for(let k=0;k<n;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
   c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,5.6*t.z,1.8*t.z,0,0,7);c.fill();
-  saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
+  const sp=figSprite(cul,col,z,horse(k));saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
 /* =====================================================================
    BATTLE SCENE: a small miniature at the head of the battle card (07e). Field battles: the two hosts face
    each other under their banners, dust where they meet. Assaults and sieges: the walls on the right with the
@@ -7579,6 +7675,7 @@ PANEL_SECTIONS.push({id:'armies',order:30,when:c=>armyAt(c.i).length>0||c.mine,h
  let h=`<div class="sec armsec"><h3>${lng('Ordular','Armies')} <span class="cap">${cnt}/${cap}</span></h3>`;
  if(!here.length)h+=`<div class="hint">${lng('Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.','No field army here. Raise troops below and a new army is formed.')}</div>`;
  else h+=`<div class="arms">${here.map(a=>armRow(a,on&&on.id===a.id)).join('')}</div>`;
+ if(on)h+=unitBar(on);   // what the selected army is made of (04i)
  if(on&&c.tgt<0){const others=mineH.filter(a=>a.id!==on.id).length,ck='dis:'+on.id;
   h+=`<div class="hint">${on.mp>0?lng(`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`,`Tap a province to march there. This army can march ${on.mp} more ${on.mp===1?'province':'provinces'} this season; an army that enters enemy land stops there.`):lng('Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.','This army has finished its march for the season. It can set out again after you end the turn.')}</div>
   <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">${lng('Orduları birleştir','Merge armies')}</button>`:''}
@@ -7629,8 +7726,10 @@ PANEL_SECTIONS.push({id:'recruit',order:50,when:c=>c.tgt<0&&c.mine&&!c.p.ctl,htm
  const where=d.to==='army'?lng(`Yeni askerler <b>${esc(armName(d.army))}</b> saflarına katılır.`,`New troops join the ranks of <b>${esc(armName(d.army))}</b>.`):d.to==='new'?lng(`Yeni bir sahra ordusu kurulur (${cnt+1}/${cap}).`,`A new field army is formed (${cnt+1}/${cap}).`):d.to==='gar'?lng(`Ordu sınırına ulaştın (${cnt}/${cap}): askerler garnizona yazılır.`,`You have reached the army limit (${cnt}/${cap}): troops join the garrison.`):esc(d.reason||'');
  const gm=garrisonMax(i),room=garRoom(i),gn=Math.min(1000,room),ck='gdis:'+i,sure=confirmKey===ck;
  return `<div class="sec garsec"><h3>${lng('Asker topla','Raise troops')}</h3><div class="hint" style="margin-bottom:6px">${where}</div><div class="btiles">
-   ${bTile({act:'rec1',icon:bIcon('rec1'),name:lng('Alay','Regiment'),sub:lng('+1.000 asker','+1,000 men'),cost:RC,dis:!d.to||F.gold<RC||F.mp<1000,tip:lng('Bin kişilik bir alay toplar. Altın ve insan gücü ister.','Raises a regiment of a thousand men. Costs gold and manpower.')})}
-   ${bTile({act:'rec5',icon:bIcon('rec5'),name:lng('Tümen','Division'),sub:lng('+5.000 asker','+5,000 men'),cost:RC*5,dis:!d.to||d.to==='gar'||F.gold<RC*5||F.mp<5000,tip:lng('Beş bin kişilik büyük bir birlik toplar.','Raises a large body of five thousand men.')})}
+   ${bTile({act:'rec1',icon:bIcon('rec1'),name:unitName(f,'i'),sub:lng('+1.000 piyade','+1,000 foot'),cost:unitRecruitCost(f,'i',1000),dis:!d.to||F.gold<unitRecruitCost(f,'i',1000)||F.mp<1000,tip:lng('Piyade dağda ve sur saldırısında güçlüdür, ucuzdur.','Foot soldiers are strong in the mountains and against walls, and cheap.')})}
+   ${bTile({act:'recc',icon:bIcon('recc'),name:unitName(f,'c'),sub:lng('+1.000 süvari','+1,000 horse'),cost:unitRecruitCost(f,'c',1000),dis:!d.to||F.gold<unitRecruitCost(f,'c',1000)||F.mp<1000,tip:lng('Süvari açık arazide ve çölde üstündür, dağda ve surlar önünde zayıftır; daha pahalıdır.','Horsemen rule the open field and the desert but are weak in the mountains and against walls; they cost more.')})}
+   ${bTile({act:'reca',icon:bIcon('reca'),name:unitName(f,'a'),sub:F.cannon?lng('+500 topçu','+500 gunners'):lng('Henüz yok','Not yet'),cost:F.cannon?unitRecruitCost(f,'a',500):'—',coin:!!F.cannon,dis:!F.cannon||!d.to||F.gold<unitRecruitCost(f,'a',500)||F.mp<500,tip:F.cannon?lng('Toplar kuşatmayı hızlandırır ve surlara saldırıda ağır basar; en pahalı birliktir.','Guns speed up sieges and weigh heavily against walls; the dearest troops.'):lng('Top dökmeyi henüz bilmiyorsun (Osmanlı 1453, diğerleri 1460).','Your realm cannot cast cannon yet (the Ottomans in 1453, the others in 1460).')})}
+   ${bTile({act:'rec5',icon:bIcon('rec5'),name:lng('Tümen','Division'),sub:lng('+5.000 karma','+5,000 mixed'),cost:unitRecruitCost(f,null,5000),dis:!d.to||d.to==='gar'||F.gold<unitRecruitCost(f,null,5000)||F.mp<5000,tip:lng('Devletinin olağan karışımıyla beş bin kişilik bir birlik.','Five thousand men in your realm\'s usual mix.')})}
    ${bTile({act:'grec',icon:bIcon('grec'),name:lng('Garnizon','Garrison'),sub:`${fmtK(p.t)} / ${fmtK(gm)}`,cost:room<100?lng('dolu','full'):`+${fmtK(gn)} · ${Math.ceil(RC*gn/1000)}`,coin:room>=100,dis:room<100||F.gold<RC*gn/1000||F.mp<gn,tip:lng('Garnizon eyaleti korur ama sefere çıkamaz. Maaşı sahra ordusunun yarısıdır.','A garrison guards its province but cannot go on campaign. Its pay is half that of a field army.')})}
    ${bTile({act:'gdisband',icon:bIcon('gdis'),name:sure?lng('Emin misin?','Sure?'):lng('Terhis','Release'),sub:sure?lng('Bir daha bas','Tap again'):lng('Garnizonu azalt','Fewer guards'),cost:lng('maaş azalır','less pay'),coin:false,dis:p.t<=garMin(i),tip:lng('Garnizondan asker terhis eder; maaş azalır ama eyalet zayıflar.','Sends garrison troops home: less pay, but a weaker province.')})}</div></div>`;}});
 
@@ -7654,6 +7753,7 @@ PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
 
 /* ---- actions ---- */
 ['amove','amerge','asplit','adisband','gdisband','grec','astorm'].forEach(a=>OVERBLOCK.add(a));
+['recc','reca'].forEach(a=>{OVERBLOCK.add(a);QUIET.add(a);});
 ['asel','amove','grec','astorm'].forEach(a=>QUIET.add(a));
 ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
@@ -7690,7 +7790,7 @@ ACTS.adisband=(t,f)=>{const a=armyById(+t.dataset.id);if(!a||a.f!==f)return;cons
 ACTS.gdisband=(t,f)=>{const i=sel,p=S.prov[i];if(!p||p.o!==f)return;const ck='gdis:'+i;if(confirmKey!==ck){confirmKey=ck;renderPanel();return;}confirmKey='';
  const n=garDisband(i);if(n){SND.play('coin');toast(lng(`${PD[i].name} garnizonundan ${fmtK(n)} asker terhis edildi.`,`${fmtK(n)} troops released from the ${PD[i].name} garrison.`),'good');}renderAll();};
 ACTS.grec=(t,f,F)=>{if(sel<0||S.prov[sel].o!==f)return;const r=armRecruit(f,sel,1000,{gar:true});if(!r.to){toast(r.reason);return;}SND.play('recruit');renderAll();};
-ACTS.rec1=ACTS.rec5=(t,f,F)=>{if(sel<0)return;const n=t.dataset.act==='rec1'?1000:5000,r=armRecruit(f,sel,n,{army:selArmy});
+ACTS.rec1=ACTS.rec5=ACTS.recc=ACTS.reca=(t,f,F)=>{if(sel<0)return;const k=t.dataset.act,n=k==='rec5'?5000:k==='reca'?BAL_U.artBatch:1000,type=k==='rec1'?'i':k==='recc'?'c':k==='reca'?'a':undefined,r=armRecruit(f,sel,n,{army:selArmy,type});
  if(!r.to){toast(r.reason);return;}if(r.army)selArmy=r.army.id;SND.play('recruit');
  if(r.to==='new')toast(lng(`${armName(r.army)} kuruldu. Yeni askerler bu mevsim eğitimde, gelecek mevsim yürüyebilir.`,`${armName(r.army)} formed. The new troops train this season and can march next season.`),'good');else if(r.to==='gar')toast(lng(`${fmtK(r.n)} asker garnizona yazıldı.`,`${fmtK(r.n)} troops joined the garrison.`));renderAll();};
 ACTS.bdev=(t,f,F)=>{const p=S.prov[sel];if(!p||p.o!==f||p.ctl)return;const c=25*p.dev;if(F.gold<c||p.dev>=12)return;F.gold-=c;p.dev++;SND.play('build');renderAll();};
@@ -8154,6 +8254,8 @@ const BI_PATHS={
  citadel:'<path d="M3 28h26"/><path class="f" d="M5 28V15h4v-2h3v2h8v-2h3v2h4v13z"/><path class="f" d="M12 15V8h8v7z"/><path d="M12 8V6h2v2h4V6h2v2"/><path d="M16 6V2"/><path class="f" d="M16 2h4l-1.5 1.5L20 5h-4"/><path d="M14 28v-5a2 2 0 0 1 4 0v5"/>',
  rec1:'<path d="M5 28h22"/><path d="M16 7.5a3 3 0 1 0 0 .1"/><path class="f" d="M12.5 7.5a3.5 3.5 0 0 1 7 0z"/><path class="f" d="M12 28l1-8-2-1 1-7h8l1 7-2 1 1 8z"/><path d="M23 28V4M21.5 6.5L23 3l1.5 3.5"/><path d="M20 15h3"/>',
  rec5:'<path d="M2 28h28"/><path class="f" d="M5 28l.8-6-1.5-.7.7-5h6l.7 5-1.5.7.8 6z"/><path class="f" d="M21 28l.8-6-1.5-.7.7-5h6l.7 5-1.5.7.8 6z"/><path d="M8 13.5a2.2 2.2 0 1 0 0 .1M24 13.5a2.2 2.2 0 1 0 0 .1"/><path class="f" d="M12.5 28l1-7.5-2-1 1-7h7l1 7-2 1 1 7.5z"/><path d="M16 9a2.8 2.8 0 1 0 0 .1"/><path d="M16 6V2M16 2h5l-1.5 1.5L21 5h-5"/>',
+ recc:'<path d="M3 28h26"/><path class="f" d="M7 21c1-4 5-6 10-6h5l3-4 2 1-1 4 1 3-2 1-2-2c-1 3-3 4-6 4H11z"/><path d="M9 21l-2 7M12 22l1 6M19 22l-2 6M22 21l3 7"/><path class="f" d="M14 15l1-6h3l1 6z"/><path d="M16.5 9a2 2 0 1 0 0-.1"/><path d="M20 4l-7 13"/><path class="f" d="M19 4l3-1-1 3z"/>',
+ reca:'<path d="M3 28h26"/><path class="f" d="M6 18l18-6 1.5 3.5-17 7.5z"/><path d="M24 12l2-.6M24.5 13.5l2.3-.4"/><path class="f" d="M11 25a4.5 4.5 0 1 0 0-.1"/><path d="M11 20.5v9M6.5 25h9M7.8 21.8l6.4 6.4M14.2 21.8l-6.4 6.4"/><path class="f" d="M24 26a2 2 0 1 0 0-.1M28 26a2 2 0 1 0 0-.1M26 22.5a2 2 0 1 0 0-.1"/>',
  grec:'<path d="M4 28h24"/><path class="f" d="M8 28V12h12v16z"/><path d="M8 12V8h2.5v2.5H13V8h2v2.5h2.5V8H20v4"/><path d="M12 28v-4a2 2 0 0 1 4 0v4"/><path d="M25 9v8M21 13h8"/>',
  gdis:'<path d="M4 28h24"/><path class="f" d="M8 28V12h12v16z"/><path d="M8 12V8h2.5v2.5H13V8h2v2.5h2.5V8H20v4"/><path d="M12 28v-4a2 2 0 0 1 4 0v4"/><path d="M21 13h8"/>',
  medrese:'<path d="M4 25c4-2 8-2 12 0 4-2 8-2 12 0"/><path class="f" d="M4 25V9c4-2 8-2 12 0v16c-4-2-8-2-12 0z"/><path class="f" d="M16 25V9c4-2 8-2 12 0v16c-4-2-8-2-12 0z"/><path d="M7 13h6M7 16h6M7 19h5M19 13h6M19 16h6M19 19h5"/>'
@@ -8625,6 +8727,7 @@ function guideBody(t){
  <p><b>Komutanlar:</b> Her ordunun başında bir paşa, şehzade ya da hükümdarın kendisi olabilir; yıldızları ne kadar çoksa muharebede o kadar işe yarar. Orduyu seçip <b>Komutanı değiştir</b>'e basarak boştaki bir paşayı atayabilir ya da başka bir ordunun komutanını buraya alabilirsin. Komutanı ölen ya da esir düşen orduya, boşta paşan varsa tur sonunda o geçer.</p>
  <p class="tip"><b>Kısayol:</b> Üst çubukta <b>Ordu</b>'ya dokununca ordularını, <b>Eyalet</b>'e dokununca eyaletlerini sırayla gösterir; haritanın bir köşesinde unuttuğun bir ada ya da ordu hep bir dokunuş uzağındadır.</p>
  <p><b>Uzun sefer:</b> Ordun seçiliyken bu mevsim yetişemeyeceği uzak bir eyalete dokun; panelde yolun kaç eyalet ve kaç mevsim sürdüğü çıkar. <b>Sefere çık</b> dersen ordu bu mevsim gidebildiği kadar yürür, sonra her tur sonunda kendiliğinden devam eder. Varınca düşman şehrini kuşatır ya da hücum eder; hedefte bir düşman ordusu varsa önünde durur, saldırı kararı senin olur. Yol kapanırsa sefer durur ve mevsim raporunda yazar. Orduya başka bir emir verirsen ya da paneldeki <b>Seferi durdur</b> düğmesine basarsan sefer biter.</p>
+ <p><b>Asker türleri:</b> Her ordu piyade, süvari ve (top dökmeyi öğrendikten sonra) topçudan oluşur; paneldeki renkli çubuk karışımı gösterir. Her devletin kendi askeri vardır: Osmanlı için Yeniçeri, Sipahi ve Topçu Ocağı, Memlükler için Memlük süvarisi, Kırım için Tatar atlıları gibi. Süvari açık arazide ve çölde üstündür ama dağda zorlanır; piyade dağ yollarını tutar ve surlara tırmanır; toplar kuşatmayı kısaltır ve hücumu güçlendirir. Eyalet panelinden piyade, süvari ya da topçu ayrı ayrı toplanır: süvari daha pahalıdır, topçu en pahalısı; maaşları da öyle. Ordular birleşince karışımları harmanlanır, bölününce aynı kalır. Haritada süvarisi çok olan ordular atlı görünür.</p>
  <p>Tur sonunda <b>Sefer haberleri</b> bu mevsimin yürüyüşlerini ve muharebelerini haritada kısaca oynatır; <b>Geç</b> ile atlayabilirsin. Menü → Görüntü'den kapatabilir ya da hızlandırabilirsin.</p>
  <h3>Kimin gücü ağır basar?</h3>
  <p>Muharebede senin ordunla şehrin savunması karşılaşır. Şehri sadece oradaki askerler korumaz; kasabanın halkı da silaha sarılır. Büyük şehirlerde ve kaleli yerlerde bu halk savunması kalabalıktır.</p>
@@ -8719,6 +8822,7 @@ function guideBodyEn(t,half){
  <p><b>Commanders:</b> Each army can be led by a pasha, a prince or the ruler himself; the more stars he has, the more he helps in battle. Select an army and press <b>Change commander</b> to appoint a free general or bring over the commander of another army. If a commander dies or is taken prisoner, a free general takes his place at the end of the turn.</p>
  <p class="tip"><b>Shortcut:</b> Tap <b>Army</b> in the top bar to jump through your armies, or <b>Provinces</b> to jump through your provinces one by one. A forgotten island or a lost army is always one tap away.</p>
  <p><b>Long march:</b> With an army selected, tap a far province it cannot reach this season; the panel shows how many provinces and seasons the road takes. Press <b>Set out</b> and the army marches as far as it can this season, then carries on by itself at the end of every turn. On arrival it besieges or storms an enemy town; if an enemy army holds the destination it halts in front of it and the attack is your call. If the road closes the march stops, and the season report says so. Give the army another order, or press <b>Stop the march</b> in the panel, and the march ends.</p>
+ <p><b>Troop types:</b> Every army is a mix of foot, horse and (once you can cast cannon) guns; the coloured bar in the panel shows the mix. Each realm fields its own troops: Janissaries, Sipahis and the Artillery Corps for the Ottomans, Mamluk horse for the Mamluks, Tatar riders for Crimea, and so on. Horse rules the open field and the desert but struggles in the mountains; foot holds the mountain passes and scales walls; guns shorten sieges and strengthen assaults. The province panel raises foot, horse or guns separately: horse costs more, guns the most, and the same goes for their pay. Merged armies blend their mix; split armies keep it. On the map, armies with plenty of horse are shown mounted.</p>
  <p>At the end of each turn, <b>Campaign news</b> briefly replays the season's marches and battles on the map; press <b>Skip</b> to pass over it. You can turn it off or speed it up under Menu → Display.</p>
  <h3>Who has the upper hand?</h3>
  <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>
