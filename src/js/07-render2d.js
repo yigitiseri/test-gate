@@ -112,7 +112,9 @@ function draw(){
  else{ctx.fillStyle='#1c120a';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=40;ctx.fillStyle='#2e2114';ctx.fillRect(cam.x,cam.y,W*s,H*s);ctx.shadowBlur=0;
   ctx.setTransform(dpr*s,0,0,dpr*s,dpr*cam.x,dpr*cam.y);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  const fm=19;vmGround(s);ctx.drawImage(polC,fm,fm,W-2*fm,H-2*fm,fm,fm,W-2*fm,H-2*fm);vmLines(s);ctx.drawImage(hlC,0,0);vmSel(s);}   // the wash stays inside the graduated frame   // 07h: crisp coast, borders and outlines
+  const fm=19,f=vmF(s);vmGround(s);
+  if(f<1){ctx.globalAlpha=1-f;ctx.drawImage(polC,fm,fm,W-2*fm,H-2*fm,fm,fm,W-2*fm,H-2*fm);ctx.globalAlpha=1;}if(f>0)vmPol(s,f);   // far: the raster colours; near: filled outlines (07l)
+  vmLines(s);if(f<1){ctx.globalAlpha=1-f;ctx.drawImage(hlC,0,0);ctx.globalAlpha=1;}if(f>0)hrSelFill(f);vmSel(s);}   // the wash stays inside the graduated frame   // 07h: crisp coast, borders and outlines
  ctx.setTransform(dpr,0,0,dpr,0,0);
  // sea lanes
  ctx.setLineDash([6,6]);ctx.lineWidth=1.5;ctx.strokeStyle='rgba(70,44,20,.6)';

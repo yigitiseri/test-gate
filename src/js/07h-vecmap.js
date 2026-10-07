@@ -6,7 +6,7 @@
    Far out the baked map (wash + season tint + the same detail painted once) is used, crossfading in between.
    Seasons (02b): the tint, the symbols (bare and snowy trees, autumn leaves) and frozen rivers follow S.turn.
    ===================================================================== */
-const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,baked:new Map(),cam:'',camT:0};
+const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,pol:null,baked:new Map(),cam:'',camT:0};
 const VM_RINGS=[[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]];   // distance from the coast (px), ink strength
 
 /** Douglas-Peucker on a flat [x,y,...] list; keeps the ends. */
@@ -78,7 +78,7 @@ function vmBuild(){const t0=performance.now();
  VM.gran=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)VM.gran[y*W+x]=clamp((vnoise(x/9+31,y/9+17)*.7+vnoise(x/3.3,y/3.3+5)*.3)*255,0,255);
  // the low-zoom map: the wash with the same detail painted once
  baseC=vmBake(0);
- VM.ground=vtLayer((g,se,r,z)=>vmGroundPaint(g,se,r,z,seasonOf()));VM.lines=vtLayer((g,se,r)=>vmLinesPaint(g,se,r));
+ VM.ground=vtLayer((g,se,r,z)=>vmGroundPaint(g,se,r,z,seasonOf()));VM.lines=vtLayer((g,se,r)=>vmLinesPaint(g,se,r));VM.pol=vtLayer((g,se,r)=>hrPolPaint(g,se,r));
  VM.ms=Math.round(performance.now()-t0);KE.stats.vmMs=VM.ms;}
 /** The low-zoom map of a season (the two latest kept). */
 function vmBake(k){let c=VM.baked.get(k);if(c){VM.baked.delete(k);VM.baked.set(k,c);return c;}
@@ -95,6 +95,7 @@ function vmCellPath(c,cat){if(cat==='realm'||cat==='prov'){if(c.sig!==VM.polSig)
 /** Coast, sea rings, rivers, terrain symbols and decoration in map units. se: screen px per map unit (line widths);
  r: map rect to cover (null = everything, painted directly: baking); z: device scale for the symbol sprites. */
 function vmGroundPaint(g,se,r,z,k){const cells=vmCellsIn(r),px=w=>w/se,bake=!r;
+ if(!bake){g.beginPath();g.rect(0,0,W,H);g.clip();hrWash(g,r,z);const sc=seasonCanvas(k,true);g.drawImage(sc,r.x0,r.y0,r.x1-r.x0,r.y1-r.y0,r.x0,r.y0,r.x1-r.x0,r.y1-r.y0);}   // close up: the wash itself is redrawn sharp (07l)
  g.lineJoin='round';g.lineCap='round';
  VM_RINGS.forEach(([,a],j)=>{g.strokeStyle=`rgba(52,72,68,${a})`;g.lineWidth=bake?1.05:px(1);cells.forEach(c=>g.stroke(vmCellPath(c,'r'+j)));});
  g.strokeStyle='rgba(222,214,184,.55)';g.lineWidth=bake?2.2:px(clamp(2.4*se,2.4,6));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));   // foam
@@ -125,9 +126,9 @@ function vtLayer(paint){return {paint,sig:'',m:new Map(),atlas:null,ag:null,free
 function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.getContext('2d');for(let k=VT_N-1;k>=0;k--)L.free.push(k);}
  if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
 const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
-/** Draw layer L over the view (map transform set on ctx). New tiles: about 40 ms of them per frame (a tile takes ~2 ms; all on the
- first draw; none while the camera moves, still=false), the rest from cached tiles of another zoom step meanwhile
- (clipped), and another frame is requested. */
+/** Draw layer L over the view (map transform set on ctx). Missing tiles are all painted in one go once the camera
+ is still (a tile takes a few ms; spreading them over frames costs more in atlas updates than it saves), none while
+ it moves (still=false); meanwhile cached tiles of another zoom step stand in (clipped) and another frame is asked for. */
 function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
  if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
@@ -137,17 +138,17 @@ function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if((first||(still&&(!made||performance.now()-t0<40)))&&want.size<=VT_N){made++;const t1=performance.now();
+  else if((first||still)&&want.size<=VT_N){made++;const t1=performance.now();
    const slot=vtSlot(L);
    const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
-   g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);
+   g.save();g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);g.restore();
    const [sx,sy]=vtXY(slot);L.ag.clearRect(sx,sy,VT_G,VT_G);L.ag.drawImage(c,sx,sy);
    t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;KE.stats.vtMs=(KE.stats.vtMs||0)+performance.now()-t1;}
   if(t){const [sx,sy]=vtXY(t.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,tx*u,ty*u,u,u);continue;}
   more=true;if(!L.atlas)continue;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
   for(const o of L.m.values()){if(o.z===z)continue;const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0){const [sx,sy]=vtXY(o.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,ox,oy,ou,ou);}}
   ctx.restore();}
- ctx.imageSmoothingQuality=q0;if(more)req();}
+ ctx.imageSmoothingQuality=q0;L.last={n:want.size,miss:[...want].filter(k=>!L.m.has(k)).length,z};if(more)req();}
 
 /* ---- sprite atlas: small images drawn every frame (towns, soldiers) live on one GPU canvas, shelf-packed;
    when it fills up it starts over (gen changes and callers repaint what they still need) ---- */
@@ -163,9 +164,13 @@ function saAdd(w,h,paint){w=Math.min(SA.S,Math.ceil(w));h=Math.min(SA.S,Math.cei
 function saDraw(c,e,dx,dy,dw,dh){const q=c.imageSmoothingQuality;c.imageSmoothingQuality='low';c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);c.imageSmoothingQuality=q;}
 
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
-function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf(),still=vmStill(s);
- if(f<1||!still)ctx.drawImage(vmBake(k),0,0);   // moving: the baked map shows under the tiles not painted yet
- if(f>0){ctx.save();ctx.globalAlpha=f;if(still){ctx.drawImage(baseC0g,0,0);ctx.drawImage(seasonCanvas(k),0,0);}vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
+/** How far into the close-up look the view is (0 far: baked map and raster colours; 1 near: tiles). */
+const vmF=s=>clamp((s*dpr-1.2)/.35,0,1);
+function vmGround(s){const f=vmF(s),k=seasonOf(),still=vmStill(s);
+ ctx.drawImage(vmBake(k),0,0);   // under the tiles: shows where tiles are still to be painted (none while the camera moves)
+ if(f>0){ctx.save();ctx.globalAlpha=f;vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
+/** Political colours up close, from the province outlines (07l), inside the graduated frame. */
+function vmPol(s,f){const fm=19;ctx.save();ctx.globalAlpha=f;ctx.beginPath();ctx.rect(fm,fm,W-2*fm,H-2*fm);ctx.clip();vtDraw(VM.pol,s,hrPolSig());ctx.restore();}
 /** Has the camera stayed put since the last frame? While it moves (a drag, a replay) no new ground tiles are painted;
  a frame is asked for shortly after it stops, to paint them. */
 function vmStill(s){const sig=cam.x.toFixed(1)+','+cam.y.toFixed(1)+','+s.toFixed(4),still=sig===VM.cam;VM.cam=sig;
@@ -181,3 +186,4 @@ function vmSel(s){if(!S)return;const key=hlKey;if(key!==VM.selKey){VM.selKey=key
   ctx.strokeStyle=`rgba(${c},.35)`;ctx.lineWidth=6/s;ctx.stroke(p);ctx.strokeStyle=`rgba(${c},1)`;ctx.lineWidth=2.2/s;ctx.stroke(p);
   ctx.strokeStyle='rgba(40,26,14,.55)';ctx.lineWidth=.7/s;ctx.stroke(p);}
  ctx.restore();}
+KE.vm={VM,f:s=>vmF(s),tiles:L=>VM[L]?[...VM[L].m.keys()]:[]};

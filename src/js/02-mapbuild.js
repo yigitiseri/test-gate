@@ -16,7 +16,8 @@ const hex2=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.sl
 const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-let idMap,land,provStart,provPix,baseC,baseC0,baseC0g,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
+const FLD={E:null,M:null,G:null,SH:null,MO:null,SV:null};   // map fields kept for the close-up wash (07l)
+let idMap,land,provStart,provPix,baseC,baseC0,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
 function chamfer(D){
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;let v=D[i];if(!v)continue;
   if(x>0&&D[i-1]+3<v)v=D[i-1]+3;
@@ -109,6 +110,11 @@ function buildMap(){
  hlC=mk(W,H);hctx=hlC.getContext('2d');hlImg=hctx.createImageData(W,H);
 }
 
+/** Copy land values into the sea pixels next to the coast (within 3 px, ring by ring outward), in place. */
+let FLD_RING=null;
+function fldBleed(A){if(!FLD_RING){FLD_RING=[[],[],[]];const G=FLD.G;for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const i=y*W+x,g=G[i];if(g>0&&g<=9)FLD_RING[Math.min(2,Math.ceil(g/3)-1)].push(i);}}
+ const G=FLD.G;for(let pass=0;pass<3;pass++){const lim=3*pass;for(const i of FLD_RING[pass]){let s=0,n=0;
+  const j1=i-1,j2=i+1,j3=i-W,j4=i+W;if(G[j1]<=lim){s+=A[j1];n++;}if(G[j2]<=lim){s+=A[j2];n++;}if(G[j3]<=lim){s+=A[j3];n++;}if(G[j4]<=lim){s+=A[j4];n++;}if(n)A[i]=s/n;}}}
 function rasterLines(lines,w){const c=mk(W,H),g=c.getContext('2d');g.strokeStyle='#fff';g.lineWidth=w;g.lineCap='round';g.lineJoin='round';
  lines.forEach(l=>{g.beginPath();l.forEach((q,k)=>{const [x,y]=P(q[0],q[1]);k?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();});
  const d=g.getImageData(0,0,W,H).data,D=new Uint16Array(W*H);for(let i=0;i<W*H;i++)D[i]=d[i*4]>100?0:65535;chamfer(D);return D;}
@@ -127,7 +133,7 @@ function renderBase(SD,LD,MD,RD){
   const md=MD[i]/3,ridge=Math.exp(-(md*md)/(24*24));
   const rn=1-Math.abs(2*vnoise(x/15+3.3,y/15+7.1)-1),rn2=1-Math.abs(2*vnoise(x/6+11.7,y/6+5.2)-1);
   let e=.06+.2*fbm(x/110+4.1,y/110+9.3)+ridge*(.42*rn+.2*rn2+.12)+bumpSum(HB,x,y);
-  const ld=LD[i]/3;e*=Math.min(1,.3+ld/30);E[i]=e;
+  const ld=LD[i]/3;e*=.3+.7*(1-Math.exp(-ld/14));E[i]=e;   // smooth toward the shore: a kink here drew straight shading edges round inland lakes
   const rd=RD[i]/3;
   M[i]=.5+(lat-38.5)*.07+(fbm(x/90+20,y/90+40)-.5)*.55+.14*Math.exp(-ld/28)+(lat<34?1.1:.35)*Math.exp(-rd/6)-(lat<34?(34-lat)*.22:0)-bumpSum(DRY,x,y)+bumpSum(WET,x,y);}}
  SURF=new Float32Array(N);BED=new Float32Array(N);
@@ -136,14 +142,15 @@ function renderBase(SD,LD,MD,RD){
  baseC0=mk(W,H);const b=baseC0.getContext('2d',CPU2D);const img=b.createImageData(W,H),d=img.data;
  base3C=mk(W,H);const b3=base3C.getContext('2d',CPU2D);const img3=b3.createImageData(W,H),d3=img3.data;
  const SH=[186,206,186],DP=[110,148,146];
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c,c3;
+ FLD.E=E;FLD.M=M;FLD.G=new Int16Array(N);FLD.SH=new Uint8Array(N);FLD.MO=new Uint8Array(N);FLD.SV=new Int8Array(N);   // fields for the close-up wash (07l)
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c,c3;FLD.G[i]=clamp(SD[i]-LD[i],-32000,32000);
   if(!land[i]){const sd=SD[i]/3,t=Math.pow(Math.min(sd/70,1),.7);c=lerp3(SH,DP,t);
-   const v=(fbm(x/60+50,y/60+80)-.5)*18;c[0]+=v*.7;c[1]+=v*.8;c[2]+=v*.8;
+   const v=(fbm(x/60+50,y/60+80)-.5)*18;FLD.SV[i]=v*6;c[0]+=v*.7;c[1]+=v*.8;c[2]+=v*.8;
    if(sd<1.6)c=lerp3(c,[238,228,198],.55);else if(sd<4)c=lerp3(c,[226,224,196],.3*(4-sd)/2.4);
    c3=c;for(const [r0,a] of [[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]])if(Math.abs(sd-r0)<.55){c3=lerp3(c,[52,72,68],a);break;}
   }else{const e=E[i],m=M[i];
    const gx=(x<W-1&&land[i+1]?E[i+1]:e)-(x>0&&land[i-1]?E[i-1]:e),gy=(y<H-1&&land[i+W]?E[i+W]:e)-(y>0&&land[i-W]?E[i-W]:e);
-   const sh=clamp(1+(-gx*1.1-gy)*12,.58,1.38);
+   const sh=clamp(1+(-gx*1.1-gy)*12,.58,1.38);FLD.SH[i]=sh*180;
    c=landCol(m);
    if(e>.36)c=lerp3(c,[150,134,114],Math.min(1,(e-.36)/.22)*.85);
    if(e>.64)c=lerp3(c,[246,244,238],Math.min(1,(e-.64)/.1));
@@ -152,10 +159,10 @@ function renderBase(SD,LD,MD,RD){
    c=[c[0]*sh+gr,c[1]*sh+gr,c[2]*sh+gr*.8];
    {const L=c[0]*.3+c[1]*.59+c[2]*.11;c=lerp3(c,[L*1.1+8,L*.98+4,L*.78],.36);}
    c3=((x>0&&!land[i-1])||(x<W-1&&!land[i+1])||(y>0&&!land[i-W])||(y<H-1&&!land[i+W]))?[c[0]*.6,c[1]*.6,c[2]*.62]:c;}
-  const mo=.93+.11*fbm(x/150+7,y/150+3);
+  const mo=.93+.11*fbm(x/150+7,y/150+3);FLD.MO[i]=(mo-.9)*1600;
   d[o]=c[0]*mo;d[o+1]=c[1]*mo;d[o+2]=c[2]*mo*.97;d[o+3]=255;d3[o]=c3[0]*mo;d3[o+1]=c3[1]*mo;d3[o+2]=c3[2]*mo*.97;d3[o+3]=255;}
  b.putImageData(img,0,0);rhumbs(b);b3.putImageData(img3,0,0);rhumbs(b3);
- baseC0g=gpuCopy(baseC0);   // baseC0 stays on the CPU (it is painted into other CPU layers); the copy is for the screen
+ fldBleed(E);fldBleed(M);fldBleed(FLD.SH);   // carry the land values a few pixels out to sea, so close-up interpolation does not fade the coast
  MSYM=tSymPlace(E,M,LD,RD);
  // 3D: woods, palms, dunes and reeds painted on the ground (the relief brings its own mountains), rivers, compass roses and names
  b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();

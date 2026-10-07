@@ -1496,7 +1496,8 @@ const hex2=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.sl
 const lum=c=>(0.299*c[0]+0.587*c[1]+0.114*c[2])/255;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
-let idMap,land,provStart,provPix,baseC,baseC0,baseC0g,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
+const FLD={E:null,M:null,G:null,SH:null,MO:null,SV:null};   // map fields kept for the close-up wash (07l)
+let idMap,land,provStart,provPix,baseC,baseC0,base3C,SEAD=null,polC,polImg,hlC,hlImg,hctx,SURF=null,BED=null;
 function chamfer(D){
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;let v=D[i];if(!v)continue;
   if(x>0&&D[i-1]+3<v)v=D[i-1]+3;
@@ -1589,6 +1590,11 @@ function buildMap(){
  hlC=mk(W,H);hctx=hlC.getContext('2d');hlImg=hctx.createImageData(W,H);
 }
 
+/** Copy land values into the sea pixels next to the coast (within 3 px, ring by ring outward), in place. */
+let FLD_RING=null;
+function fldBleed(A){if(!FLD_RING){FLD_RING=[[],[],[]];const G=FLD.G;for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const i=y*W+x,g=G[i];if(g>0&&g<=9)FLD_RING[Math.min(2,Math.ceil(g/3)-1)].push(i);}}
+ const G=FLD.G;for(let pass=0;pass<3;pass++){const lim=3*pass;for(const i of FLD_RING[pass]){let s=0,n=0;
+  const j1=i-1,j2=i+1,j3=i-W,j4=i+W;if(G[j1]<=lim){s+=A[j1];n++;}if(G[j2]<=lim){s+=A[j2];n++;}if(G[j3]<=lim){s+=A[j3];n++;}if(G[j4]<=lim){s+=A[j4];n++;}if(n)A[i]=s/n;}}}
 function rasterLines(lines,w){const c=mk(W,H),g=c.getContext('2d');g.strokeStyle='#fff';g.lineWidth=w;g.lineCap='round';g.lineJoin='round';
  lines.forEach(l=>{g.beginPath();l.forEach((q,k)=>{const [x,y]=P(q[0],q[1]);k?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();});
  const d=g.getImageData(0,0,W,H).data,D=new Uint16Array(W*H);for(let i=0;i<W*H;i++)D[i]=d[i*4]>100?0:65535;chamfer(D);return D;}
@@ -1607,7 +1613,7 @@ function renderBase(SD,LD,MD,RD){
   const md=MD[i]/3,ridge=Math.exp(-(md*md)/(24*24));
   const rn=1-Math.abs(2*vnoise(x/15+3.3,y/15+7.1)-1),rn2=1-Math.abs(2*vnoise(x/6+11.7,y/6+5.2)-1);
   let e=.06+.2*fbm(x/110+4.1,y/110+9.3)+ridge*(.42*rn+.2*rn2+.12)+bumpSum(HB,x,y);
-  const ld=LD[i]/3;e*=Math.min(1,.3+ld/30);E[i]=e;
+  const ld=LD[i]/3;e*=.3+.7*(1-Math.exp(-ld/14));E[i]=e;   // smooth toward the shore: a kink here drew straight shading edges round inland lakes
   const rd=RD[i]/3;
   M[i]=.5+(lat-38.5)*.07+(fbm(x/90+20,y/90+40)-.5)*.55+.14*Math.exp(-ld/28)+(lat<34?1.1:.35)*Math.exp(-rd/6)-(lat<34?(34-lat)*.22:0)-bumpSum(DRY,x,y)+bumpSum(WET,x,y);}}
  SURF=new Float32Array(N);BED=new Float32Array(N);
@@ -1616,14 +1622,15 @@ function renderBase(SD,LD,MD,RD){
  baseC0=mk(W,H);const b=baseC0.getContext('2d',CPU2D);const img=b.createImageData(W,H),d=img.data;
  base3C=mk(W,H);const b3=base3C.getContext('2d',CPU2D);const img3=b3.createImageData(W,H),d3=img3.data;
  const SH=[186,206,186],DP=[110,148,146];
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c,c3;
+ FLD.E=E;FLD.M=M;FLD.G=new Int16Array(N);FLD.SH=new Uint8Array(N);FLD.MO=new Uint8Array(N);FLD.SV=new Int8Array(N);   // fields for the close-up wash (07l)
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,o=i*4;let c,c3;FLD.G[i]=clamp(SD[i]-LD[i],-32000,32000);
   if(!land[i]){const sd=SD[i]/3,t=Math.pow(Math.min(sd/70,1),.7);c=lerp3(SH,DP,t);
-   const v=(fbm(x/60+50,y/60+80)-.5)*18;c[0]+=v*.7;c[1]+=v*.8;c[2]+=v*.8;
+   const v=(fbm(x/60+50,y/60+80)-.5)*18;FLD.SV[i]=v*6;c[0]+=v*.7;c[1]+=v*.8;c[2]+=v*.8;
    if(sd<1.6)c=lerp3(c,[238,228,198],.55);else if(sd<4)c=lerp3(c,[226,224,196],.3*(4-sd)/2.4);
    c3=c;for(const [r0,a] of [[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]])if(Math.abs(sd-r0)<.55){c3=lerp3(c,[52,72,68],a);break;}
   }else{const e=E[i],m=M[i];
    const gx=(x<W-1&&land[i+1]?E[i+1]:e)-(x>0&&land[i-1]?E[i-1]:e),gy=(y<H-1&&land[i+W]?E[i+W]:e)-(y>0&&land[i-W]?E[i-W]:e);
-   const sh=clamp(1+(-gx*1.1-gy)*12,.58,1.38);
+   const sh=clamp(1+(-gx*1.1-gy)*12,.58,1.38);FLD.SH[i]=sh*180;
    c=landCol(m);
    if(e>.36)c=lerp3(c,[150,134,114],Math.min(1,(e-.36)/.22)*.85);
    if(e>.64)c=lerp3(c,[246,244,238],Math.min(1,(e-.64)/.1));
@@ -1632,10 +1639,10 @@ function renderBase(SD,LD,MD,RD){
    c=[c[0]*sh+gr,c[1]*sh+gr,c[2]*sh+gr*.8];
    {const L=c[0]*.3+c[1]*.59+c[2]*.11;c=lerp3(c,[L*1.1+8,L*.98+4,L*.78],.36);}
    c3=((x>0&&!land[i-1])||(x<W-1&&!land[i+1])||(y>0&&!land[i-W])||(y<H-1&&!land[i+W]))?[c[0]*.6,c[1]*.6,c[2]*.62]:c;}
-  const mo=.93+.11*fbm(x/150+7,y/150+3);
+  const mo=.93+.11*fbm(x/150+7,y/150+3);FLD.MO[i]=(mo-.9)*1600;
   d[o]=c[0]*mo;d[o+1]=c[1]*mo;d[o+2]=c[2]*mo*.97;d[o+3]=255;d3[o]=c3[0]*mo;d3[o+1]=c3[1]*mo;d3[o+2]=c3[2]*mo*.97;d3[o+3]=255;}
  b.putImageData(img,0,0);rhumbs(b);b3.putImageData(img3,0,0);rhumbs(b3);
- baseC0g=gpuCopy(baseC0);   // baseC0 stays on the CPU (it is painted into other CPU layers); the copy is for the screen
+ fldBleed(E);fldBleed(M);fldBleed(FLD.SH);   // carry the land values a few pixels out to sea, so close-up interpolation does not fade the coast
  MSYM=tSymPlace(E,M,LD,RD);
  // 3D: woods, palms, dunes and reeds painted on the ground (the relief brings its own mountains), rivers, compass roses and names
  b3.save();for(const o of MSYM){if(o.t==='mtn'||o.t==='hill'||o.t==='wave')continue;b3.setTransform(1,0,0,1,o.x,o.y);symPaint(b3,o);}b3.restore();
@@ -5612,7 +5619,9 @@ function draw(){
  else{ctx.fillStyle='#1c120a';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=40;ctx.fillStyle='#2e2114';ctx.fillRect(cam.x,cam.y,W*s,H*s);ctx.shadowBlur=0;
   ctx.setTransform(dpr*s,0,0,dpr*s,dpr*cam.x,dpr*cam.y);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  const fm=19;vmGround(s);ctx.drawImage(polC,fm,fm,W-2*fm,H-2*fm,fm,fm,W-2*fm,H-2*fm);vmLines(s);ctx.drawImage(hlC,0,0);vmSel(s);}   // the wash stays inside the graduated frame   // 07h: crisp coast, borders and outlines
+  const fm=19,f=vmF(s);vmGround(s);
+  if(f<1){ctx.globalAlpha=1-f;ctx.drawImage(polC,fm,fm,W-2*fm,H-2*fm,fm,fm,W-2*fm,H-2*fm);ctx.globalAlpha=1;}if(f>0)vmPol(s,f);   // far: the raster colours; near: filled outlines (07l)
+  vmLines(s);if(f<1){ctx.globalAlpha=1-f;ctx.drawImage(hlC,0,0);ctx.globalAlpha=1;}if(f>0)hrSelFill(f);vmSel(s);}   // the wash stays inside the graduated frame   // 07h: crisp coast, borders and outlines
  ctx.setTransform(dpr,0,0,dpr,0,0);
  // sea lanes
  ctx.setLineDash([6,6]);ctx.lineWidth=1.5;ctx.strokeStyle='rgba(70,44,20,.6)';
@@ -6538,7 +6547,7 @@ KE.tradeMap={on:()=>trdModeOn(),set:v=>trdSetMode(!!v),legs:()=>trdScr.length,me
    Far out the baked map (wash + season tint + the same detail painted once) is used, crossfading in between.
    Seasons (02b): the tint, the symbols (bare and snowy trees, autumn leaves) and frozen rivers follow S.turn.
    ===================================================================== */
-const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,baked:new Map(),cam:'',camT:0};
+const VM={chains:[],byProv:[],cells:[],CG:96,GC:0,polSig:'',selKey:'',sel:null,tgt:null,pick:null,spr:new Map(),sprZ:0,gran:null,ms:0,ground:null,lines:null,pol:null,baked:new Map(),cam:'',camT:0};
 const VM_RINGS=[[3.2,.36],[6,.27],[9,.2],[12.2,.14],[15.6,.08]];   // distance from the coast (px), ink strength
 
 /** Douglas-Peucker on a flat [x,y,...] list; keeps the ends. */
@@ -6610,7 +6619,7 @@ function vmBuild(){const t0=performance.now();
  VM.gran=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)VM.gran[y*W+x]=clamp((vnoise(x/9+31,y/9+17)*.7+vnoise(x/3.3,y/3.3+5)*.3)*255,0,255);
  // the low-zoom map: the wash with the same detail painted once
  baseC=vmBake(0);
- VM.ground=vtLayer((g,se,r,z)=>vmGroundPaint(g,se,r,z,seasonOf()));VM.lines=vtLayer((g,se,r)=>vmLinesPaint(g,se,r));
+ VM.ground=vtLayer((g,se,r,z)=>vmGroundPaint(g,se,r,z,seasonOf()));VM.lines=vtLayer((g,se,r)=>vmLinesPaint(g,se,r));VM.pol=vtLayer((g,se,r)=>hrPolPaint(g,se,r));
  VM.ms=Math.round(performance.now()-t0);KE.stats.vmMs=VM.ms;}
 /** The low-zoom map of a season (the two latest kept). */
 function vmBake(k){let c=VM.baked.get(k);if(c){VM.baked.delete(k);VM.baked.set(k,c);return c;}
@@ -6627,6 +6636,7 @@ function vmCellPath(c,cat){if(cat==='realm'||cat==='prov'){if(c.sig!==VM.polSig)
 /** Coast, sea rings, rivers, terrain symbols and decoration in map units. se: screen px per map unit (line widths);
  r: map rect to cover (null = everything, painted directly: baking); z: device scale for the symbol sprites. */
 function vmGroundPaint(g,se,r,z,k){const cells=vmCellsIn(r),px=w=>w/se,bake=!r;
+ if(!bake){g.beginPath();g.rect(0,0,W,H);g.clip();hrWash(g,r,z);const sc=seasonCanvas(k,true);g.drawImage(sc,r.x0,r.y0,r.x1-r.x0,r.y1-r.y0,r.x0,r.y0,r.x1-r.x0,r.y1-r.y0);}   // close up: the wash itself is redrawn sharp (07l)
  g.lineJoin='round';g.lineCap='round';
  VM_RINGS.forEach(([,a],j)=>{g.strokeStyle=`rgba(52,72,68,${a})`;g.lineWidth=bake?1.05:px(1);cells.forEach(c=>g.stroke(vmCellPath(c,'r'+j)));});
  g.strokeStyle='rgba(222,214,184,.55)';g.lineWidth=bake?2.2:px(clamp(2.4*se,2.4,6));cells.forEach(c=>g.stroke(vmCellPath(c,'coast')));   // foam
@@ -6657,9 +6667,9 @@ function vtLayer(paint){return {paint,sig:'',m:new Map(),atlas:null,ag:null,free
 function vtSlot(L){if(!L.atlas){L.atlas=mk(VT_C*VT_G,VT_R*VT_G);L.ag=L.atlas.getContext('2d');for(let k=VT_N-1;k>=0;k--)L.free.push(k);}
  if(L.free.length)return L.free.pop();const key=L.m.keys().next().value,t=L.m.get(key);L.m.delete(key);return t.slot;}
 const vtXY=k=>[(k%VT_C)*VT_G,Math.floor(k/VT_C)*VT_G];
-/** Draw layer L over the view (map transform set on ctx). New tiles: about 40 ms of them per frame (a tile takes ~2 ms; all on the
- first draw; none while the camera moves, still=false), the rest from cached tiles of another zoom step meanwhile
- (clipped), and another frame is requested. */
+/** Draw layer L over the view (map transform set on ctx). Missing tiles are all painted in one go once the camera
+ is still (a tile takes a few ms; spreading them over frames costs more in atlas updates than it saves), none while
+ it moves (still=false); meanwhile cached tiles of another zoom step stand in (clipped) and another frame is asked for. */
 function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.round(Math.log2(zd)*4)/4)),u=VT_T/z;
  if(L.sig!==sig){L.sig=sig;for(const t of L.m.values())L.free.push(t.slot);L.m.clear();}
  const vx0=-cam.x/s,vy0=-cam.y/s,vx1=(vw-cam.x)/s,vy1=(vh-cam.y)/s;
@@ -6669,17 +6679,17 @@ function vtDraw(L,s,sig,still=true){const zd=s*dpr,z=Math.min(8,Math.pow(2,Math.
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)want.add(z+'|'+tx+'|'+ty);
  for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++){const key=z+'|'+tx+'|'+ty;let t=L.m.get(key);
   if(t){L.m.delete(key);L.m.set(key,t);}
-  else if((first||(still&&(!made||performance.now()-t0<40)))&&want.size<=VT_N){made++;const t1=performance.now();
+  else if((first||still)&&want.size<=VT_N){made++;const t1=performance.now();
    const slot=vtSlot(L);
    const c=VT_SCR.c||(VT_SCR.c=mk(VT_G,VT_G)),g=c.getContext('2d',CPU2D);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,VT_G,VT_G);
-   g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);
+   g.save();g.setTransform(z,0,0,z,-tx*VT_T+1,-ty*VT_T+1);const e=1/z;L.paint(g,z/dpr,{x0:tx*u-e,y0:ty*u-e,x1:(tx+1)*u+e,y1:(ty+1)*u+e},z);g.restore();
    const [sx,sy]=vtXY(slot);L.ag.clearRect(sx,sy,VT_G,VT_G);L.ag.drawImage(c,sx,sy);
    t={slot,z,tx,ty};L.m.set(key,t);KE.stats.vtTiles=(KE.stats.vtTiles||0)+1;KE.stats.vtMs=(KE.stats.vtMs||0)+performance.now()-t1;}
   if(t){const [sx,sy]=vtXY(t.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,tx*u,ty*u,u,u);continue;}
   more=true;if(!L.atlas)continue;const x0=tx*u,y0=ty*u;ctx.save();ctx.beginPath();ctx.rect(x0,y0,u,u);ctx.clip();   // stand-in: tiles of another zoom step
   for(const o of L.m.values()){if(o.z===z)continue;const ou=VT_T/o.z,ox=o.tx*ou,oy=o.ty*ou;if(ox<x0+u&&ox+ou>x0&&oy<y0+u&&oy+ou>y0){const [sx,sy]=vtXY(o.slot);ctx.drawImage(L.atlas,sx+1,sy+1,VT_T,VT_T,ox,oy,ou,ou);}}
   ctx.restore();}
- ctx.imageSmoothingQuality=q0;if(more)req();}
+ ctx.imageSmoothingQuality=q0;L.last={n:want.size,miss:[...want].filter(k=>!L.m.has(k)).length,z};if(more)req();}
 
 /* ---- sprite atlas: small images drawn every frame (towns, soldiers) live on one GPU canvas, shelf-packed;
    when it fills up it starts over (gen changes and callers repaint what they still need) ---- */
@@ -6695,9 +6705,13 @@ function saAdd(w,h,paint){w=Math.min(SA.S,Math.ceil(w));h=Math.min(SA.S,Math.cei
 function saDraw(c,e,dx,dy,dw,dh){const q=c.imageSmoothingQuality;c.imageSmoothingQuality='low';c.drawImage(SA.c,e.x,e.y,e.w,e.h,dx,dy,dw,dh);c.imageSmoothingQuality=q;}
 
 /** The ground in 2D (called with the map transform set): baked map far out, crisp tiles up close. */
-function vmGround(s){const zd=s*dpr,f=clamp((zd-1.2)/.35,0,1),k=seasonOf(),still=vmStill(s);
- if(f<1||!still)ctx.drawImage(vmBake(k),0,0);   // moving: the baked map shows under the tiles not painted yet
- if(f>0){ctx.save();ctx.globalAlpha=f;if(still){ctx.drawImage(baseC0g,0,0);ctx.drawImage(seasonCanvas(k),0,0);}vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
+/** How far into the close-up look the view is (0 far: baked map and raster colours; 1 near: tiles). */
+const vmF=s=>clamp((s*dpr-1.2)/.35,0,1);
+function vmGround(s){const f=vmF(s),k=seasonOf(),still=vmStill(s);
+ ctx.drawImage(vmBake(k),0,0);   // under the tiles: shows where tiles are still to be painted (none while the camera moves)
+ if(f>0){ctx.save();ctx.globalAlpha=f;vtDraw(VM.ground,s,'g'+k,still);ctx.restore();}}
+/** Political colours up close, from the province outlines (07l), inside the graduated frame. */
+function vmPol(s,f){const fm=19;ctx.save();ctx.globalAlpha=f;ctx.beginPath();ctx.rect(fm,fm,W-2*fm,H-2*fm);ctx.clip();vtDraw(VM.pol,s,hrPolSig());ctx.restore();}
 /** Has the camera stayed put since the last frame? While it moves (a drag, a replay) no new ground tiles are painted;
  a frame is asked for shortly after it stops, to paint them. */
 function vmStill(s){const sig=cam.x.toFixed(1)+','+cam.y.toFixed(1)+','+s.toFixed(4),still=sig===VM.cam;VM.cam=sig;
@@ -6713,6 +6727,7 @@ function vmSel(s){if(!S)return;const key=hlKey;if(key!==VM.selKey){VM.selKey=key
   ctx.strokeStyle=`rgba(${c},.35)`;ctx.lineWidth=6/s;ctx.stroke(p);ctx.strokeStyle=`rgba(${c},1)`;ctx.lineWidth=2.2/s;ctx.stroke(p);
   ctx.strokeStyle='rgba(40,26,14,.55)';ctx.lineWidth=.7/s;ctx.stroke(p);}
  ctx.restore();}
+KE.vm={VM,f:s=>vmF(s),tiles:L=>VM[L]?[...VM[L].m.keys()]:[]};
 /* =====================================================================
    CITY GLYPHS (2D): a town is drawn as what it is: a hamlet of a few roofs, a town round its mosque or church,
    a walled city, a great city with a citadel; walls follow the fortress level, a port gets its quay and boat,
@@ -6881,6 +6896,84 @@ function scnPaint(rep,m){const sc=2,Wd=SCN.W,Hd=SCN.H,c=mk(Wd*sc,Hd*sc),g=c.getC
  // a manuscript frame
  g.strokeStyle='#4a2e12';g.lineWidth=1.2;g.strokeRect(.6,.6,Wd-1.2,Hd-1.2);g.strokeStyle='rgba(201,161,78,.9)';g.lineWidth=.8;g.strokeRect(3,3,Wd-6,Hd-6);
  return c;}
+/* =====================================================================
+   CLOSE-UP QUALITY (2D): up close the map is no longer a magnified 1500 px picture.
+    - The wash is recomputed for every ground tile (07h) from the map fields (height, moisture, signed distance to
+      the coast, shading) interpolated between pixels: coasts, rock and snow lines stay sharp, a fine pigment grain
+      appears, and the rhumb lines are redrawn thin. Sampled at 0.6 x the zoom (1 to 1.7 samples per map pixel), then smoothed.
+    - The political colours are filled from each province's outline (rings built from the traced edges, 07h),
+      with the watercolour darkening along realm borders and the occupation hatching, in their own tile layer.
+    - The selection and its neighbours are filled from the same outlines.
+   ===================================================================== */
+const HR={rings:null,box:null,pat:new Map(),glow:[]};
+/** Bilinear sample of a W x H field at map point (x,y) (pixel centres at +0.5). */
+function hrBil(A,x,y){x-=.5;y-=.5;const x0=x<0?0:x>W-2?W-2:Math.floor(x),y0=y<0?0:y>H-2?H-2:Math.floor(y),fx=clamp(x-x0,0,1),fy=clamp(y-y0,0,1),i=y0*W+x0;
+ const a=A[i],b=A[i+1],c=A[i+W],d=A[i+W+1];return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;}
+/** Fast value noise from a 256 x 256 table (smoothstep-interpolated), for the per-pixel grain. */
+const HR_NT=(()=>{const t=new Float32Array(65536);for(let i=0;i<65536;i++)t[i]=hash(i&255,i>>8);return t;})();
+function hrNoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),x0=xi&255,y0=(yi&255)<<8,x1=(xi+1)&255,y1=((yi+1)&255)<<8;
+ const a=HR_NT[y0|x0],b=HR_NT[y0|x1],c=HR_NT[y1|x0],d=HR_NT[y1|x1];return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+const HR_RH=[[17.2,34.4,1],[37.4,42.6,.8],[27.4,35.6,.6]];
+/** Paint the wash for map rect r into g (whose transform maps map units to device pixels at scale z). */
+function hrWash(g,r,z){const mw=r.x1-r.x0,mh=r.y1-r.y0,spp=clamp(z*.6,1,1.7),cw=Math.max(8,Math.ceil(mw*spp)),ch=Math.max(8,Math.ceil(mh*spp));
+ const c=HR.wc&&HR.wc.width===cw&&HR.wc.height===ch?HR.wc:(HR.wc=mk(cw,ch)),wg=c.getContext('2d',CPU2D),img=wg.createImageData(cw,ch),d=img.data;
+ const F=FLD,SH0=[186,206,186],DP0=[110,148,146],rh=HR_RH.map(([lo,la,al])=>{const p=P(lo,la);return [p[0],p[1],al];}),lw=.5;
+ for(let py=0;py<ch;py++){const y=r.y0+(py+.5)/spp;for(let px=0;px<cw;px++){const x=r.x0+(px+.5)/spp,o=(py*cw+px)*4;let c0,c1,c2;
+  const gsd=hrBil(F.G,x,y)/3,mo=.9+hrBil(F.MO,x,y)/1600;
+  if(gsd>0){   // sea: depth tint, a swell of noise, the foam and pale shallows by the shore, the rhumb lines
+   const t=Math.pow(Math.min(gsd/70,1),.7),v=hrBil(F.SV,x,y)/6;c0=SH0[0]+(DP0[0]-SH0[0])*t+v*.7;c1=SH0[1]+(DP0[1]-SH0[1])*t+v*.8;c2=SH0[2]+(DP0[2]-SH0[2])*t+v*.8;
+   const fa=gsd<1.6?.55:gsd<4?.3*(4-gsd)/2.4:0;if(fa){const fc=gsd<1.6?[238,228,198]:[226,224,196];c0+=(fc[0]-c0)*fa;c1+=(fc[1]-c1)*fa;c2+=(fc[2]-c2)*fa;}
+   for(const [cx,cy,al] of rh){const dx=x-cx,dy=y-cy,rr=Math.sqrt(dx*dx+dy*dy);if(rr<4)continue;const an=Math.atan2(dy,dx),k=Math.round(an/(Math.PI/16)),dd=rr*Math.abs(Math.sin(an-k*Math.PI/16));
+    if(dd<lw){const kk=((k%32)+32)%32,a=(1-dd/lw)*(kk%4===0?.45:kk%2===0?.4:.36)*al,lc=kk%4===0?[40,32,22]:kk%2===0?[34,96,54]:[150,40,28];c0+=(lc[0]-c0)*a;c1+=(lc[1]-c1)*a;c2+=(lc[2]-c2)*a;}}}
+  else{const e=hrBil(F.E,x,y),m=hrBil(F.M,x,y),sh=hrBil(F.SH,x,y)/180,ld=-gsd;let cc=landCol(m);
+   if(e>.36)cc=lerp3(cc,[150,134,114],Math.min(1,(e-.36)/.22)*.85);
+   if(e>.64)cc=lerp3(cc,[246,244,238],Math.min(1,(e-.64)/.1));
+   if(ld<2.6&&e<.3)cc=lerp3(cc,[228,210,164],.5);
+   const gr=(hrNoise(x/3.1,y/3.1)-.5)*6+(hrNoise(x/11+3,y/11+8)-.5)*14+(hrNoise(x*1.7+41,y*1.7+13)-.5)*5;   // the 1.7 octave is the close-up grain
+   c0=cc[0]*sh+gr;c1=cc[1]*sh+gr;c2=cc[2]*sh+gr*.8;const L=c0*.3+c1*.59+c2*.11;c0+=(L*1.1+8-c0)*.36;c1+=(L*.98+4-c1)*.36;c2+=(L*.78-c2)*.36;}
+  d[o]=c0*mo;d[o+1]=c1*mo;d[o+2]=c2*mo*.97;d[o+3]=255;}}
+ wg.putImageData(img,0,0);g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(c,r.x0,r.y0,mw,mh);g.restore();}
+
+/* ---- province outlines (rings) from the traced chains ---- */
+function hrRings(){if(HR.rings)return;HR.rings=[];HR.box=[];
+ for(let i=0;i<NP;i++){const path=new Path2D(),L=VM.byProv[i].map(k=>VM.chains[k]),used=new Uint8Array(L.length);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  const key=(p,j)=>p[j]+','+p[j+1];
+  for(const c of L)for(let j=0;j<c.p.length;j+=2){x0=Math.min(x0,c.p[j]);x1=Math.max(x1,c.p[j]);y0=Math.min(y0,c.p[j+1]);y1=Math.max(y1,c.p[j+1]);}
+  for(let s=0;s<L.length;s++){if(used[s])continue;used[s]=1;const c=L[s];
+   if(c.closed){vmAdd(path,c.p,true);continue;}
+   const pts=Array.from(c.p),start=key(pts,0);let end=key(pts,pts.length-2);
+   for(let guard=0;guard<L.length&&end!==start;guard++){let f=-1,rev=false;
+    for(let t=0;t<L.length;t++){if(used[t]||L[t].closed)continue;const q=L[t].p;if(key(q,0)===end){f=t;break;}if(key(q,q.length-2)===end){f=t;rev=true;break;}}
+    if(f<0)break;used[f]=1;const q=Array.from(L[f].p);if(rev){const r=[];for(let j=q.length-2;j>=0;j-=2)r.push(q[j],q[j+1]);q.length=0;q.push(...r);}
+    for(let j=2;j<q.length;j++)pts.push(q[j]);end=key(pts,pts.length-2);}
+   if(end!==start)(HR.open||(HR.open=[])).push(i);vmAdd(path,pts,true);}
+  HR.rings.push(path);HR.box.push([x0,y0,x1,y1]);}}
+/** Chains of province i on a realm border (the neighbour has another owner, or is unassigned land). */
+function hrRealmEdges(i){const o=S.prov[i].o,p=new Path2D();let any=false;
+ for(const k of VM.byProv[i]){const c=VM.chains[k],j=c.a===i?c.b:c.a;if(j===-1)continue;if(j>=0&&S.prov[j].o===o)continue;vmAdd(p,c.p,c.closed);any=true;}return any?p:null;}
+function hrHatch(col){let p=HR.pat.get(col);if(p)return p;const c=mk(9,9),g=c.getContext('2d',CPU2D),q=hex2(col);
+ for(let y=0;y<9;y++)for(let x=0;x<9;x++){const m=(x+y)%9;if(m<4){const e=m===0||m===3?.72:1;g.fillStyle=`rgba(${q[0]*e|0},${q[1]*e|0},${q[2]*e|0},.8)`;g.fillRect(x,y,1,1);}}
+ p=c;HR.pat.set(col,p);return p;}
+/** Political colours for map rect r (map units on g). */
+function hrPolPaint(g,se,r){if(!S)return;hrRings();const pol=mapMode==='pol',base=pol?.3:0,glow=pol?1:.65;
+ g.lineJoin='round';g.lineCap='round';
+ for(let i=0;i<NP;i++){const b=HR.box[i];if(b[2]<r.x0-14||b[0]>r.x1+14||b[3]<r.y0-14||b[1]>r.y1+14)continue;
+  const p=S.prov[i],col=typeof vasMapCol==='function'?vasMapCol(p.o):FAC[p.o].c,q=hex2(col),ring=HR.rings[i];
+  g.save();g.clip(ring,'evenodd');
+  if(base){g.fillStyle=`rgba(${q[0]},${q[1]},${q[2]},${base})`;g.fill(ring,'evenodd');}
+  const ed=hrRealmEdges(i);if(ed){for(const [w,a] of [[26,.07],[17,.08],[10,.1],[5,.12],[2.2,.12]]){g.strokeStyle=`rgba(${q[0]},${q[1]},${q[2]},${a*glow})`;g.lineWidth=w;g.stroke(ed);}}
+  if(p.ctl&&p.ctl!==p.o&&FAC[p.ctl]){const pt=g.createPattern(hrHatch(FAC[p.ctl].c),'repeat');g.fillStyle=pt;g.fill(ring,'evenodd');}
+  g.restore();}}
+/** Signature of everything the political tiles show. */
+function hrPolSig(){return S?S.prov.map(p=>p.o+(p.ctl||'')).join()+mapMode+(typeof vasMapCol==='function'?FK.map(f=>vasMapCol(f)).join(''):''):'';}
+/** Fills of the selection (as renderHL in 07, from the outlines): the province, own and enemy neighbours, the target. */
+function hrSelFill(alpha){if(!S||startPick||sel<0)return;hrRings();ctx.save();ctx.globalAlpha=alpha;
+ const fill=(i,c)=>{ctx.fillStyle=c;ctx.fill(HR.rings[i],'evenodd');};
+ if(S.prov[sel].o===S.player&&S.player)PD[sel].adj.forEach(j=>{const o=S.prov[j].o;if(o===S.player)fill(j,'rgba(60,190,180,.24)');else if(atWar(S.player,o))fill(j,'rgba(225,70,50,.3)');});
+ fill(sel,'rgba(255,248,225,.32)');if(tgt>=0)fill(tgt,S.prov[tgt].o===S.player?'rgba(60,190,180,.45)':'rgba(225,70,50,.5)');
+ ctx.restore();}
+KE.vm.wash=(x,y,w,z)=>{const c=mk(258,258),g=c.getContext('2d',CPU2D);const t=performance.now();hrWash(g,{x0:x,y0:y,x1:x+w,y1:y+w},z);return performance.now()-t;};
+KE.vm.rings=()=>{hrRings();return {open:(HR.open||[]).map(i=>PD[i].key+':'+VM.byProv[i].length)};};
 /* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
