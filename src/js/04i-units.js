@@ -38,7 +38,7 @@ function unitDefMix(f){const m=unitCul(f).mix.slice();if(!(S.fac[f]&&S.fac[f].ca
 /** Mix of army a ([i,c,a], sum 1); armies from older saves get their realm's default. */
 function armMix(a){if(!a.mix||a.mix.length!==3){a.mix=unitDefMix(a.f);}return a.mix;}
 function mixBlend(m1,n1,m2,n2){const t=Math.max(1,n1+n2);return [0,1,2].map(k=>+((m1[k]*n1+m2[k]*n2)/t).toFixed(3));}
-const UNIT_K=['i','c','a'];
+const UNIT_K=['i','c','a'],UNIT_COL=['#a8662a','#2f6f9e','#55524c'];   // foot, horse, guns (panel bar and the strip on the map tokens)
 /** Gold per 1,000 men of mix m, relative to infantry. */
 function mixCost(m,tab){return m[0]*tab.i+m[1]*tab.c+m[2]*tab.a;}
 /** Gold to raise n men of type t ('i'|'c'|'a', or none: the realm's usual mix), whole coins. */
@@ -68,7 +68,7 @@ BATTLE_MODS.push(ctx=>{if(ctx.to==null||!ctx.att)return null;const out=[],kind=c
  return null;});
 
 /* --- the army panel: what the army is made of --- */
-function unitBar(a){const m=armMix(a),f=a.f,cl=['#8a5a2a','#3d6b8a','#5a5a5a'],pc=m.map(v=>Math.round(v*100));
+function unitBar(a){const m=armMix(a),f=a.f,cl=UNIT_COL,pc=m.map(v=>Math.round(v*100));
  return `<div class="ubar" role="img" aria-label="${UNIT_K.map((k,j)=>`${unitName(f,k)} ${pc[j]}%`).join(', ')}">${m.map((v,j)=>v>0?`<i style="width:${v*100}%;background:${cl[j]}"></i>`:'').join('')}</div>
-  <div class="ulegend">${UNIT_K.map((k,j)=>m[j]>0?`<span><b style="background:${cl[j]}"></b>${esc(unitName(f,k))} ${pc[j]}%</span>`:'').join('')}</div>`;}
+  <div class="ulegend">${UNIT_K.map((k,j)=>m[j]>0?`<span><b style="background:${cl[j]}"></b>${esc(unitName(f,k))} <em>${fmtK(Math.round(a.n*m[j]))}</em> ${pc[j]}%</span>`:'').join('')}</div>`;}
 KE.units={cost:(f,t,n)=>unitRecruitCost(f,t,n),mix:id=>{const a=armyById(id);return a?armMix(a).slice():null;},def:f=>unitDefMix(f),name:(f,t)=>unitName(f,t),bal:BAL_U};

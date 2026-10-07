@@ -90,8 +90,10 @@ function tokDraw(c,t,now){const z=t.z,fx=t.fx,fy=t.fy,top=fy-52*z;if(t.al<=0)ret
  const fs=Math.round(12.5*z),txt=fmtK(t.n);c.font=`700 ${fs}px "EB Garamond", Georgia, serif`;const tw=c.measureText(txt).width+11*z,ph=14*z,px=fx-tw/2,py=fy-17.5*z;
  c.fillStyle='rgba(20,12,4,.35)';tokRR(c,px+1.2,py+1.5,tw,ph,3*z);c.fill();
  const pg=c.createLinearGradient(0,py,0,py+ph);pg.addColorStop(0,'#fdf5dc');pg.addColorStop(1,'#e1c992');c.fillStyle=pg;tokRR(c,px,py,tw,ph,3*z);c.fill();
+ const am=t.id!=null&&armyById(t.id);if(am&&!G3.on){const m=armMix(am),bh=3.4*z;let x=px;c.save();tokRR(c,px,py,tw,ph,3*z);c.clip();   // what the army is made of (04i): foot, horse, guns
+  for(let j=0;j<3;j++){if(!(m[j]>0))continue;const w=tw*m[j];c.fillStyle=UNIT_COL[j];c.fillRect(x,py+ph-bh,w+.5,bh);x+=w;}c.restore();}
  c.lineWidth=t.own?1.8:1.2;c.strokeStyle=t.own?'#b8862c':t.war?'#9d2a1b':'#4a2e12';c.stroke();
- c.fillStyle=t.war?'#7d1a10':'#23150a';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,fx,py+ph/2+.6*z);
+ c.fillStyle=t.war?'#7d1a10':'#23150a';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,fx,py+ph/2+(am&&!G3.on?-.6:.6)*z);
  // movement points of the player's armies: gold pips (spent ones hollow)
  if(t.own&&t.mpMax>0){const n=Math.min(4,t.mpMax),w=5*z;for(let k=0;k<n;k++){const x=fx-(n-1)*w/2+k*w,y=fy+.5*z;c.beginPath();c.moveTo(x,y-2*z);c.lineTo(x+1.8*z,y);c.lineTo(x,y+2*z);c.lineTo(x-1.8*z,y);c.closePath();
   c.fillStyle=k<(t.mp||0)?'#e2b857':'rgba(248,240,218,.55)';c.fill();c.lineWidth=.7;c.strokeStyle='#4a2e12';c.stroke();}}

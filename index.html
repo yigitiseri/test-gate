@@ -965,6 +965,7 @@ img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
 .ulegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted);margin-bottom:6px}
 .ulegend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .garsec .btiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ulegend em{font-style:normal;font-weight:700;color:#3a2410;margin:0 2px}
 </style>
 </head>
 <body>
@@ -4370,7 +4371,7 @@ function unitDefMix(f){const m=unitCul(f).mix.slice();if(!(S.fac[f]&&S.fac[f].ca
 /** Mix of army a ([i,c,a], sum 1); armies from older saves get their realm's default. */
 function armMix(a){if(!a.mix||a.mix.length!==3){a.mix=unitDefMix(a.f);}return a.mix;}
 function mixBlend(m1,n1,m2,n2){const t=Math.max(1,n1+n2);return [0,1,2].map(k=>+((m1[k]*n1+m2[k]*n2)/t).toFixed(3));}
-const UNIT_K=['i','c','a'];
+const UNIT_K=['i','c','a'],UNIT_COL=['#a8662a','#2f6f9e','#55524c'];   // foot, horse, guns (panel bar and the strip on the map tokens)
 /** Gold per 1,000 men of mix m, relative to infantry. */
 function mixCost(m,tab){return m[0]*tab.i+m[1]*tab.c+m[2]*tab.a;}
 /** Gold to raise n men of type t ('i'|'c'|'a', or none: the realm's usual mix), whole coins. */
@@ -4400,9 +4401,9 @@ BATTLE_MODS.push(ctx=>{if(ctx.to==null||!ctx.att)return null;const out=[],kind=c
  return null;});
 
 /* --- the army panel: what the army is made of --- */
-function unitBar(a){const m=armMix(a),f=a.f,cl=['#8a5a2a','#3d6b8a','#5a5a5a'],pc=m.map(v=>Math.round(v*100));
+function unitBar(a){const m=armMix(a),f=a.f,cl=UNIT_COL,pc=m.map(v=>Math.round(v*100));
  return `<div class="ubar" role="img" aria-label="${UNIT_K.map((k,j)=>`${unitName(f,k)} ${pc[j]}%`).join(', ')}">${m.map((v,j)=>v>0?`<i style="width:${v*100}%;background:${cl[j]}"></i>`:'').join('')}</div>
-  <div class="ulegend">${UNIT_K.map((k,j)=>m[j]>0?`<span><b style="background:${cl[j]}"></b>${esc(unitName(f,k))} ${pc[j]}%</span>`:'').join('')}</div>`;}
+  <div class="ulegend">${UNIT_K.map((k,j)=>m[j]>0?`<span><b style="background:${cl[j]}"></b>${esc(unitName(f,k))} <em>${fmtK(Math.round(a.n*m[j]))}</em> ${pc[j]}%</span>`:'').join('')}</div>`;}
 KE.units={cost:(f,t,n)=>unitRecruitCost(f,t,n),mix:id=>{const a=armyById(id);return a?armMix(a).slice():null;},def:f=>unitDefMix(f),name:(f,t)=>unitName(f,t),bal:BAL_U};
 /* ---------------- AI ----------------
    The AI plays by the player's rules: garrisons defend, field armies (04c) march and attack.
@@ -5986,8 +5987,10 @@ function tokDraw(c,t,now){const z=t.z,fx=t.fx,fy=t.fy,top=fy-52*z;if(t.al<=0)ret
  const fs=Math.round(12.5*z),txt=fmtK(t.n);c.font=`700 ${fs}px "EB Garamond", Georgia, serif`;const tw=c.measureText(txt).width+11*z,ph=14*z,px=fx-tw/2,py=fy-17.5*z;
  c.fillStyle='rgba(20,12,4,.35)';tokRR(c,px+1.2,py+1.5,tw,ph,3*z);c.fill();
  const pg=c.createLinearGradient(0,py,0,py+ph);pg.addColorStop(0,'#fdf5dc');pg.addColorStop(1,'#e1c992');c.fillStyle=pg;tokRR(c,px,py,tw,ph,3*z);c.fill();
+ const am=t.id!=null&&armyById(t.id);if(am&&!G3.on){const m=armMix(am),bh=3.4*z;let x=px;c.save();tokRR(c,px,py,tw,ph,3*z);c.clip();   // what the army is made of (04i): foot, horse, guns
+  for(let j=0;j<3;j++){if(!(m[j]>0))continue;const w=tw*m[j];c.fillStyle=UNIT_COL[j];c.fillRect(x,py+ph-bh,w+.5,bh);x+=w;}c.restore();}
  c.lineWidth=t.own?1.8:1.2;c.strokeStyle=t.own?'#b8862c':t.war?'#9d2a1b':'#4a2e12';c.stroke();
- c.fillStyle=t.war?'#7d1a10':'#23150a';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,fx,py+ph/2+.6*z);
+ c.fillStyle=t.war?'#7d1a10':'#23150a';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,fx,py+ph/2+(am&&!G3.on?-.6:.6)*z);
  // movement points of the player's armies: gold pips (spent ones hollow)
  if(t.own&&t.mpMax>0){const n=Math.min(4,t.mpMax),w=5*z;for(let k=0;k<n;k++){const x=fx-(n-1)*w/2+k*w,y=fy+.5*z;c.beginPath();c.moveTo(x,y-2*z);c.lineTo(x+1.8*z,y);c.lineTo(x,y+2*z);c.lineTo(x-1.8*z,y);c.closePath();
   c.fillStyle=k<(t.mp||0)?'#e2b857':'rgba(248,240,218,.55)';c.fill();c.lineWidth=.7;c.strokeStyle='#4a2e12';c.stroke();}}
@@ -6919,8 +6922,8 @@ function cityPaint(g,o,u){const INK='#33261a',lw=Math.max(.7,u*.38);g.lineJoin='
    ARMY FIGURES (2D): small soldiers at the foot of an army's standard, dressed as their realm fought:
    janissaries for the Ottomans, turbaned archers for the Turkmen and Persian realms, Mamluk lancers,
    Crimean horse-archers in fur caps, Catholic halberdiers in kettle hats, Orthodox spearmen with round
-   shields; the coat takes the realm's colour. One figure for a small army, two from 3,000, three from 15,000;
-   armies rich in horse (04i) show horsemen among them.
+   shields; the coat takes the realm's colour. Each troop type an army has (04i) stands by it: a foot soldier,
+   a horseman, a field gun; a small army shows one figure, two from 3,000, three from 15,000.
    Sprites are cached per culture, colour and scale.
    ===================================================================== */
 const FIG={m:new Map()};
@@ -6969,16 +6972,29 @@ function figHorse(g,cul,col){const INK='#2a1a0c',hc=cul==='kn'?'#d8d2c4':cul==='
  g.beginPath();g.moveTo(-6.8,-8.2);g.quadraticCurveTo(-9.4,-6.6,-9,-3.4);g.stroke();
  if(cul==='kn'){g.fillStyle=col;g.beginPath();g.moveTo(-6,-9.6);g.lineTo(5,-9.6);g.lineTo(5.6,-5.2);g.lineTo(-6.6,-5.2);g.closePath();g.fill();g.stroke();}   // a barding in the realm's colour
  g.save();g.translate(-.6,-7.8);g.scale(.82,.82);g.beginPath();g.rect(-12,-30,24,23.6);g.clip();figPaint(g,cul,col);g.restore();}
-function figSprite(cul,col,z,horse){const k=cul+col+z+'|'+dpr+(horse?'h':'');let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
- const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);horse?figHorse(g,cul,col):figPaint(g,cul,col);});
+/** A field gun on its carriage, wheel at the origin, muzzle to the right, with a small gunner behind it. */
+function figGun(g,cul,col){const INK='#2a1a0c';g.lineJoin='round';g.lineCap='round';g.strokeStyle=INK;g.lineWidth=.7;
+ g.save();g.translate(-6.4,0);g.scale(.62,.62);figPaint(g,cul,col);g.restore();                                       // the gunner
+ g.fillStyle='#6b4a2a';g.beginPath();g.moveTo(-3.6,-.6);g.lineTo(3.4,-4.4);g.lineTo(4,-3.2);g.lineTo(-3,.4);g.closePath();g.fill();g.stroke();   // trail
+ g.fillStyle='#4a4a46';g.beginPath();g.moveTo(.4,-5.6);g.lineTo(10.6,-8.4);g.lineTo(11,-6.6);g.lineTo(.8,-3.4);g.closePath();g.fill();g.stroke();   // barrel
+ g.fillStyle='#2e2e2a';g.beginPath();g.ellipse(10.8,-7.5,.7,1.1,-.27,0,7);g.fill();
+ g.fillStyle='#e2b857';g.fillRect(4.6,-6.9,.8,2.4);
+ g.fillStyle='#8a6a44';g.beginPath();g.arc(2.6,-2.8,2.8,0,7);g.fill();g.stroke();g.beginPath();for(let a=0;a<6;a++){g.moveTo(2.6,-2.8);g.lineTo(2.6+2.6*Math.cos(a*1.05),-2.8+2.6*Math.sin(a*1.05));}g.stroke();   // wheel
+ g.fillStyle='rgba(235,232,222,.75)';g.beginPath();g.arc(13.4,-8.6,1.5,0,7);g.arc(15.2,-9.6,1.1,0,7);g.fill();}       // a puff of smoke
+function figSprite(cul,col,z,kind){const k=cul+col+z+'|'+dpr+(kind||'');let sp=FIG.m.get(k);if(sp&&sp.e.gen===SA.gen)return sp;const sc=z*dpr*1.1;
+ const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);kind==='c'?figHorse(g,cul,col):kind==='a'?(g.translate(-2,0),g.scale(.78,.78),figGun(g,cul,col)):figPaint(g,cul,col);});
  sp={e,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
 /** Figures at the foot of token t (2D only), drawn before the standard. */
-function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.3*8)/8,a=t.id!=null?armyById(t.id):null,cav=a?armMix(a)[1]:0;
- const horse=k=>(k===0&&cav>=.35)||(k===2&&cav>=.6)||(k===1&&cav>=.8);   // horse-heavy armies show horsemen (04i)
- const n=t.n>=15000?3:t.n>=3000?2:1,spots=[[-26,2],[25,2],[-35,-2]];
- for(let k=0;k<n;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
-  c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,5.6*t.z,1.8*t.z,0,0,7);c.fill();
-  const sp=figSprite(cul,col,z,horse(k));saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
+/** Which figures stand by an army of n men and mix m: every troop type it has (guns from any share, foot and horse
+ from 12%) gets its own figure, the larger ones first; a big army fills the spare places with its main troop. */
+function figKinds(n,m){const L=[0,1,2].filter(j=>j===2?m[2]>0:m[j]>=.12).sort((x,y)=>m[y]-m[x]),want=Math.max(L.length,n>=15000?3:n>=3000?2:1);
+ if(!L.length)L.push(m[1]>m[0]?1:0);while(L.length<Math.min(3,want))L.push(L[0]);return L.slice(0,3).map(j=>UNIT_K[j]);}
+function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.7*8)/8,a=t.id!=null?armyById(t.id):null;
+ const K=figKinds(t.n,a?armMix(a):unitDefMix(t.f)),spots=[[-29,2],[28,2],[-44,-1]];
+ for(let k=0;k<K.length;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0&&K[k]!=='a'){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
+  c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,(K[k]==='i'?5.6:7.4)*t.z,1.8*t.z,0,0,7);c.fill();
+  const sp=figSprite(cul,col,z,K[k]==='i'?'':K[k]);saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
+KE.figKinds=(n,m)=>figKinds(n,m);
 /* =====================================================================
    BATTLE SCENE: a small miniature at the head of the battle card (07e). Field battles: the two hosts face
    each other under their banners, dust where they meet. Assaults and sieges: the walls on the right with the
@@ -7675,7 +7691,7 @@ PANEL_SECTIONS.push({id:'armies',order:30,when:c=>armyAt(c.i).length>0||c.mine,h
  let h=`<div class="sec armsec"><h3>${lng('Ordular','Armies')} <span class="cap">${cnt}/${cap}</span></h3>`;
  if(!here.length)h+=`<div class="hint">${lng('Burada sahra ordusu yok. Aşağıdan asker toplarsan yeni bir ordu kurulur.','No field army here. Raise troops below and a new army is formed.')}</div>`;
  else h+=`<div class="arms">${here.map(a=>armRow(a,on&&on.id===a.id)).join('')}</div>`;
- if(on)h+=unitBar(on);   // what the selected army is made of (04i)
+ {const ua=on||mineH[0]||here[0];if(ua)h+=(ua!==on&&here.length>1?`<div class="hint">${esc(armName(ua))}</div>`:'')+unitBar(ua);}   // what the selected (or the first) army here is made of (04i)
  if(on&&c.tgt<0){const others=mineH.filter(a=>a.id!==on.id).length,ck='dis:'+on.id;
   h+=`<div class="hint">${on.mp>0?lng(`Ordunu yürütmek için gideceği eyalete dokun. Bu mevsim ${on.mp} eyalet daha yürüyebilir; düşman toprağına giren ordu orada durur.`,`Tap a province to march there. This army can march ${on.mp} more ${on.mp===1?'province':'provinces'} this season; an army that enters enemy land stops there.`):lng('Bu ordu bu mevsim yürüyüşünü tamamladı. Turu bitirince yeniden yola çıkabilir.','This army has finished its march for the season. It can set out again after you end the turn.')}</div>
   <div class="acts">${others?`<button class="btn" data-act="amerge" data-id="${on.id}">${lng('Orduları birleştir','Merge armies')}</button>`:''}
