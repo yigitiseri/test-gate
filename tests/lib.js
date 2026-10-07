@@ -107,6 +107,9 @@ async function summary(page) {
 
 /** Screen point that picks province i (checked through the hover tooltip), or null. */
 async function provPoint(page, i) {
+  // the state may have just changed (a new army, a siege camp): let the map redraw once so tokens and camps are where they will be
+  const d0 = await page.evaluate(() => { const K = window.__ke; if (K.sg && K.sg.repaint) K.sg.repaint(); return K.stats.draws; });
+  await page.waitForFunction(d => window.__ke.stats.draws > d, d0, { timeout: 5000 }).catch(() => {});
   return page.evaluate(i => {
     const K = window.__ke, d = K.PD[i], cv = document.getElementById('map'), tip = document.getElementById('tip');
     const hit = (x, y) => {
