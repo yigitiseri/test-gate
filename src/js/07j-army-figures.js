@@ -2,8 +2,8 @@
    ARMY FIGURES (2D): small soldiers at the foot of an army's standard, dressed as their realm fought:
    janissaries for the Ottomans, turbaned archers for the Turkmen and Persian realms, Mamluk lancers,
    Crimean horse-archers in fur caps, Catholic halberdiers in kettle hats, Orthodox spearmen with round
-   shields; the coat takes the realm's colour. Each troop type an army has (04i) stands by it: a foot soldier,
-   a horseman, a field gun; a small army shows one figure, two from 3,000, three from 15,000.
+   shields; the coat takes the realm's colour. One soldier stands by each army, showing its main troop (04i):
+   a foot soldier, a horseman or a field gun; the full mix is in the province panel.
    Sprites are cached per culture, colour and scale.
    ===================================================================== */
 const FIG={m:new Map()};
@@ -65,13 +65,10 @@ function figSprite(cul,col,z,kind){const k=cul+col+z+'|'+dpr+(kind||'');let sp=F
  const e=saAdd(20*sc,26*sc,g=>{g.setTransform(sc,0,0,sc,9*sc,24*sc);kind==='c'?figHorse(g,cul,col):kind==='a'?(g.translate(-2,0),g.scale(.78,.78),figGun(g,cul,col)):figPaint(g,cul,col);});
  sp={e,w:20*z,h:26*z};FIG.m.set(k,sp);if(FIG.m.size>200)FIG.m.delete(FIG.m.keys().next().value);return sp;}
 /** Figures at the foot of token t (2D only), drawn before the standard. */
-/** Which figures stand by an army of n men and mix m: every troop type it has (guns from any share, foot and horse
- from 12%) gets its own figure, the larger ones first; a big army fills the spare places with its main troop. */
-function figKinds(n,m){const L=[0,1,2].filter(j=>j===2?m[2]>0:m[j]>=.12).sort((x,y)=>m[y]-m[x]),want=Math.max(L.length,n>=15000?3:n>=3000?2:1);
- if(!L.length)L.push(m[1]>m[0]?1:0);while(L.length<Math.min(3,want))L.push(L[0]);return L.slice(0,3).map(j=>UNIT_K[j]);}
+/** One soldier stands by an army: its main troop (foot, horse or guns, 04i); the full mix is in the panel. */
+function figKind(m){const j=m[2]>m[0]&&m[2]>m[1]?2:m[1]>m[0]?1:0;return UNIT_K[j];}
 function figDraw(c,t){if(G3.on||t.n==null)return;const cul=figCul(t.f),col=(FAC[t.f]&&FAC[t.f].c)||'#888',z=Math.round(t.z*1.7*8)/8,a=t.id!=null?armyById(t.id):null;
- const K=figKinds(t.n,a?armMix(a):unitDefMix(t.f)),spots=[[-29,2],[28,2],[-44,-1]];
- for(let k=0;k<K.length;k++){const [dx,dy]=spots[k],x=t.fx+dx*t.z,y=t.fy+dy*t.z;c.save();if(dx>0&&K[k]!=='a'){c.translate(x,0);c.scale(-1,1);c.translate(-x,0);}
-  c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,(K[k]==='i'?5.6:7.4)*t.z,1.8*t.z,0,0,7);c.fill();
-  const sp=figSprite(cul,col,z,K[k]==='i'?'':K[k]);saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);c.restore();}}
-KE.figKinds=(n,m)=>figKinds(n,m);
+ const k=figKind(a?armMix(a):unitDefMix(t.f)),x=t.fx-29*t.z,y=t.fy+2*t.z;
+ c.fillStyle='rgba(25,14,4,.3)';c.beginPath();c.ellipse(x,y,(k==='i'?5.6:7.4)*t.z,1.8*t.z,0,0,7);c.fill();
+ const sp=figSprite(cul,col,z,k==='i'?'':k);saDraw(c,sp.e,x-9*z,y-24*z,sp.w,sp.h);}
+KE.figKind=m=>figKind(m);

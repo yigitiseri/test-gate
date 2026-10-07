@@ -38,7 +38,7 @@ function unitDefMix(f){const m=unitCul(f).mix.slice();if(!(S.fac[f]&&S.fac[f].ca
 /** Mix of army a ([i,c,a], sum 1); armies from older saves get their realm's default. */
 function armMix(a){if(!a.mix||a.mix.length!==3){a.mix=unitDefMix(a.f);}return a.mix;}
 function mixBlend(m1,n1,m2,n2){const t=Math.max(1,n1+n2);return [0,1,2].map(k=>+((m1[k]*n1+m2[k]*n2)/t).toFixed(3));}
-const UNIT_K=['i','c','a'],UNIT_COL=['#a8662a','#2f6f9e','#55524c'];   // foot, horse, guns (panel bar and the strip on the map tokens)
+const UNIT_K=['i','c','a'],UNIT_COL=['#a8662a','#2f6f9e','#55524c'];   // foot, horse, guns (the panel bar)
 /** Gold per 1,000 men of mix m, relative to infantry. */
 function mixCost(m,tab){return m[0]*tab.i+m[1]*tab.c+m[2]*tab.a;}
 /** Gold to raise n men of type t ('i'|'c'|'a', or none: the realm's usual mix), whole coins. */
