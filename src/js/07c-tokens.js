@@ -42,7 +42,7 @@ function tokItems(){const out=[];if(!S||!Array.isArray(S.armies))return out;cons
   (byLoc[a.loc]||(byLoc[a.loc]=[])).push(a);}
  for(const i in byLoc){const L=byLoc[i].sort((a,b)=>((b.f===pl)-(a.f===pl))||(b.n-a.n)),d=PD[i];
   let k=0;for(const a of L){const cp=aSgCampOf(a);   // a besieging army stands in its siege camp (07f)
-   out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k:cp?0:k++,camp:cp,al:1,mp:a.mp,mpMax:a.mpMax,path:Array.isArray(a.path)?a.path:null});}}
+   out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k:cp?0:k++,camp:cp,al:1,mp:a.mp,mpMax:a.mpMax,path:a.id===selArmy&&farTgt>=0&&a.f===pl?(armyPath(a.id,farTgt)||null):Array.isArray(a.path)?a.path:null});}}   // the road of a long march, or its preview (11j)
  if(typeof aRpGhosts==='function')for(const g of aRpGhosts())out.push(g);
  return out;}
 

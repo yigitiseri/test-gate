@@ -98,7 +98,7 @@ PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
 ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
 ACTS.asel=t=>{const a=armyById(+t.dataset.id);if(!a||a.f!==S.player)return;if(selArmy===a.id&&sel===a.loc&&tgt<0){selArmy=null;}else armSelect(a.loc,a.id);SND.play('select');renderPanel();req();};
-ACTS.amove=(t,f)=>{const a=armyById(selArmy);
+ACTS.amove=(t,f)=>{const a=armyById(selArmy);if(a&&a.dest!=null&&tgtOk()){a.dest=null;a.path=[];}   // a manual order ends a long march (04h)
  if(!a||!tgtOk()){tgt=-1;toast(a?armyCanMove(a.id,tgt).reason||lng('Bu emir artık geçerli değil.','This order is no longer valid.'):lng('Önce bir ordu seç.','Select an army first.'));renderPanel();req();return;}
  const a0=a.loc,to=tgt,n0=a.n,name=armName(a),r=armyMove(a.id,to);
  if(r.kind==='none'){toast(r.reason);tgt=-1;renderPanel();req();return;}

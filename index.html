@@ -4284,6 +4284,41 @@ STATE_SECTIONS.push({id:'vassals',order:33,html(f){if(!S.vas)return '';const L=v
 KE.vas={of:f=>vasOf(f),list:o=>vasList(o),can:(o,v,bk)=>vasCan(o,v,bk),cost:(o,v,bk)=>vasCost(o,v,bk),make:(o,v)=>vasMake(o,v,'test'),free:v=>vasFree(v,'free'),
  lib:v=>vasLib(v),libInfo:v=>vasLibInfo(v),trib:v=>vasTrib(v),annexCan:(o,v)=>vasAnnexCan(o,v),annex:(o,v)=>vasAnnex(o,v),revolt:v=>vasRevolt(v),
  accept:(ai,o,bk)=>vasAccept(ai,o,bk),offer:(p,ai,bk)=>vasOffer(p,ai,bk),treaty:(a,b,bk)=>vasTreaty(a,b,bk),aiSettle:(w,l)=>vasAiSettle(w,l),step:()=>vasStep(),col:f=>vasMapCol(f),why:r=>vasWhyText(r),BAL:BAL_V};
+/* =====================================================================
+   LONG MARCH: a player's army can be given a far destination (a.dest). It marches as far as it can at once,
+   then again at the end of every turn (turnStart, before the AI moves), along the shortest legal road, until it
+   arrives. Arriving at a hostile town it besieges or storms it; if an enemy army holds the destination it halts
+   next to it and the player decides. The march stops (with a note in the season report) when the road closes, or
+   ships cannot be paid; a manual order to the army cancels it. a.path holds the road still to go (drawn on the map).
+   ===================================================================== */
+/** Seasons a march of `cost` provinces takes for army a (counting what is left of this season). */
+function marchSeasons(a,cost){const now=Math.max(0,a.mp||0),mx=Math.max(1,a.mpMax||2);return cost<=now?1:(now>0?1:0)+Math.ceil((cost-now)/mx);}
+/** Give army a the destination `to` and march at once as far as it can. -> marchStep's result */
+function marchSet(a,to){if(!a||to==null||to===a.loc)return null;a.dest=to;return marchStep(a);}
+function marchEnd(a,msg,k){a.dest=null;a.path=[];if(msg&&a.f===S.player)news(msg,k||'info');}
+/** One leg of the march of army a: as far as its movement points allow this season.
+ -> 'arrived' | 'moved' | 'wait' (no points left) | 'halted' (enemy army at the destination) | 'stopped' | null */
+function marchStep(a){if(!a||a.dest==null)return null;const to=a.dest,nm=armName(a),place=PD[to].name;
+ if(a.loc===to){marchEnd(a);return 'arrived';}
+ const p=armyPath(a.id,to);
+ if(!p){marchEnd(a,lng(`${nm}: ${place} yolu kapandı, sefer durdu.`,`${nm}: the road to ${place} is closed; the march has stopped.`),'war');return 'stopped';}
+ if(a.mp<=0){a.path=p;return 'wait';}
+ let k=Math.min(a.mp,p.length);
+ if(k===p.length&&armFoesAt(to,a.f).length){   // an enemy army holds the destination: halt next to it
+  if(k<2){marchEnd(a,lng(`${nm}, ${place} önünde bir düşman ordusuyla karşı karşıya. Saldırı kararı senin.`,`${nm} faces an enemy army at ${place}. Whether to attack is your call.`),'war');return 'halted';}
+  k--;}
+ const step=p[k-1],c=armyCanMove(a.id,step);
+ if(!c.ok){marchEnd(a,lng(`${nm}: sefer durdu. ${c.reason}`,`${nm}: the march has stopped. ${c.reason}`),'war');return 'stopped';}
+ armyMove(a.id,step);
+ if(!S.armies.includes(a)){return 'stopped';}   // lost on the way (a battle)
+ if(a.loc===to||(step===to&&c.kind!=='move')){marchEnd(a,c.kind==='move'?lng(`${nm} ${place} eyaletine vardı.`,`${nm} has arrived at ${place}.`):'');return 'arrived';}
+ if(step!==to&&k<p.length&&step===p[p.length-2]&&armFoesAt(to,a.f).length){marchEnd(a,lng(`${nm}, ${place} önüne vardı; orada bir düşman ordusu var. Saldırı kararı senin.`,`${nm} has reached ${place}, where an enemy army stands. Whether to attack is your call.`),'war');return 'halted';}
+ a.path=armyPath(a.id,to)||[];return 'moved';}
+/** At the end of the player's turn every army on a long march takes its next leg. */
+hook('turnStart',()=>{if(!S||!S.player)return;for(const a of armyList(S.player).slice())if(a.dest!=null)marchStep(a);},40);
+/** Keep the drawn roads current (owners and enemies change). */
+hook('renderAll',()=>{if(!S||!S.player)return;for(const a of armyList(S.player))if(a.dest!=null){const p=armyPath(a.id,a.dest);a.path=p||[];}});
+KE.march={set:(id,to)=>marchSet(armyById(id),to),step:id=>marchStep(armyById(id)),seasons:(id,cost)=>marchSeasons(armyById(id),cost)};
 /* ---------------- AI ----------------
    The AI plays by the player's rules: garrisons defend, field armies (04c) march and attack.
    Strategy comes from Track D: aiTargets(f) (what to attack) and aiDefendNeeds(f) (what to hold). */
@@ -5818,7 +5853,7 @@ function tokItems(){const out=[];if(!S||!Array.isArray(S.armies))return out;cons
   (byLoc[a.loc]||(byLoc[a.loc]=[])).push(a);}
  for(const i in byLoc){const L=byLoc[i].sort((a,b)=>((b.f===pl)-(a.f===pl))||(b.n-a.n)),d=PD[i];
   let k=0;for(const a of L){const cp=aSgCampOf(a);   // a besieging army stands in its siege camp (07f)
-   out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k:cp?0:k++,camp:cp,al:1,mp:a.mp,mpMax:a.mpMax,path:Array.isArray(a.path)?a.path:null});}}
+   out.push({id:a.id,f:a.f,n:a.n,gen:a.gen,x:d.lx,y:d.ly,k:cp?0:k++,camp:cp,al:1,mp:a.mp,mpMax:a.mpMax,path:a.id===selArmy&&farTgt>=0&&a.f===pl?(armyPath(a.id,farTgt)||null):Array.isArray(a.path)?a.path:null});}}   // the road of a long march, or its preview (11j)
  if(typeof aRpGhosts==='function')for(const g of aRpGhosts())out.push(g);
  return out;}
 
@@ -7248,11 +7283,12 @@ function hover(sx,sy){const id=pickAt(sx,sy),tip=$('#tip');if(id<0||!S){tip.hidd
 /* =====================================================================
    MAP SELECTION (Track B): province / army click -> select, order a move, clear, target check
    - nothing selected: tap a province -> select it (and the player's largest army there, if any)
-   - army selected: tap a province it can reach this season -> move order (panel "orders", confirm with amove)
+   - army selected: tap a province it can reach this season -> move order (panel "orders", confirm with amove);
+     one it can only reach over several seasons -> long march offer (11j, farTgt)
    - tap an army token (tokenAt from Track A, if present) -> select that army
    ===================================================================== */
 /** Select province i and (optionally) army id; with id undefined the player's largest army in i is picked. */
-function armSelect(i,id){sel=i;tgt=-1;confirmKey='';
+function armSelect(i,id){sel=i;tgt=-1;farTgt=-1;confirmKey='';
  if(id===undefined){const a=S&&S.player?armyAt(i,S.player).sort((x,y)=>y.n-x.n)[0]:null;selArmy=a?a.id:null;}else selArmy=id;}
 function mapClick(sx,sy){
  if(!S||!S.player||busy||!$('#start').hidden)return;
@@ -7264,15 +7300,15 @@ function mapClick(sx,sy){
  if(id<0){clearSel();return;}
  const a=armyById(selArmy);
  if(a&&a.f===S.player&&id!==a.loc){const c=armyCanMove(a.id,id);
-  if(c.ok){tgt=id;sel=a.loc;SND.play('select');renderPanel();req();return;}
-  if(c.path&&c.cost<=a.mpMax){toast(c.reason);return;} // in range in principle, but not this season
+  if(c.ok){tgt=id;farTgt=-1;sel=a.loc;SND.play('select');renderPanel();req();return;}
+  if(farOk(a,id)){farTgt=id;tgt=-1;sel=a.loc;SND.play('select');renderPanel();req();return;} // too far for this season: offer a long march (11j)
   if(PD[a.loc].adj.includes(id)&&c.reason)toast(c.reason); // a neighbour the army cannot enter: say why, then show its panel
  }
  if(id===sel&&tgt>=0){tgt=-1;renderPanel();req();return;}
  if(id===sel){clearSel();return;}
  armSelect(id);SND.play('select');renderPanel();req();
 }
-function clearSel(){sel=-1;tgt=-1;selArmy=null;confirmKey='';$('#panel').hidden=true;req();}
+function clearSel(){sel=-1;tgt=-1;farTgt=-1;selArmy=null;confirmKey='';$('#panel').hidden=true;req();}
 /** The pending move order (selected player army -> tgt) is still legal. */
 function tgtOk(){if(sel<0||tgt<0||!S||!S.player)return false;const a=armyById(selArmy);return !!a&&a.f===S.player&&armyCanMove(a.id,tgt).ok;}
 /* =====================================================================
@@ -7622,7 +7658,7 @@ PANEL_SECTIONS.push({id:'foreign',order:70,when:c=>c.tgt<0&&!c.mine,html(c){
 ACTS.close=()=>clearSel();
 ACTS.cancel=()=>{tgt=-1;renderPanel();req();};
 ACTS.asel=t=>{const a=armyById(+t.dataset.id);if(!a||a.f!==S.player)return;if(selArmy===a.id&&sel===a.loc&&tgt<0){selArmy=null;}else armSelect(a.loc,a.id);SND.play('select');renderPanel();req();};
-ACTS.amove=(t,f)=>{const a=armyById(selArmy);
+ACTS.amove=(t,f)=>{const a=armyById(selArmy);if(a&&a.dest!=null&&tgtOk()){a.dest=null;a.path=[];}   // a manual order ends a long march (04h)
  if(!a||!tgtOk()){tgt=-1;toast(a?armyCanMove(a.id,tgt).reason||lng('Bu emir artık geçerli değil.','This order is no longer valid.'):lng('Önce bir ordu seç.','Select an army first.'));renderPanel();req();return;}
  const a0=a.loc,to=tgt,n0=a.n,name=armName(a),r=armyMove(a.id,to);
  if(r.kind==='none'){toast(r.reason);tgt=-1;renderPanel();req();return;}
@@ -8128,6 +8164,38 @@ function bIcon(k,f){if(k==='faith')k=f&&FAC[f]&&FAC[f].rel==='İslam'?'mosque':'
 /** One build tile: icon, name, a status line (level or "built") and the cost. */
 function bTile({act,attrs='',icon,name,sub='',cost='',done=false,dis=false,tip='',coin=true}){
  return `<button class="btn btile${done?' done':''}${coin?'':' nocoin'}" data-act="${act}" ${attrs} ${dis?'disabled':''}${tip?` title="${esc(tip)}"`:''}>${icon}<span class="bt-nm">${name}</span>${sub?`<span class="bt-sub">${sub}</span>`:''}<span class="bt-c">${done?'✓':cost}</span></button>`;}
+/* =====================================================================
+   LONG MARCH UI: with an army selected, tapping a province it cannot reach this season (but can reach at all)
+   offers a long march there (farTgt): the road, how many seasons, what happens on arrival, and "Set out".
+   An army on the march shows its destination in the panel, with a button to call the march off.
+   The road is drawn on the map (07c tokRoute, from a.path; a preview while the offer is open).
+   ===================================================================== */
+let farTgt=-1;
+/** Can the selected army march to province i over several seasons (and not this one)? -> armyCanMove's answer or null */
+function farOk(a,i){if(!a||a.f!==S.player||i===a.loc)return null;const c=armyCanMove(a.id,i);if(c.ok||!c.path)return null;
+ if(!(a.mp<=0||c.cost>a.mp))return null;return c;}
+PANEL_SECTIONS.push({id:'longmarch',order:41,when:c=>farTgt>=0&&tgt<0&&!!armyById(selArmy),html(c){
+ const a=armyById(selArmy),mv=armyCanMove(a.id,farTgt),td=PD[farTgt];if(!mv.path)return '';
+ const n=marchSeasons(a,mv.cost),kind=mv.kind||'move',foe=armFoesAt(farTgt,a.f).length>0;
+ const end=foe?lng('Hedefte bir düşman ordusu var: ordu yanına kadar gider ve durur, saldırı kararı senin olur.','An enemy army holds the destination: the army marches up to it and halts; whether to attack is your call.')
+  :kind==='siege'?lng('Varınca surları kuşatır.','On arrival it besieges the walls.'):kind==='assault'?lng('Varınca kasabaya hücum eder.','On arrival it storms the town.'):lng('Varınca orada bekler.','On arrival it waits there.');
+ return `<div class="sec orders" data-sheet="action"><h3>${lng('Uzun sefer','Long march')} → ${esc(td.name)}</h3>
+  <div class="meta"><span>${esc(armName(a))} <b>${fmtK(a.n)}</b></span><span>${lng('Yol','Route')} <b>${mv.cost} ${lng('eyalet',mv.cost===1?'province':'provinces')}</b></span><span>${lng('Süre','Time')} <b>${lng(`~${n} mevsim`,`~${n} ${n===1?'season':'seasons'}`)}</b></span></div>
+  <div class="hint">${lng(`Ordu bu mevsim gidebildiği kadar yürür, sonra her tur sonunda yoluna kendiliğinden devam eder. ${end} Orduya başka bir emir verirsen sefer biter.`,`The army marches as far as it can this season, then carries on by itself at the end of every turn. ${end} Give the army another order and the march ends.`)}</div>
+  <div class="acts"><button class="btn primary" data-act="adest">${lng('Sefere çık','Set out')}</button><button class="btn" data-act="adestno" style="justify-content:center">${lng('Vazgeç','Cancel')}</button></div></div>`;}});
+PANEL_SECTIONS.push({id:'march',order:31,when:c=>{if(selArmy==null||!S)return false;const a=armyById(selArmy);return !!a&&a.f===S.player&&a.loc===c.i&&a.dest!=null;},html(c){
+ const a=armyById(selArmy),p=a.path&&a.path.length?a.path:(armyPath(a.id,a.dest)||[]),n=p.length?marchSeasons(a,p.length):0;
+ return `<div class="sec"><h3>${lng('Seferde','On the march')} → ${esc(PD[a.dest].name)}</h3>
+  <div class="hint">${lng(`Kalan yol ${p.length} eyalet, yaklaşık ${n} mevsim. Ordu her tur sonunda kendiliğinden yürür.`,`${p.length} ${p.length===1?'province':'provinces'} to go, about ${n} ${n===1?'season':'seasons'}. The army marches by itself at the end of every turn.`)}</div>
+  <div class="acts"><button class="btn" data-act="adestx">${lng('Seferi durdur','Stop the march')}</button></div></div>`;}});
+ACTS.adest=()=>{const a=armyById(selArmy),to=farTgt;farTgt=-1;if(!a||to<0||!farOk(a,to)){renderPanel();req();return;}
+ const n=marchSeasons(a,armyCanMove(a.id,to).cost),r=marchSet(a,to);SND.play('march');
+ if(r!=='stopped'&&a.dest!=null)toast(lng(`${armName(a)} ${PD[to].name} yolunda (~${n} mevsim).`,`${armName(a)} is on the road to ${PD[to].name} (~${n} ${n===1?'season':'seasons'}).`),'good');
+ if(S.armies.includes(a))armSelect(a.loc,a.id);renderAll();};
+ACTS.adestno=()=>{farTgt=-1;renderPanel();req();};
+ACTS.adestx=()=>{const a=armyById(selArmy);if(a){a.dest=null;a.path=[];toast(lng(`${armName(a)} seferi durdurdu.`,`${armName(a)} has stopped its march.`));}renderAll();};
+['adest','adestx'].forEach(k=>OVERBLOCK.add(k));
+KE.farTgt=()=>farTgt;
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
@@ -8556,6 +8624,7 @@ function guideBody(t){
  <p>Bir ordu her mevsim sınırlı yol alır; sancağın altındaki altın noktalar kalan hareketini gösterir. Haritadaki kesik mavi çizgiler gemiyle geçilen deniz yollarıdır. Donanması olan devletler (Osmanlı, Venedik, Ceneviz, Rodos, Aragon, Napoli, Kıbrıs) bu yollardan rahatça geçer; donanman yoksa gemi kiralarsın: her 1.000 asker için 1 altın, emir panelinde yazar. Orduları birleştirebilir, bölebilir ya da dağıtabilirsin.</p>
  <p><b>Komutanlar:</b> Her ordunun başında bir paşa, şehzade ya da hükümdarın kendisi olabilir; yıldızları ne kadar çoksa muharebede o kadar işe yarar. Orduyu seçip <b>Komutanı değiştir</b>'e basarak boştaki bir paşayı atayabilir ya da başka bir ordunun komutanını buraya alabilirsin. Komutanı ölen ya da esir düşen orduya, boşta paşan varsa tur sonunda o geçer.</p>
  <p class="tip"><b>Kısayol:</b> Üst çubukta <b>Ordu</b>'ya dokununca ordularını, <b>Eyalet</b>'e dokununca eyaletlerini sırayla gösterir; haritanın bir köşesinde unuttuğun bir ada ya da ordu hep bir dokunuş uzağındadır.</p>
+ <p><b>Uzun sefer:</b> Ordun seçiliyken bu mevsim yetişemeyeceği uzak bir eyalete dokun; panelde yolun kaç eyalet ve kaç mevsim sürdüğü çıkar. <b>Sefere çık</b> dersen ordu bu mevsim gidebildiği kadar yürür, sonra her tur sonunda kendiliğinden devam eder. Varınca düşman şehrini kuşatır ya da hücum eder; hedefte bir düşman ordusu varsa önünde durur, saldırı kararı senin olur. Yol kapanırsa sefer durur ve mevsim raporunda yazar. Orduya başka bir emir verirsen ya da paneldeki <b>Seferi durdur</b> düğmesine basarsan sefer biter.</p>
  <p>Tur sonunda <b>Sefer haberleri</b> bu mevsimin yürüyüşlerini ve muharebelerini haritada kısaca oynatır; <b>Geç</b> ile atlayabilirsin. Menü → Görüntü'den kapatabilir ya da hızlandırabilirsin.</p>
  <h3>Kimin gücü ağır basar?</h3>
  <p>Muharebede senin ordunla şehrin savunması karşılaşır. Şehri sadece oradaki askerler korumaz; kasabanın halkı da silaha sarılır. Büyük şehirlerde ve kaleli yerlerde bu halk savunması kalabalıktır.</p>
@@ -8649,6 +8718,7 @@ function guideBodyEn(t,half){
  <p>An army can only travel so far each season; the gold dots under its banner show how much movement it has left. The dashed blue lines on the map are sea routes crossed by ship. Seafaring realms (the Ottomans, Venice, Genoa, Rhodes, Aragon, Naples, Cyprus) cross them freely; without a fleet you hire ships: 1 gold for every 1,000 men, shown in the order panel. You can merge armies, split them or disband them.</p>
  <p><b>Commanders:</b> Each army can be led by a pasha, a prince or the ruler himself; the more stars he has, the more he helps in battle. Select an army and press <b>Change commander</b> to appoint a free general or bring over the commander of another army. If a commander dies or is taken prisoner, a free general takes his place at the end of the turn.</p>
  <p class="tip"><b>Shortcut:</b> Tap <b>Army</b> in the top bar to jump through your armies, or <b>Provinces</b> to jump through your provinces one by one. A forgotten island or a lost army is always one tap away.</p>
+ <p><b>Long march:</b> With an army selected, tap a far province it cannot reach this season; the panel shows how many provinces and seasons the road takes. Press <b>Set out</b> and the army marches as far as it can this season, then carries on by itself at the end of every turn. On arrival it besieges or storms an enemy town; if an enemy army holds the destination it halts in front of it and the attack is your call. If the road closes the march stops, and the season report says so. Give the army another order, or press <b>Stop the march</b> in the panel, and the march ends.</p>
  <p>At the end of each turn, <b>Campaign news</b> briefly replays the season's marches and battles on the map; press <b>Skip</b> to pass over it. You can turn it off or speed it up under Menu → Display.</p>
  <h3>Who has the upper hand?</h3>
  <p>In battle, your army meets the city's defence. A city is not held by its soldiers alone: the townsfolk take up arms as well. In big cities and fortified places, these citizen defenders are many.</p>

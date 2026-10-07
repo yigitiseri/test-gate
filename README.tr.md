@@ -29,6 +29,8 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
 - **Komutanlar.** Paşalar, şehzadeler, hatta sultanın kendisi ordunun başına geçebilir; her birinin yıldızları ve
   özellikleri vardır (akıncı bir bey daha uzağa yürür). Komutanı ordu panelinden atar ya da başka ordudan
   alırsın; komutanı ölen ya da esir düşen ordunun başına tur sonunda boştaki bir paşa geçer.
+- **Uzun sefer.** Ordun seçiliyken uzak bir eyalete dokunup Sefere çık de: ordu her tur sonunda kendiliğinden
+  gidebildiği kadar yürür, varınca düşman şehrini kuşatır.
 - **Kısayollar.** Üst çubukta **Ordu**'ya ya da **Eyalet**'e dokununca ordularını ya da eyaletlerini sırayla
   gösterir; unuttuğun bir ada ya da kaybolan bir ordu hep bir dokunuş uzağındadır.
 - **Vasallar.** Yendiğin devleti ilhak etmek yerine Barış Masası'nda haraçgüzar yap: toprağı kendinde kalır, her

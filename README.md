@@ -30,6 +30,8 @@ The game is available in **English and Turkish** (switch on the start screen or 
 - **Commanders.** Pashas, princes and even the sultan himself can lead an army; each has skill stars and traits
   (an akıncı raider marches further). Appoint or move commanders from the army panel; an army that loses its
   commander in battle or to captivity gets a free replacement at the end of the round.
+- **Long marches.** Tap a far province with an army selected and press Set out: the army marches as far as it
+  can each season, on its own at the end of every turn, and besieges an enemy town when it arrives.
 - **Shortcuts.** Tap **Army** or **Provinces** in the top bar to jump through your armies or provinces one
   by one, so a forgotten island or a lost army is always one tap away.
 - **Vassals.** Instead of annexing a beaten realm, make it a tributary at the Peace Table: it keeps its land,
