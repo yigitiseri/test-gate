@@ -58,7 +58,7 @@ hook('preAI',f=>{if(S.turn<BAL_RF.aiFrom||R()>BAL_RF.aiP)return;const F=S.fac[f]
 
 /* --- the reforms window --- */
 function showReforms(){const f=S.player;if(!f)return;const n=rfCount(f);
- openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Gelişmeler','Reforms')}</h2>
+ openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Gelişmeler','Reforms')}</h2>${typeof rfTabs==='function'?rfTabs('rf'):''}
  <p class="lead">${lng(`Hazinedeki altınla devletine kalıcı yenilikler kazandır. Benimsediğin: <b>${n}/${RF.length}</b>. Hazine: <b>${Math.floor(S.fac[f].gold)}</b> altın.`,`Spend treasury gold on lasting advances for your realm. Adopted: <b>${n}/${RF.length}</b>. Treasury: <b>${Math.floor(S.fac[f].gold)}</b> gold.`)}</p>
  <div class="rfg">${RF.map(r=>{const has=rfHas(f,r.id),c=rfCan(f,r),others=FK.filter(g=>g!==f&&alive(g)&&rfHas(g,r.id)).length;
   const st=has?`<span class="rf-st ok">${S.ref[f]&&S.ref[f][r.id]!=null?lng(`Benimsendi · ${dateStr(S.ref[f][r.id])}`,`Adopted · ${dateStr(S.ref[f][r.id])}`):lng('Benimsendi','Adopted')}</span>`

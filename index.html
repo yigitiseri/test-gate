@@ -1014,6 +1014,28 @@ img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
 @media (max-width:520px){.rf{flex-wrap:wrap}.rf-a{width:100%;text-align:left;padding-left:38px}}
 /* undo (11k): the ↶ button above the zoom buttons */
 #zoom #undoBtn{box-shadow:0 0 0 2px rgba(226,184,87,.65),0 2px 8px rgba(0,0,0,.35)}
+/* divan (12g): tabs shared with the reforms window, offices and candidates */
+.rf-tabs{display:flex;gap:6px;margin:4px 0 10px;border-bottom:1px solid rgba(74,46,18,.25)}
+.rf-tab{padding:7px 14px;border:1px solid rgba(74,46,18,.25);border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:inherit;font:inherit;font-size:14px;cursor:pointer;margin-bottom:-1px}
+.rf-tab.on{background:linear-gradient(#fbf0cf,#f0dcaa);border-color:#b8862c;font-weight:700}
+.rf-dot{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:#8e1f14;color:#fff;font-size:11px;text-align:center;margin-left:4px}
+.dv-cur{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;margin:6px 0;border-radius:6px;background:linear-gradient(#fbf0cf,#f0dcaa);border:1px solid #b8862c}
+.dv-cur small,.dv-c small{color:var(--muted);font-size:12px;margin-left:4px}
+.dv-cur .btn{margin-left:auto;font-size:12.5px;padding:4px 10px}
+.dv-empty{background:rgba(142,31,20,.08);border-color:rgba(142,31,20,.35);color:#8e1f14;font-weight:600}
+.dv-cands{display:flex;flex-direction:column;gap:4px}
+.dv-c{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px;border:1px dashed rgba(74,46,18,.25);border-radius:6px;flex-wrap:wrap}
+.dv-c .btn{font-size:12.5px;padding:5px 10px;white-space:nowrap}
+.dv-st{color:#b8862c;letter-spacing:1px;font-size:13px}
+.dv-st i{font-style:normal;color:rgba(74,46,18,.2)}
+/* deeper diplomacy (12h): the marriage chip */
+.chip.mar{background:rgba(142,31,20,.1);border-color:#b04a3a;color:#8e1f14}
+/* minimap (07m): the overview in the bottom-right corner */
+#minimap{position:fixed;z-index:7;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:3px;background:#2a1a0c;border:1px solid #b8862c;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:crosshair;touch-action:none;line-height:0}
+#minimap canvas{display:block;border-radius:3px}
+#minimap .mm-fr{position:absolute;margin:3px;border:1.5px solid #fbe9c0;box-shadow:0 0 0 1px rgba(42,26,12,.7);border-radius:2px;pointer-events:none}
+#zoom #mmBtn.on{box-shadow:inset 0 0 0 2px rgba(226,184,87,.6)}
+@media (max-width:720px){#minimap{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
 </style>
 </head>
 <body>
@@ -4703,6 +4725,7 @@ function aiDiplo(f){
   if(gain>0)gain*=over;
   gain*=calm;
   if(g===S.player){if(S.turn<BAL_D.gracePlayer*difV('grace'))gain=Math.min(gain,0);else if(gain>0)gain*=difV('agg');}   // difficulty (03h)
+  if(gain>0&&typeof marLink==='function'&&marLink(f,g))gain*=BAL_MR.agg;   // joined by marriage (12h)
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
  if(S.turn<BAL_D.graceTurns){aiOps(f);return;}
@@ -7202,6 +7225,44 @@ function hrSelFill(alpha){if(!S||startPick||sel<0)return;hrRings();ctx.save();ct
 KE.vm.wash=(x,y,w,z)=>{const c=mk(258,258),g=c.getContext('2d',CPU2D);const t=performance.now();hrWash(g,{x0:x,y0:y,x1:x+w,y1:y+w},z);return performance.now()-t;};
 KE.vm.rings=()=>{hrRings();return {open:(HR.open||[]).map(i=>PD[i].key+':'+VM.byProv[i].length)};};
 /* =====================================================================
+   MINIMAP (2D): a small overview of the whole map in the bottom-right corner, with the part on screen framed.
+   Tap or drag on it to move the view there. The picture (the baked map with the political colours, 07/07h)
+   is redrawn only when the owners or the map mode change; the frame follows the camera every frame
+   (DRAW_LAYERS.minimap). Hidden in 3D, on the start screen and while the province panel is open on a
+   narrow screen; the ▣ button above the zoom buttons shows or hides it (remembered; off on phones at first).
+   ===================================================================== */
+const MM_STORE='aod-mm-v1',MM={el:null,c:null,fr:null,sig:'',w:0,h:0,drag:false};
+function mmPref(){try{const v=localStorage.getItem(MM_STORE);if(v!=null)return v==='1';}catch(e){}return innerWidth>=720;}
+let mmOn=mmPref();
+function mmBuild(){if(MM.el)return;const el=document.createElement('div');el.id='minimap';el.hidden=true;el.setAttribute('role','img');
+ el.setAttribute('aria-label',lng('Genel bakış haritası: dokunduğun yere gidilir','Overview map: tap to go there'));
+ el.innerHTML='<canvas></canvas><i class="mm-fr"></i>';document.body.appendChild(el);MM.el=el;MM.c=el.querySelector('canvas');MM.fr=el.querySelector('.mm-fr');
+ const go=e=>{const r=MM.c.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1)*W,y=clamp((e.clientY-r.top)/r.height,0,1)*H;centerOn(x,y,cam.s);mmUpdate(G3.on);};
+ el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();MM.drag=true;el.setPointerCapture(e.pointerId);go(e);});
+ el.addEventListener('pointermove',e=>{if(MM.drag)go(e);});
+ const up=e=>{MM.drag=false;try{el.releasePointerCapture(e.pointerId);}catch(_){}};el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
+ el.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});}
+/** Redraw the overview picture (the baked ground and the political colours). */
+function mmPaint(){const w=Math.round(innerWidth<720?140:200),h=Math.round(w*H/W),d=Math.min(window.devicePixelRatio||1,2),c=MM.c;
+ if(c.width!==Math.round(w*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);c.style.width=w+'px';c.style.height=h+'px';}MM.w=w;MM.h=h;
+ const g=c.getContext('2d');g.setTransform(c.width/W,0,0,c.height/H,0,0);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
+ if(baseC)g.drawImage(baseC,0,0,W,H);if(polC)g.drawImage(polC,0,0,W,H);
+ if(S&&S.player){const i=S.fac[S.player].cap;if(i>=0){g.setTransform(c.width/W,0,0,c.height/H,0,0);g.fillStyle='#fbe9c0';g.strokeStyle='#8e1f14';g.lineWidth=W/w*1.5;g.beginPath();g.arc(PD[i].lx,PD[i].ly,W/w*3.2,0,7);g.fill();g.stroke();}}}
+/** Show or hide the overview and move its frame to the camera (every frame, and at once after a tap or toggle). */
+function mmUpdate(g3){mmBuild();const show=mmOn&&!g3&&!!S&&!!S.player&&$('#start').hidden&&!(innerWidth<720&&!$('#panel').hidden);
+ if(MM.el.hidden===show)MM.el.hidden=!show;if(!show)return;
+ const sig=S.prov.map(p=>p.o+(p.ctl||'')).join()+mapMode+(S.fac[S.player].cap)+innerWidth;if(sig!==MM.sig){MM.sig=sig;mmPaint();}
+ const th=topH(),x0=-cam.x/cam.s,y0=(th-cam.y)/cam.s,x1=(vw-cam.x)/cam.s,y1=(vh-cam.y)/cam.s,k=MM.w/W,
+  l=clamp(x0*k,0,MM.w),t=clamp(y0*k,0,MM.h),r=clamp(x1*k,0,MM.w),b=clamp(y1*k,0,MM.h);
+ const st=MM.fr.style;st.left=l+'px';st.top=t+'px';st.width=Math.max(4,r-l)+'px';st.height=Math.max(4,b-t)+'px';}
+DRAW_LAYERS.minimap=(c,now,s,g3)=>{mmUpdate(g3);return false;};
+function mmToggle(){mmOn=!mmOn;try{localStorage.setItem(MM_STORE,mmOn?'1':'0');}catch(e){}mmBtnUi();mmUpdate(G3.on);req();}
+function mmBtnUi(){const b=document.getElementById('mmBtn');if(!b)return;b.classList.toggle('on',mmOn);const t=mmOn?lng('Genel bakışı gizle','Hide the overview'):lng('Genel bakışı göster','Show the overview');b.title=t;b.setAttribute('aria-label',t);}
+ACTS.minimap=()=>mmToggle();
+hook('boot',()=>{const z=document.getElementById('zoom');if(!z||document.getElementById('mmBtn'))return;const b=document.createElement('button');b.id='mmBtn';b.dataset.act='minimap';b.textContent='▣';b.style.fontSize='17px';
+ const v=document.getElementById('v3dBtn');z.insertBefore(b,v||null);mmBtnUi();});
+KE.mm={on:()=>mmOn,toggle:()=>mmToggle(),el:()=>MM.el};
+/* =====================================================================
    3D VIEW (Three.js)
    ===================================================================== */
 const G3={on:false,s:1,mx:W/2,my:H/2,texDirty:true,objDirty:true,anchor:[],
@@ -8403,15 +8464,15 @@ KE.farTgt=()=>farTgt;
    act() (11-ui-core) runs the preAct/postAct hooks around every click.
    ===================================================================== */
 const UNDO_MAX=8,UNDO=[];
-const UNDO_OK=new Set(['amove','amerge','asplit','adisband','gdisband','grec','rec1','rec5','recc','reca','bdev','bmkt','bbrk','bfort','adest','adestx','wkbuild','rfbuy','cmd-set']);
+const UNDO_OK=new Set(['amove','amerge','asplit','adisband','gdisband','grec','rec1','rec5','recc','reca','bdev','bmkt','bbrk','bfort','adest','adestx','wkbuild','rfbuy','cmd-set','dvset','dvx']);
 /* clicks that only look or select (they neither keep nor clear the list) */
 const UNDO_UI=new Set(['undo','zin','zout','fit','v3d','mode','tmode','snd','close','cancel','asel','go','help','guide','state','chron','diplo','ledger','lg-met','lg-sort','lg-all','lg-riv',
  'missions','menu','adv','adv-go','adv-mute','adv-toggle','tut-skip','tut-restart','cyc-prov','cyc-army','ui-idle','ui-inbox','trades','trmap','reforms','sgrp','bcard','bcard-x','scard',
- 'a-replay','a-speed','a-q3d','a-skip','adestno','mclose','sv-open','sv-tab','sv-exp','sv-exp-cur','sv-exp-auto','sv-ren','sv-ren-x','sv-ren-ok','lang','cmd-open','pt-prov','pt-rel','pt-gold','pt-auto','pt-clear','snd-music','snd-sfx','sdif','pick']);
+ 'a-replay','a-speed','a-q3d','a-skip','adestno','mclose','sv-open','sv-tab','sv-exp','sv-exp-cur','sv-exp-auto','sv-ren','sv-ren-x','sv-ren-ok','lang','cmd-open','pt-prov','pt-rel','pt-gold','pt-auto','pt-clear','snd-music','snd-sfx','sdif','pick','divan']);
 const UNDO_L={amove:['Ordu yürüdü','The march'],amerge:['Ordular birleşti','The merge'],asplit:['Ordu bölündü','The split'],adisband:['Ordu dağıtıldı','The disbanding'],gdisband:['Garnizon azaltıldı','The garrison cut'],
  grec:['Garnizon toplandı','The garrison levy'],rec1:['Asker toplandı','The levy'],rec5:['Asker toplandı','The levy'],recc:['Süvari toplandı','The horse levy'],reca:['Topçu toplandı','The gun levy'],
  bdev:['İmar','The building'],bmkt:['Pazar kuruldu','The market'],bbrk:['Kışla kuruldu','The barracks'],bfort:['Kale yükseltildi','The walls'],adest:['Sefere çıkıldı','The long march'],adestx:['Sefer durdu','The halt'],
- wkbuild:['Eser başladı','The great work'],rfbuy:['Gelişme alındı','The reform'],'cmd-set':['Komutan atandı','The new commander']};
+ wkbuild:['Eser başladı','The great work'],rfbuy:['Gelişme alındı','The reform'],dvset:['Atama','The appointment'],dvx:['Azil','The dismissal'],'cmd-set':['Komutan atandı','The new commander']};
 let undoTok=null;
 const undoLabel=a=>{const l=UNDO_L[a];return l?lng(l[0],l[1]):lng('Son hamle','The last order');};
 function undoClear(){if(UNDO.length){UNDO.length=0;undoUi();}}
@@ -9025,7 +9086,7 @@ hook('preAI',f=>{if(S.turn<BAL_RF.aiFrom||R()>BAL_RF.aiP)return;const F=S.fac[f]
 
 /* --- the reforms window --- */
 function showReforms(){const f=S.player;if(!f)return;const n=rfCount(f);
- openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Gelişmeler','Reforms')}</h2>
+ openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Gelişmeler','Reforms')}</h2>${typeof rfTabs==='function'?rfTabs('rf'):''}
  <p class="lead">${lng(`Hazinedeki altınla devletine kalıcı yenilikler kazandır. Benimsediğin: <b>${n}/${RF.length}</b>. Hazine: <b>${Math.floor(S.fac[f].gold)}</b> altın.`,`Spend treasury gold on lasting advances for your realm. Adopted: <b>${n}/${RF.length}</b>. Treasury: <b>${Math.floor(S.fac[f].gold)}</b> gold.`)}</p>
  <div class="rfg">${RF.map(r=>{const has=rfHas(f,r.id),c=rfCan(f,r),others=FK.filter(g=>g!==f&&alive(g)&&rfHas(g,r.id)).length;
   const st=has?`<span class="rf-st ok">${S.ref[f]&&S.ref[f][r.id]!=null?lng(`Benimsendi · ${dateStr(S.ref[f][r.id])}`,`Adopted · ${dateStr(S.ref[f][r.id])}`):lng('Benimsendi','Adopted')}</span>`
@@ -9044,6 +9105,136 @@ ADVICE.push({id:'reform',prio:25,when:(S,f)=>{if(S.turn<4)return null;const r=RF
  d:(S,f,r)=>lng(`Paşam, hazine dolu. ${r.c} altına ${rfName(r)} gelişmesini benimseyebiliriz: ${rfHow(r)}`,`My lord, the treasury is full. For ${r.c} gold we could adopt ${rfName(r)}: ${rfHow(r)}`),
  go:()=>showReforms(),goL:lng('Gelişmeler','Reforms')});
 KE.ref={has:(f,id)=>rfHas(f,id),adopt:(f,id)=>rfAdopt(f,id),list:()=>RF.map(r=>r.id),count:f=>rfCount(f)};
+/* =====================================================================
+   DIVAN: the player's three great officers, each with a skill of 1-5 stars.
+    - sad: Grand Vizier / Chancellor: every season the other realms at peace with us think a little better of us;
+    - def: Treasurer: provincial taxes +2.5% per star (a ledger row);
+    - ser: Commander-in-Chief / Marshal: +2.5% per star in every battle and siege the player fights (odds card).
+   S.court = {sad, def, ser: {n, sk, born, t} | null, cand: {t, L: [{o, n, sk, age}]}}
+   A new game starts with two-star officers; candidates are drawn once a season (two per office) and cost gold
+   to appoint (more for more stars). Officers age and may die (from 55 more likely); the office then stands empty.
+   Titles follow the realm's faith. The Divan is a tab of the reforms window; the advisor points at an empty office.
+   Names come from the culture's pool (03d) with a local hash, so the game's random sequence is untouched.
+   ===================================================================== */
+const BAL_DV={op:.4,tax:.025,bat:.025,cost:12,die:.02,dieAge:55,dieStep:.012};
+const DV_K=['sad','def','ser'];
+const DV_T={sad:[['Sadrazam','Grand Vizier'],['Şansölye','Chancellor']],def:[['Defterdar','Treasurer'],['Hazinedar','Treasurer']],ser:[['Serasker','Commander-in-Chief'],['Mareşal','Marshal']]};
+const DV_D={sad:['Barışta olduğun devletler her mevsim sana biraz daha iyi bakar (yıldız başına).','Realms at peace with you think a little better of you every season (per star).'],
+ def:['Eyalet vergileri yıldız başına %2,5 artar.','Provincial taxes +2.5% per star.'],
+ ser:['Savaşlarda ve kuşatmalarda yıldız başına +%2,5 güç.','+2.5% per star in battles and sieges.']};
+function dvTitle(k,f){const m=FAC[f||S.player]&&FAC[f||S.player].rel==='İslam'?0:1,t=DV_T[k][m];return lng(t[0],t[1]);}
+let dvSeed=0;
+function dvRnd(){dvSeed=(dvSeed+1)|0;return hash((S?S.turn:0)*7919+dvSeed,(S&&S.seq||1)*31+dvSeed*17);}
+function dvName(f){const sd=(typeof CH_SEED!=='undefined'&&CH_SEED[f])||{cul:'tr'},pool=CH_NAMES[sd.cul==='pp'?'it':sd.cul]||CH_NAMES.tr,pick=L=>L[Math.floor(dvRnd()*L.length)%L.length];
+ return sd.sur?pick(pool)+' '+pick(sd.sur):pick(pool);}
+function dvYear(){return START_YEAR+Math.floor(S.turn/4);}
+function dvMake(f,sk,age){return {n:dvName(f),sk,born:dvYear()-age,t:S.turn};}
+/** The court record, created on first use (new games and old saves: two-star officers). */
+function dvS(){if(!S.court&&S.player){const f=S.player;S.court={sad:dvMake(f,2,48),def:dvMake(f,2,42),ser:dvMake(f,2,38),cand:null};}return S.court;}
+hook('newGame',s=>{s.court=null;if(s.player)dvS();});
+hook('migrate',s=>{if(s.court&&typeof s.court!=='object')s.court=null;});
+const dvSk=k=>{const c=S&&S.player&&dvS()[k];return c?c.sk:0;};
+const dvAge=c=>dvYear()-c.born;
+const dvCost=sk=>sk*sk*BAL_DV.cost;
+/** Two candidates per office, drawn once a season. */
+function dvCands(){const C=dvS();if(C.cand&&C.cand.t===S.turn)return C.cand.L;const f=S.player,L=[];
+ for(const o of DV_K)for(let j=0;j<2;j++){const r=dvRnd(),sk=r<.35?1:r<.65?2:r<.85?3:r<.96?4:5;L.push({o,n:dvName(f),sk,age:28+Math.floor(dvRnd()*30)});}
+ C.cand={t:S.turn,L};return L;}
+function dvAppoint(idx){const C=dvS(),c=dvCands()[idx];if(!c||c.used)return false;const F=S.fac[S.player],cost=dvCost(c.sk);if(F.gold<cost)return false;
+ F.gold-=cost;C[c.o]={n:c.n,sk:c.sk,born:dvYear()-c.age,t:S.turn};c.used=true;
+ addLog(lng(`${c.n} ${dvTitle(c.o)} oldu.`,`${c.n} has become ${dvTitle(c.o)}.`),'good');runHooks('divan',c.o);return true;}
+function dvDismiss(k){const C=dvS();if(!C[k])return false;addLog(lng(`${C[k].n} ${dvTitle(k)} makamından azledildi.`,`${C[k].n} has been dismissed as ${dvTitle(k)}.`),'info');C[k]=null;return true;}
+
+/* --- effects --- */
+ECON_ROWS.push(f=>{if(!S||f!==S.player)return null;const sk=dvSk('def');if(!sk)return null;let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=provIncome(i);
+ return s>0?[{id:'dv-def',l:`${dvTitle('def')} ${dvS().def.n}`,v:s*BAL_DV.tax*sk,k:'inc',tip:lng(DV_D.def[0],DV_D.def[1])}]:null;});
+BATTLE_MODS.push(ctx=>{if(!S||!S.player||!ctx.att)return null;const sk=dvSk('ser');if(!sk)return null;
+ const side=ctx.att===S.player?'att':ctx.def===S.player||(ctx.defFs||[]).includes(S.player)?'def':null;if(!side)return null;
+ return [{l:`${dvTitle('ser')} ${dvS().ser.n}`,m:1+BAL_DV.bat*sk,side,k:'dv-ser'}];});
+hook('newTurn',()=>{if(!S.player||!alive(S.player))return;const f=S.player;
+ const sk=dvSk('sad');if(sk)for(const g of FK)if(g!==f&&alive(g)&&!atWar(f,g))addOp(f,g,BAL_DV.op*sk);
+ if(S.turn%4===0)dvAging();});
+/** Once a year: the officers may die (more likely from 55). */
+function dvAging(){const C=dvS();
+ for(const k of DV_K){const c=C[k];if(!c)continue;const a=dvAge(c),p=BAL_DV.die+Math.max(0,a-BAL_DV.dieAge)*BAL_DV.dieStep;
+  if(dvRnd()<p){const m=lng(`${dvTitle(k)} ${c.n} ${a} yaşında öldü. Divanda bir makam boş.`,`${dvTitle(k)} ${c.n} has died at ${a}. An office of the Divan stands empty.`);news(m,'info');C[k]=null;}}}
+
+/* --- the Divan tab --- */
+const dvStars=n=>'<span class="dv-st" aria-label="'+n+'/5">'+'★'.repeat(n)+'<i>'+'★'.repeat(5-n)+'</i></span>';
+function rfTabs(cur){return `<div class="rf-tabs" role="tablist"><button class="rf-tab${cur==='rf'?' on':''}" role="tab" aria-selected="${cur==='rf'}" data-act="reforms">❖ ${lng('Gelişmeler','Reforms')}</button><button class="rf-tab${cur==='dv'?' on':''}" role="tab" aria-selected="${cur==='dv'}" data-act="divan">${lng('Divan','The Divan')}${DV_K.some(k=>!dvS()[k])?' <b class="rf-dot">!</b>':''}</button></div>`;}
+function showDivan(){const f=S.player;if(!f)return;const C=dvS(),cands=dvCands(),gold=Math.floor(S.fac[f].gold);
+ openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Divan','The Divan')}</h2>${rfTabs('dv')}
+ <p class="lead">${lng(`Devletin üç büyük makamı. Daha yetenekli birini atamak için altın gerekir. Hazine: <b>${gold}</b> altın.`,`The three great offices of the realm. Appointing someone abler costs gold. Treasury: <b>${gold}</b> gold.`)}</p>
+ ${DV_K.map(k=>{const c=C[k],L=cands.map((x,i)=>({...x,i})).filter(x=>x.o===k);
+  return `<div class="sec dv"><h3>${dvTitle(k)}</h3><div class="hint">${esc(lng(DV_D[k][0],DV_D[k][1]))}</div>
+   ${c?`<div class="dv-cur"><b>${esc(c.n)}</b> ${dvStars(c.sk)}<small>${lng(`${dvAge(c)} yaşında`,`aged ${dvAge(c)}`)}</small><button class="btn" data-act="dvx" data-k="${k}">${lng('Azlet','Dismiss')}</button></div>`
+     :`<div class="dv-cur dv-empty">${lng('Makam boş','The office stands empty')}</div>`}
+   <div class="dv-cands">${L.map(x=>`<div class="dv-c"><span><b>${esc(x.n)}</b> ${dvStars(x.sk)}<small>${lng(`${x.age} yaşında`,`aged ${x.age}`)}</small></span>${x.used?`<span class="rf-st ok">${lng('Atandı','Appointed')}</span>`:`<button class="btn${gold>=dvCost(x.sk)&&(!c||x.sk>c.sk)?' primary':''}" data-act="dvset" data-i="${x.i}"${gold>=dvCost(x.sk)?'':' disabled'}>${lng(`Ata · ${dvCost(x.sk)} altın`,`Appoint · ${dvCost(x.sk)} gold`)}</button>`}</div>`).join('')}</div></div>`;}).join('')}
+ <p class="hint">${lng('Adaylar her mevsim değişir.','The candidates change every season.')}</p>
+ <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);}
+ACTS.divan=()=>showDivan();
+ACTS.dvset=t=>{if(dvAppoint(+t.dataset.i)){SND.play('build');renderAll();showDivan();}};
+ACTS.dvx=t=>{if(dvDismiss(t.dataset.k)){renderAll();showDivan();}};
+OVERBLOCK.add('dvset');OVERBLOCK.add('dvx');
+ADVICE.push({id:'divan',prio:28,when:(S,f)=>{if(S.turn<2)return null;const C=dvS(),k=DV_K.find(k=>!C[k]);return k&&S.fac[f].gold>=40?k:null;},
+ t:(S,f,k)=>lng(`${dvTitle(k)} makamı boş`,`No ${dvTitle(k)} in the Divan`),
+ d:(S,f,k)=>lng(`Paşam, divanda ${dvTitle(k)} makamı boş duruyor. Yerine birini ata ki işler aksamasın.`,`My lord, the office of ${dvTitle(k)} stands empty. Appoint someone before affairs suffer.`),
+ go:()=>showDivan(),goL:lng('Divan','The Divan')});
+KE.divan={get:()=>dvS(),cands:()=>dvCands(),appoint:i=>dvAppoint(i),dismiss:k=>dvDismiss(k),title:(k,f)=>dvTitle(k,f),aging:()=>dvAging()};
+/* =====================================================================
+   DIPLOMACY, DEEPER: royal marriages and calling an ally to war (rows in the diplomacy window, 12b).
+    - Marriage: S.mar = {pairKey: turn}. The player offers a marriage for a dowry (BAL_MR.cost) to a realm at
+      peace that thinks well enough of it (faith matters). While the houses are joined, relations never sink
+      below BAL_MR.floor and that realm's wish to fight the player is cut (05b reads marLink). Declaring war on
+      a joined house ends the marriage. At most BAL_MR.max marriages.
+    - Call to arms: during a war the player asks an ally to join it. The ally answers from relations, its own
+      wars and the foe's might (no dice); a refusal waits BAL_MR.ctaWait seasons before the same request.
+   ===================================================================== */
+const BAL_MR={cost:40,op:25,floor:25,max:3,needSame:10,needOther:40,agg:.4,ctaOp:30,ctaWars:2,ctaRatio:.3,ctaWait:8};
+function marS(){if(!S.mar)S.mar={};return S.mar;}
+/** Are the houses of a and b joined by marriage? */
+function marLink(a,b){return !!(S&&S.mar&&S.mar[key(a,b)]!=null);}
+const marOf=f=>Object.keys((S&&S.mar)||{}).filter(k=>k.split('|').includes(f)).map(k=>k.split('|').find(x=>x!==f));
+/** Would realm o accept a marriage with the player? -> {ok, why} */
+function marCan(o){const pl=S.player,F=S.fac[pl];if(marLink(pl,o))return {ok:false,why:'has'};if(atWar(pl,o))return {ok:false,why:'war'};
+ if(marOf(pl).length>=BAL_MR.max)return {ok:false,why:'max'};if(F.gold<BAL_MR.cost)return {ok:false,why:'gold'};
+ const same=FAC[o].rel===FAC[pl].rel,need=same?BAL_MR.needSame:BAL_MR.needOther;if(getOp(o,pl)<need)return {ok:false,why:'op',need};return {ok:true};}
+function marMake(o){const c=marCan(o);if(!c.ok)return c;const pl=S.player;S.fac[pl].gold-=BAL_MR.cost;marS()[key(pl,o)]=S.turn;addOp(pl,o,BAL_MR.op);
+ news(lng(`${FAC[pl].s} ile ${FAC[o].s} hanedanları evlilikle birleşti.`,`The houses of ${FAC[pl].s} and ${FAC[o].s} are joined by marriage.`),'good');runHooks('marriage',pl,o);return c;}
+hook('migrate',s=>{if(s.mar&&typeof s.mar!=='object')s.mar={};});
+hook('newGame',s=>{s.mar={};s.cta={};});
+hook('newTurn',()=>{if(!S.mar)return;for(const k in S.mar){const [a,b]=k.split('|');if(!alive(a)||!alive(b)){delete S.mar[k];continue;}if(getOp(a,b)<BAL_MR.floor)addOp(a,b,Math.min(2,BAL_MR.floor-getOp(a,b)));}});
+hook('warDeclared',(a,b)=>{if(!marLink(a,b))return;delete S.mar[key(a,b)];
+ const m=lng(`${fname(a)} ile ${fname(b)} arasındaki hanedan bağı savaşla koptu.`,`War has broken the marriage bond between ${fname(a)} and ${fname(b)}.`);(a===S.player||b===S.player)?news(m,'war'):addLog(m,'war');});
+
+/* --- call to arms --- */
+/** Would ally a join the player's war against e? -> {ok, why} */
+function ctaCan(a,e){const pl=S.player;if(!isAlly(pl,a)||!atWar(pl,e))return {ok:false,why:'no'};if(atWar(a,e))return {ok:false,why:'in'};
+ if(isAlly(a,e)||inTruce(a,e))return {ok:false,why:'bound'};const w=S.cta&&S.cta[a+'>'+e];if(w!=null&&S.turn<w)return {ok:false,why:'wait',left:w-S.turn};
+ if(getOp(a,pl)<BAL_MR.ctaOp)return {ok:false,why:'op'};if(warsOf(a).length>=BAL_MR.ctaWars)return {ok:false,why:'busy'};
+ if(strength(a)<strength(e)*BAL_MR.ctaRatio)return {ok:false,why:'weak'};return {ok:true};}
+function ctaAsk(a,e){const c=ctaCan(a,e);if(c.why==='no'||c.why==='in'||c.why==='wait')return c;
+ if(!c.ok){if(!S.cta)S.cta={};S.cta[a+'>'+e]=S.turn+BAL_MR.ctaWait;return c;}
+ declareWar(a,e);addOp(a,S.player,5);news(lng(`${FAC[a].s} çağrımıza uydu ve ${FAC[e].s} devletine savaş açtı.`,`${FAC[a].s} answered our call and declared war on ${FAC[e].s}.`),'good');return c;}
+const ctaWhy=(c,a,e)=>c.why==='op'?lng(`${FAC[a].s} bize yeterince yakın değil (ilişki ${BAL_MR.ctaOp} gerekir).`,`${FAC[a].s} is not close enough to us (relations of ${BAL_MR.ctaOp} needed).`)
+ :c.why==='busy'?lng(`${FAC[a].s} zaten başka savaşlarla uğraşıyor.`,`${FAC[a].s} already has wars of its own.`)
+ :c.why==='weak'?lng(`${FAC[a].s}, ${FAC[e].s} karşısında kendini fazla zayıf buluyor.`,`${FAC[a].s} feels too weak to face ${FAC[e].s}.`)
+ :c.why==='bound'?lng(`${FAC[a].s}, ${FAC[e].s} ile antlaşmalı.`,`${FAC[a].s} is bound by a treaty with ${FAC[e].s}.`)
+ :c.why==='wait'?lng(`${FAC[a].s} cevabını vermişti; ${c.left} mevsim sonra yeniden sorabilirsin.`,`${FAC[a].s} has given its answer; you may ask again in ${c.left} ${c.left===1?'season':'seasons'}.`):'';
+
+/* --- the diplomacy window --- */
+DIPLO_ROW.push({id:'dp2',order:30,
+ meta(f){return marLink(S.player,f)?`<span class="chip mar">♥ ${lng('Hanedan bağı','Joined by marriage')}</span>`:'';},
+ buttons(f){const pl=S.player;let b='';
+  if(!atWar(pl,f)&&!marLink(pl,f)){const c=marCan(f),t=c.ok?'':c.why==='op'?lng(`İlişki en az ${c.need} olmalı`,`Relations of at least ${c.need} needed`):c.why==='max'?lng(`En fazla ${BAL_MR.max} evlilik`,`At most ${BAL_MR.max} marriages`):c.why==='gold'?lng('Yeterli altın yok','Not enough gold'):'';
+   b+=`<button class="btn" data-act="dp-marry" data-f="${f}"${c.ok?'':' disabled'}${t?` title="${esc(t)}"`:''}>${lng(`Evlilik öner (${BAL_MR.cost})`,`Offer a marriage (${BAL_MR.cost})`)}</button>`;}
+  if(isAlly(pl,f))for(const e of warsOf(pl).slice(0,3)){if(e===f||atWar(f,e))continue;const c=ctaCan(f,e);
+   b+=`<button class="btn" data-act="dp-cta" data-f="${f}" data-e="${e}"${c.why==='wait'?' disabled':''}${c.why==='wait'?` title="${esc(ctaWhy(c,f,e))}"`:''}>${lng(`Savaşa çağır: ${FAC[e].s}`,`Call to arms: ${FAC[e].s}`)}</button>`;}
+  return b;}});
+ACTS['dp-marry']=t=>{const o=t.dataset.f,c=marMake(o);if(c.ok){SND.play('peace');toast(lng(`${FAC[o].s} evlilik teklifini kabul etti.`,`${FAC[o].s} accepted the marriage.`),'good');}renderAll();showDiplo();};
+ACTS['dp-cta']=t=>{const a=t.dataset.f,e=t.dataset.e,c=ctaAsk(a,e);if(c.ok){SND.play('war');toast(lng(`${FAC[a].s} savaşa katıldı.`,`${FAC[a].s} joins the war.`),'good');}else{const w=ctaWhy(c,a,e);if(w)toast(lng(`Ret: ${w}`,`Refused: ${w}`),'war');}renderAll();showDiplo();};
+OVERBLOCK.add('dp-marry');OVERBLOCK.add('dp-cta');
+KE.mar={make:o=>marMake(o),link:(a,b)=>marLink(a,b),can:o=>marCan(o),cta:(a,e)=>ctaAsk(a,e),ctaCan:(a,e)=>ctaCan(a,e)};
 /* ---------------- guide ---------------- */
 const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Ordular','Armies')],['kusatma',lng('Kuşatma','Sieges')],['antlasma',lng('Antlaşmalar','Treaties')],
  ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['vasal',lng('Vasallar','Vassals')],['ticaret',lng('Ticaret ve Eserler','Trade & Great Works')],['olay',lng('Olaylar','Events')]];
@@ -9110,6 +9301,9 @@ function guideBody(t){
  <p>Diplomasi ekranında her savaşın bir skoru görünür. Kazandığın her muharebe, özellikle aldığın başkentler, skoru senin lehine çevirir; püskürttüğün saldırılar da işe yarar. Skorda öndeysen düşman barışa ve haraca daha yatkın olur.</p>
  <h3>İttifak</h3>
  <p>Seni seven ya da aynı düşmana karşı savaşan bir devlet ittifak teklifini kabul eder. Müttefikin, biri sana savaş açtığında yardımına koşar.</p>
+ <p>Savaş sırasında bir müttefikini düşmanına karşı <b>savaşa çağırabilirsin</b>. Cevabı sana ne kadar yakın olduğuna (ilişki 30), başka savaşları olup olmadığına ve düşmanın gücüne göre verir; reddederse aynı isteği sekiz mevsim sonra yeniden yapabilirsin.</p>
+ <h3>Hanedan evlilikleri</h3>
+ <p>40 altın çeyizle barışta olduğun bir devlete evlilik önerebilirsin: aynı dinden bir devlet için ilişki en az 10, başka dinden biri için 40 olmalı. Hanedanlar evlilikle bağlı kaldıkça ilişki +25'in altına düşmez ve o devlet sana çok daha zor savaş açar. Bağlı olduğun bir hanedana savaş açarsan evlilik biter. En fazla üç evlilik yapabilirsin.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Büyük bir komşuyla savaşmadan önce onun müttefiklerine bak. Oyunun ilk bir buçuk yılında kimse sana savaş açmaz; bu zamanı hazırlanmak için kullan.</p>`;
  if(t==='olay')return `<h3>Beklenmedik olaylar</h3>
  <p>Bazı mevsimlerde sarayına bir haber gelir ve senden karar ister: doğudan zengin bir kervan gelir, bir şehirde veba çıkar, hasat bereketli olur, ünlü bir âlim himaye ister, paralı askerler hizmet teklif eder, deprem surları sarsar, sert bir kış bastırır, yeni fethettiğin bir şehir ayaklanır ya da yabancı bir elçi hediyelerle gelir. Verdiğin karar hazineni, ordunu ya da komşularınla ilişkini etkiler.</p>
@@ -9128,6 +9322,8 @@ function guideBody(t){
  <p>Bu mevsim verdiğin son emirleri geri alabilirsin: yürüyüş, ordu birleştirme ya da bölme, asker toplama, bina, gelişme. Haritanın solundaki <b>↶</b> düğmesine bas ya da Ctrl+Z kullan. Bir savaş, bir olay, bir diplomasi adımı ya da mevsimin bitmesi geri alma listesini siler: talihin verdiği sonuç geri alınamaz.</p>
  <h3>Gelişmeler</h3>
  <p>Üst çubuktaki <b>❖ Gelişmeler</b> düğmesi devletine kalıcı yenilikler kazandırdığın pencereyi açar. Barut dökümhanesi top dökmeyi öğretir, tahrir defterleri vergileri, kervansaraylar ticareti artırır, tımar düzeni ordu maaşlarını düşürür, sancak teşkilatı insan gücünü daha hızlı doldurur, kapıkulu ocakları bir ordu daha kurdurur, tüfekli piyade açık savaşta, tabyalı surlar kuşatmada güç verir. Her biri altınla alınır; bazıları belli bir yıldan sonra ya da önce başka bir gelişmeyi gerektirir. Öteki devletler de zengin oldukça bunları benimser.</p>
+ <h3>Divan</h3>
+ <p>Gelişmeler penceresindeki <b>Divan</b> sekmesinde devletin üç büyük makamı var: sadrazam barışta olduğun devletlerin sana bakışını iyileştirir, defterdar vergileri, serasker savaşlarda gücünü artırır (Hıristiyan devletlerde şansölye, hazinedar ve mareşal). Her birinin 1-5 yıldızı vardır; her mevsim her makam için iki aday çıkar ve daha yetenekli birini atamak daha çok altına mal olur. Makam sahipleri yaşlanır ve ölebilir; o zaman makam boş kalır.</p>
  <h3>Zorluk</h3>
  <p>Başlangıç ekranında devletini seçtikten sonra <b>Kolay</b>, <b>Normal</b> ya da <b>Zor</b> oynamayı seçersin; seçimin sonraki oyunlar için hatırlanır. Kolayda daha çok altınla başlarsın, vergilerin %15 fazladır, savaşlarda +%10 güçlüsün ve komşuların sana daha geç saldırır. Zorda daha az altınla başlarsın, öteki devletlerin vergileri %12 fazladır, karşına çıkan ordular +%10 güçlüdür ve komşuların daha erken saldırır. Bu etkiler Devlet defterinde ve savaş kartında ayrı bir satır olarak görünür.</p>
  <h3>Başarımlar ve oyun sonu</h3>
@@ -9142,6 +9338,7 @@ function guideBody(t){
  <h3>Haritayı kullanmak</h3>
  <ul><li>Bir eyaletini seçmek için üstüne dokun. Komşularından <b>yeşil</b> parlayanlar senin toprağın, <b>kırmızı</b> parlayanlar savaştığın düşman.</li>
  <li>Haritayı parmağınla ya da fareyle sürükle; iki parmakla ya da fare tekerleğiyle yakınlaş.</li>
+ <li>Sağ alttaki <b>genel bakış</b> haritası ekranda görünen yeri çerçeveyle gösterir; ona dokunup sürükleyerek haritada hızlıca gezinirsin. Soldaki <b>▣</b> düğmesi onu açıp kapatır.</li>
  <li>Sol alttaki düğmelerle 3D ve 2D görünüm arasında geçiş yapabilirsin.</li>
  <li>Telefonda eyalet bilgileri alttan açılan bir çekmecede durur. Tutamağına dokunarak ya da yukarı çekerek büyüt, aşağı çekerek kapat.</li></ul>
  <h3>Vezirin yardımı</h3>
@@ -9213,6 +9410,9 @@ function guideBodyEn(t,half){
  <p>The Diplomacy screen shows a score for every war. Each battle you win, and above all each capital you take, tips the score in your favour; attacks you beat off count as well. When you are ahead, the enemy is readier to accept peace and pay tribute.</p>
  <h3>Alliances</h3>
  <p>A realm that likes you, or that is fighting the same enemy, will accept an offer of alliance. When someone declares war on you, your ally rushes to your aid.</p>
+ <p>During a war you can <b>call an ally to arms</b> against your enemy. It answers from how much it likes you (relations of 30), whether it already has wars, and how strong the enemy is; if it refuses, you must wait eight seasons before asking again.</p>
+ <h3>Royal marriages</h3>
+ <p>For a dowry of 40 gold you can offer a marriage to a realm at peace with you: a realm of your faith needs relations of 10, another faith 40. While the houses are joined, relations never fall below +25 and that realm is much slower to attack you. Declaring war on a joined house ends the marriage. You can have at most three.</p>
  <p class="tip"><b>The Vizier's counsel:</b> Before you go to war with a great neighbour, look at its allies. Nobody will declare war on you in the first year and a half of the game; use that time to prepare.</p>`;
  if(t==='olay')return `<h3>Unexpected events</h3>
  <p>In some seasons news reaches your palace and a decision is asked of you: a rich caravan arrives from the east, plague breaks out in a city, the harvest is bountiful, a famous scholar seeks your patronage, mercenaries offer their service, an earthquake shakes the walls, a harsh winter sets in, a newly conquered city rises in revolt, or a foreign envoy comes bearing gifts. Your choice affects your treasury, your army or your relations with your neighbours.</p>
@@ -9231,6 +9431,8 @@ function guideBodyEn(t,half){
  <p>You can take back your last orders this season: a march, merging or splitting an army, a levy, a building, a reform. Press the <b>↶</b> button on the left of the map or use Ctrl+Z. A battle, an event, a diplomatic step or the end of the season clears the list: what fortune decided cannot be taken back.</p>
  <h3>Reforms</h3>
  <p>The <b>❖ Reforms</b> button in the top bar opens the window where you buy lasting advances for your realm. A gun foundry teaches you to cast cannon, land surveys raise taxes, caravanserais raise trade, the timar system cuts army pay, sanjak administration refills manpower faster, standing corps let you field one more army, arquebusiers strengthen your foot in the field and bastion forts strengthen your walls. Each costs gold; some open only from a given year or after another reform. Other realms adopt them too as they grow rich.</p>
+ <h3>The Divan</h3>
+ <p>The <b>Divan</b> tab of the reforms window holds the three great offices of the realm: the grand vizier makes realms at peace with you think better of you, the treasurer raises taxes, the commander-in-chief makes you stronger in battle (in Christian realms: chancellor, treasurer and marshal). Each has 1-5 stars; every season two candidates come forward for each office, and an abler one costs more gold to appoint. Officers grow old and may die; the office then stands empty.</p>
  <h3>Difficulty</h3>
  <p>After picking your realm on the start screen, choose to play on <b>Easy</b>, <b>Normal</b> or <b>Hard</b>; the choice is remembered for later games. On easy you start with more gold, your taxes are 15% higher, you fight 10% stronger and your neighbours turn on you later. On hard you start with less gold, every other realm's taxes are 12% higher, the armies you face fight 10% stronger and your neighbours turn on you sooner. These effects show as their own line in the State Ledger and on the battle card.</p>
  <h3>Achievements and the end of the game</h3>
@@ -9245,6 +9447,7 @@ function guideBodyEn(t,half){
  <h3>Using the map</h3>
  <ul><li>Tap one of your provinces to select it. Neighbours that glow <b>green</b> are your own land; those that glow <b>red</b> belong to an enemy you are at war with.</li>
  <li>Drag the map with your finger or the mouse; zoom with two fingers or the mouse wheel.</li>
+ <li>The <b>overview</b> map in the bottom-right corner frames the part on screen; tap or drag on it to move around quickly. The <b>▣</b> button on the left shows or hides it.</li>
  <li>The buttons at the bottom left switch between the 3D and 2D views.</li>
  <li>On a phone, province details sit in a drawer that slides up from the bottom. Tap its handle or pull it up to enlarge it, pull it down to close it.</li></ul>
  <h3>The Vizier's help</h3>

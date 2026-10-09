@@ -53,8 +53,10 @@ module.exports = {
     await E(() => { const K = window.__ke, S = K.S; K.declareWar('OSM', 'VEN'); S.fac.VEN.nextOffer = S.turn + 20; S.offers.push({ f: 'VEN', type: 'peace', wt: S.war['OSM|VEN'].t }); });
     await L.endTurn(page);
     // decrees that come before the report (e.g. "annex or keep occupied?"): keep occupied
-    for (let k = 0; k < 6 && await E(() => !!document.querySelector('#modal:not([hidden]) [data-act="ev"]')); k++) { await page.click('#modal [data-act="ev"][data-k="0"]'); await page.waitForTimeout(150); }
-    await page.waitForFunction(() => !document.getElementById('modal').hidden, null, { timeout: 5000 }).catch(() => {});
+    // (under load the decrees and the report may come late: wait for the report, answering decrees as they come)
+    for (let k = 0; k < 80; k++) { const st = await E(() => { const m = document.getElementById('modal'); if (!m.hidden && m.querySelector('[data-act="off"][data-f="VEN"]')) return 'rep';
+        const ev = !m.hidden && m.querySelector('[data-act="ev"][data-k="0"]:not([disabled])'); if (ev) { ev.click(); return 'ev'; } return 'wait'; });
+      if (st === 'rep') break; await page.waitForTimeout(st === 'ev' ? 150 : 250); }
     const rep1 = await E(() => { const m = document.getElementById('modal'); const row = m.querySelector('[data-act="off"][data-f="VEN"]'); const t = m.querySelector('.row.offer .terms'); return { row: !!row, terms: t && t.textContent, t0: window.__ke.S.offers.map(o => o.t0) }; });
     check('the season report shows the envoy with its terms', rep1.row && !!rep1.terms, rep1);
     await L.closeModals(page);

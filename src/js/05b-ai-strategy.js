@@ -113,6 +113,7 @@ function aiDiplo(f){
   if(gain>0)gain*=over;
   gain*=calm;
   if(g===S.player){if(S.turn<BAL_D.gracePlayer*difV('grace'))gain=Math.min(gain,0);else if(gain>0)gain*=difV('agg');}   // difficulty (03h)
+  if(gain>0&&typeof marLink==='function'&&marLink(f,g))gain*=BAL_MR.agg;   // joined by marriage (12h)
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
  if(S.turn<BAL_D.graceTurns){aiOps(f);return;}

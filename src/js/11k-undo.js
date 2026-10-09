@@ -7,15 +7,15 @@
    act() (11-ui-core) runs the preAct/postAct hooks around every click.
    ===================================================================== */
 const UNDO_MAX=8,UNDO=[];
-const UNDO_OK=new Set(['amove','amerge','asplit','adisband','gdisband','grec','rec1','rec5','recc','reca','bdev','bmkt','bbrk','bfort','adest','adestx','wkbuild','rfbuy','cmd-set']);
+const UNDO_OK=new Set(['amove','amerge','asplit','adisband','gdisband','grec','rec1','rec5','recc','reca','bdev','bmkt','bbrk','bfort','adest','adestx','wkbuild','rfbuy','cmd-set','dvset','dvx']);
 /* clicks that only look or select (they neither keep nor clear the list) */
 const UNDO_UI=new Set(['undo','zin','zout','fit','v3d','mode','tmode','snd','close','cancel','asel','go','help','guide','state','chron','diplo','ledger','lg-met','lg-sort','lg-all','lg-riv',
  'missions','menu','adv','adv-go','adv-mute','adv-toggle','tut-skip','tut-restart','cyc-prov','cyc-army','ui-idle','ui-inbox','trades','trmap','reforms','sgrp','bcard','bcard-x','scard',
- 'a-replay','a-speed','a-q3d','a-skip','adestno','mclose','sv-open','sv-tab','sv-exp','sv-exp-cur','sv-exp-auto','sv-ren','sv-ren-x','sv-ren-ok','lang','cmd-open','pt-prov','pt-rel','pt-gold','pt-auto','pt-clear','snd-music','snd-sfx','sdif','pick']);
+ 'a-replay','a-speed','a-q3d','a-skip','adestno','mclose','sv-open','sv-tab','sv-exp','sv-exp-cur','sv-exp-auto','sv-ren','sv-ren-x','sv-ren-ok','lang','cmd-open','pt-prov','pt-rel','pt-gold','pt-auto','pt-clear','snd-music','snd-sfx','sdif','pick','divan']);
 const UNDO_L={amove:['Ordu yürüdü','The march'],amerge:['Ordular birleşti','The merge'],asplit:['Ordu bölündü','The split'],adisband:['Ordu dağıtıldı','The disbanding'],gdisband:['Garnizon azaltıldı','The garrison cut'],
  grec:['Garnizon toplandı','The garrison levy'],rec1:['Asker toplandı','The levy'],rec5:['Asker toplandı','The levy'],recc:['Süvari toplandı','The horse levy'],reca:['Topçu toplandı','The gun levy'],
  bdev:['İmar','The building'],bmkt:['Pazar kuruldu','The market'],bbrk:['Kışla kuruldu','The barracks'],bfort:['Kale yükseltildi','The walls'],adest:['Sefere çıkıldı','The long march'],adestx:['Sefer durdu','The halt'],
- wkbuild:['Eser başladı','The great work'],rfbuy:['Gelişme alındı','The reform'],'cmd-set':['Komutan atandı','The new commander']};
+ wkbuild:['Eser başladı','The great work'],rfbuy:['Gelişme alındı','The reform'],dvset:['Atama','The appointment'],dvx:['Azil','The dismissal'],'cmd-set':['Komutan atandı','The new commander']};
 let undoTok=null;
 const undoLabel=a=>{const l=UNDO_L[a];return l?lng(l[0],l[1]):lng('Son hamle','The last order');};
 function undoClear(){if(UNDO.length){UNDO.length=0;undoUi();}}

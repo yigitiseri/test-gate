@@ -10,7 +10,7 @@ module.exports = {
     const acts = await E(() => [...new Set([...document.querySelectorAll('[data-act]')].map(b => b.dataset.act))].filter(a => !window.__ke.reg.ACTS[a]));
     check('every visible data-act has an ACTS handler', acts.length === 0, acts);
     const nav = await E(() => [...document.querySelectorAll('#navTabs [data-act]')].map(b => b.dataset.act).join());
-    check('top bar built from TOP_BUTTONS', nav === 'diplo,missions,chron,guide,snd,menu', nav);
+    check('top bar built from TOP_BUTTONS', nav === 'diplo,missions,chron,reforms,guide,snd,menu', nav);
     check('#hud and #card slots exist', await E(() => !!document.getElementById('hud') && document.getElementById('card').hidden));
 
     // fit button recentres the map (bug B1)

@@ -64,6 +64,9 @@ function guideBody(t){
  <p>Diplomasi ekranında her savaşın bir skoru görünür. Kazandığın her muharebe, özellikle aldığın başkentler, skoru senin lehine çevirir; püskürttüğün saldırılar da işe yarar. Skorda öndeysen düşman barışa ve haraca daha yatkın olur.</p>
  <h3>İttifak</h3>
  <p>Seni seven ya da aynı düşmana karşı savaşan bir devlet ittifak teklifini kabul eder. Müttefikin, biri sana savaş açtığında yardımına koşar.</p>
+ <p>Savaş sırasında bir müttefikini düşmanına karşı <b>savaşa çağırabilirsin</b>. Cevabı sana ne kadar yakın olduğuna (ilişki 30), başka savaşları olup olmadığına ve düşmanın gücüne göre verir; reddederse aynı isteği sekiz mevsim sonra yeniden yapabilirsin.</p>
+ <h3>Hanedan evlilikleri</h3>
+ <p>40 altın çeyizle barışta olduğun bir devlete evlilik önerebilirsin: aynı dinden bir devlet için ilişki en az 10, başka dinden biri için 40 olmalı. Hanedanlar evlilikle bağlı kaldıkça ilişki +25'in altına düşmez ve o devlet sana çok daha zor savaş açar. Bağlı olduğun bir hanedana savaş açarsan evlilik biter. En fazla üç evlilik yapabilirsin.</p>
  <p class="tip"><b>Vezirin öğüdü:</b> Büyük bir komşuyla savaşmadan önce onun müttefiklerine bak. Oyunun ilk bir buçuk yılında kimse sana savaş açmaz; bu zamanı hazırlanmak için kullan.</p>`;
  if(t==='olay')return `<h3>Beklenmedik olaylar</h3>
  <p>Bazı mevsimlerde sarayına bir haber gelir ve senden karar ister: doğudan zengin bir kervan gelir, bir şehirde veba çıkar, hasat bereketli olur, ünlü bir âlim himaye ister, paralı askerler hizmet teklif eder, deprem surları sarsar, sert bir kış bastırır, yeni fethettiğin bir şehir ayaklanır ya da yabancı bir elçi hediyelerle gelir. Verdiğin karar hazineni, ordunu ya da komşularınla ilişkini etkiler.</p>
@@ -82,6 +85,8 @@ function guideBody(t){
  <p>Bu mevsim verdiğin son emirleri geri alabilirsin: yürüyüş, ordu birleştirme ya da bölme, asker toplama, bina, gelişme. Haritanın solundaki <b>↶</b> düğmesine bas ya da Ctrl+Z kullan. Bir savaş, bir olay, bir diplomasi adımı ya da mevsimin bitmesi geri alma listesini siler: talihin verdiği sonuç geri alınamaz.</p>
  <h3>Gelişmeler</h3>
  <p>Üst çubuktaki <b>❖ Gelişmeler</b> düğmesi devletine kalıcı yenilikler kazandırdığın pencereyi açar. Barut dökümhanesi top dökmeyi öğretir, tahrir defterleri vergileri, kervansaraylar ticareti artırır, tımar düzeni ordu maaşlarını düşürür, sancak teşkilatı insan gücünü daha hızlı doldurur, kapıkulu ocakları bir ordu daha kurdurur, tüfekli piyade açık savaşta, tabyalı surlar kuşatmada güç verir. Her biri altınla alınır; bazıları belli bir yıldan sonra ya da önce başka bir gelişmeyi gerektirir. Öteki devletler de zengin oldukça bunları benimser.</p>
+ <h3>Divan</h3>
+ <p>Gelişmeler penceresindeki <b>Divan</b> sekmesinde devletin üç büyük makamı var: sadrazam barışta olduğun devletlerin sana bakışını iyileştirir, defterdar vergileri, serasker savaşlarda gücünü artırır (Hıristiyan devletlerde şansölye, hazinedar ve mareşal). Her birinin 1-5 yıldızı vardır; her mevsim her makam için iki aday çıkar ve daha yetenekli birini atamak daha çok altına mal olur. Makam sahipleri yaşlanır ve ölebilir; o zaman makam boş kalır.</p>
  <h3>Zorluk</h3>
  <p>Başlangıç ekranında devletini seçtikten sonra <b>Kolay</b>, <b>Normal</b> ya da <b>Zor</b> oynamayı seçersin; seçimin sonraki oyunlar için hatırlanır. Kolayda daha çok altınla başlarsın, vergilerin %15 fazladır, savaşlarda +%10 güçlüsün ve komşuların sana daha geç saldırır. Zorda daha az altınla başlarsın, öteki devletlerin vergileri %12 fazladır, karşına çıkan ordular +%10 güçlüdür ve komşuların daha erken saldırır. Bu etkiler Devlet defterinde ve savaş kartında ayrı bir satır olarak görünür.</p>
  <h3>Başarımlar ve oyun sonu</h3>
@@ -96,6 +101,7 @@ function guideBody(t){
  <h3>Haritayı kullanmak</h3>
  <ul><li>Bir eyaletini seçmek için üstüne dokun. Komşularından <b>yeşil</b> parlayanlar senin toprağın, <b>kırmızı</b> parlayanlar savaştığın düşman.</li>
  <li>Haritayı parmağınla ya da fareyle sürükle; iki parmakla ya da fare tekerleğiyle yakınlaş.</li>
+ <li>Sağ alttaki <b>genel bakış</b> haritası ekranda görünen yeri çerçeveyle gösterir; ona dokunup sürükleyerek haritada hızlıca gezinirsin. Soldaki <b>▣</b> düğmesi onu açıp kapatır.</li>
  <li>Sol alttaki düğmelerle 3D ve 2D görünüm arasında geçiş yapabilirsin.</li>
  <li>Telefonda eyalet bilgileri alttan açılan bir çekmecede durur. Tutamağına dokunarak ya da yukarı çekerek büyüt, aşağı çekerek kapat.</li></ul>
  <h3>Vezirin yardımı</h3>
@@ -167,6 +173,9 @@ function guideBodyEn(t,half){
  <p>The Diplomacy screen shows a score for every war. Each battle you win, and above all each capital you take, tips the score in your favour; attacks you beat off count as well. When you are ahead, the enemy is readier to accept peace and pay tribute.</p>
  <h3>Alliances</h3>
  <p>A realm that likes you, or that is fighting the same enemy, will accept an offer of alliance. When someone declares war on you, your ally rushes to your aid.</p>
+ <p>During a war you can <b>call an ally to arms</b> against your enemy. It answers from how much it likes you (relations of 30), whether it already has wars, and how strong the enemy is; if it refuses, you must wait eight seasons before asking again.</p>
+ <h3>Royal marriages</h3>
+ <p>For a dowry of 40 gold you can offer a marriage to a realm at peace with you: a realm of your faith needs relations of 10, another faith 40. While the houses are joined, relations never fall below +25 and that realm is much slower to attack you. Declaring war on a joined house ends the marriage. You can have at most three.</p>
  <p class="tip"><b>The Vizier's counsel:</b> Before you go to war with a great neighbour, look at its allies. Nobody will declare war on you in the first year and a half of the game; use that time to prepare.</p>`;
  if(t==='olay')return `<h3>Unexpected events</h3>
  <p>In some seasons news reaches your palace and a decision is asked of you: a rich caravan arrives from the east, plague breaks out in a city, the harvest is bountiful, a famous scholar seeks your patronage, mercenaries offer their service, an earthquake shakes the walls, a harsh winter sets in, a newly conquered city rises in revolt, or a foreign envoy comes bearing gifts. Your choice affects your treasury, your army or your relations with your neighbours.</p>
@@ -185,6 +194,8 @@ function guideBodyEn(t,half){
  <p>You can take back your last orders this season: a march, merging or splitting an army, a levy, a building, a reform. Press the <b>↶</b> button on the left of the map or use Ctrl+Z. A battle, an event, a diplomatic step or the end of the season clears the list: what fortune decided cannot be taken back.</p>
  <h3>Reforms</h3>
  <p>The <b>❖ Reforms</b> button in the top bar opens the window where you buy lasting advances for your realm. A gun foundry teaches you to cast cannon, land surveys raise taxes, caravanserais raise trade, the timar system cuts army pay, sanjak administration refills manpower faster, standing corps let you field one more army, arquebusiers strengthen your foot in the field and bastion forts strengthen your walls. Each costs gold; some open only from a given year or after another reform. Other realms adopt them too as they grow rich.</p>
+ <h3>The Divan</h3>
+ <p>The <b>Divan</b> tab of the reforms window holds the three great offices of the realm: the grand vizier makes realms at peace with you think better of you, the treasurer raises taxes, the commander-in-chief makes you stronger in battle (in Christian realms: chancellor, treasurer and marshal). Each has 1-5 stars; every season two candidates come forward for each office, and an abler one costs more gold to appoint. Officers grow old and may die; the office then stands empty.</p>
  <h3>Difficulty</h3>
  <p>After picking your realm on the start screen, choose to play on <b>Easy</b>, <b>Normal</b> or <b>Hard</b>; the choice is remembered for later games. On easy you start with more gold, your taxes are 15% higher, you fight 10% stronger and your neighbours turn on you later. On hard you start with less gold, every other realm's taxes are 12% higher, the armies you face fight 10% stronger and your neighbours turn on you sooner. These effects show as their own line in the State Ledger and on the battle card.</p>
  <h3>Achievements and the end of the game</h3>
@@ -199,6 +210,7 @@ function guideBodyEn(t,half){
  <h3>Using the map</h3>
  <ul><li>Tap one of your provinces to select it. Neighbours that glow <b>green</b> are your own land; those that glow <b>red</b> belong to an enemy you are at war with.</li>
  <li>Drag the map with your finger or the mouse; zoom with two fingers or the mouse wheel.</li>
+ <li>The <b>overview</b> map in the bottom-right corner frames the part on screen; tap or drag on it to move around quickly. The <b>▣</b> button on the left shows or hides it.</li>
  <li>The buttons at the bottom left switch between the 3D and 2D views.</li>
  <li>On a phone, province details sit in a drawer that slides up from the bottom. Tap its handle or pull it up to enlarge it, pull it down to close it.</li></ul>
  <h3>The Vizier's help</h3>

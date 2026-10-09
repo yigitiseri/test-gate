@@ -34,9 +34,14 @@ The game is available in **English and Turkish** (switch on the start screen or 
   can each season, on its own at the end of every turn, and besieges an enemy town when it arrives.
 - **Troop types.** Armies mix foot, horse and guns, with each realm's own troops (Janissaries, Sipahis,
   Mamluk horse, Tatar riders...). Horse wins in the open, foot in the mountains and on the walls, guns shorten sieges.
+- **Overview map.** A minimap in the corner frames the view; tap or drag on it to move around.
 - **Undo.** The ↶ button (or Ctrl+Z) takes back this season's last orders, until a battle or an event happens.
 - **Reforms.** Eight lasting advances bought with gold (gun foundry, land surveys, caravanserais, timar system,
   standing corps, arquebusiers, bastion forts...); the AI adopts them too.
+- **Royal marriages and calls to arms.** Join houses by marriage for lasting good relations; ask an ally to join
+  your war.
+- **The Divan.** Appoint a grand vizier, a treasurer and a commander-in-chief (1-5 stars) for opinion, taxes and
+  battle strength; officers age and die.
 - **Difficulty.** Easy, normal or hard, picked on the start screen: gold at the start, taxes, battle strength and
   how soon the AI turns on you.
 - **Achievements and the end of the reign.** 24 achievements (take Constantinople before 1454, Rome, Vienna...);
