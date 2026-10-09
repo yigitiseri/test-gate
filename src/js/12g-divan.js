@@ -16,8 +16,9 @@ const DV_D={sad:['Barışta olduğun devletler her mevsim sana biraz daha iyi ba
  def:['Eyalet vergileri yıldız başına %2,5 artar.','Provincial taxes +2.5% per star.'],
  ser:['Savaşlarda ve kuşatmalarda yıldız başına +%2,5 güç.','+2.5% per star in battles and sieges.']};
 function dvTitle(k,f){const m=FAC[f||S.player]&&FAC[f||S.player].rel==='İslam'?0:1,t=DV_T[k][m];return lng(t[0],t[1]);}
-let dvSeed=0;
-function dvRnd(){dvSeed=(dvSeed+1)|0;return hash((S?S.turn:0)*7919+dvSeed,(S&&S.seq||1)*31+dvSeed*17);}
+/** Draws for names, candidates and deaths: a hash of the turn and a counter kept in the save (S.dvn), so the same
+ game plays the same way and the game's own random sequence (R) is untouched. */
+function dvRnd(){if(!S)return .5;S.dvn=((S.dvn||0)+1)|0;return hash(S.turn*7919+S.dvn,S.dvn*17+31);}
 function dvName(f){const sd=(typeof CH_SEED!=='undefined'&&CH_SEED[f])||{cul:'tr'},pool=CH_NAMES[sd.cul==='pp'?'it':sd.cul]||CH_NAMES.tr,pick=L=>L[Math.floor(dvRnd()*L.length)%L.length];
  return sd.sur?pick(pool)+' '+pick(sd.sur):pick(pool);}
 function dvYear(){return START_YEAR+Math.floor(S.turn/4);}

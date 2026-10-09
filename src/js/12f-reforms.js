@@ -53,7 +53,7 @@ BATTLE_MODS.push(ctx=>{if(!S||!S.ref||ctx.to==null)return null;const out=[],kind
  return out.length?out:null;});
 hook('newTurn',()=>{if(!S.ref)return;for(const f of FK){if(!alive(f)||!rfHas(f,'sancak'))continue;const F=S.fac[f],ds=devSum(f);if(F.mp<ds*800)F.mp=Math.min(ds*800,F.mp+ds*110*BAL_RF.mp);}});
 /* --- the AI adopts a reform now and then when its treasury overflows --- */
-hook('preAI',f=>{if(S.turn<BAL_RF.aiFrom||R()>BAL_RF.aiP)return;const F=S.fac[f];
+hook('preAI',f=>{if(S.turn<BAL_RF.aiFrom||hash(S.turn*131+FK.indexOf(f),977)>BAL_RF.aiP)return;   /* a hash, not R(): the AI's other dice stay as they were */const F=S.fac[f];
  const c=RF.filter(r=>r.id!=='barut'&&rfCan(f,r).ok&&F.gold>=r.c*BAL_RF.aiGold).sort((a,b)=>a.c-b.c)[0];if(c)rfAdopt(f,c.id);});
 
 /* --- the reforms window --- */

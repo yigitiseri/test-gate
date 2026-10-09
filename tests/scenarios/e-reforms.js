@@ -38,7 +38,7 @@ module.exports = {
     const ach = await E(() => { window.__ke.lgc.check(); return Object.keys(window.__ke.lgc.get().ach); });
     check('five reforms earn "The Reformer"', ach.includes('yenilik'), ach);
     // the AI
-    const ai = await E(() => { const K = window.__ke, S = K.S; S.fac.VEN.gold = 5000; const t0 = S.turn; S.turn = 16; for (let k = 0; k < 80; k++) K.runHooks('preAI', 'VEN'); S.turn = t0; return { n: K.ref.count('VEN'), barut: K.ref.has('VEN', 'barut'), cannon: S.fac.VEN.cannon }; });
+    const ai = await E(() => { const K = window.__ke, S = K.S; S.fac.VEN.gold = 5000; const t0 = S.turn; S.turn = 16; for (let k = 0; k < 80; k++) { S.turn = 16 + k; K.runHooks('preAI', 'VEN'); } S.turn = t0; return { n: K.ref.count('VEN'), barut: K.ref.has('VEN', 'barut'), cannon: S.fac.VEN.cannon }; });
     check('a rich AI realm adopts reforms (but never buys gunpowder)', ai.n >= 2 && (!ai.barut || ai.cannon), ai);
     // an old save without reforms
     const mg = await E(() => { const K = window.__ke, o = JSON.parse(JSON.stringify(K.S)); delete o.ref; return K.migrate(o).ref; });
