@@ -1,0 +1,25 @@
+/* legacy (12e): the end-of-game story and the achievements */
+.lgc-epi{font-size:16px;line-height:1.45;margin:6px 0 10px;padding:9px 12px;border-left:3px solid var(--brass);background:rgba(142,31,20,.06);border-radius:0 6px 6px 0}
+.lgc-meta{margin-bottom:10px}
+.lgc-chart{position:relative;margin:4px 0 12px}
+.lgc-ch-t{font-size:12.5px;color:var(--muted);margin-bottom:2px}
+.lgc-chart svg{display:block;width:100%;height:auto;overflow:visible}
+.lgc-chart text{font:11px "EB Garamond",Georgia,serif;fill:#6b5236}
+.lgc-grid{stroke:rgba(74,46,18,.16);stroke-width:1}
+.lgc-line{fill:none;stroke:#8e1f14;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.lgc-dot{fill:#8e1f14;stroke:#fbf3dc;stroke-width:2}
+.lgc-cl{stroke:rgba(74,46,18,.45);stroke-width:1;stroke-dasharray:3 3}
+.lgc-hit{fill:transparent;cursor:crosshair}
+.lgc-tip{position:absolute;transform:translate(-50%,calc(-100% - 10px));background:#2a1a0c;color:#f6ecd2;font-size:12px;padding:3px 7px;border-radius:4px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s}
+.lgc-tip.on{opacity:1}
+.lgc-tl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;font-size:13.5px}
+.lgc-tl time{display:block;font-size:11.5px;color:var(--muted)}
+.lgc-sc div{display:flex;justify-content:space-between;font-size:13.5px;padding:2px 0;border-bottom:1px dotted rgba(74,46,18,.2);font-variant-numeric:tabular-nums}
+.achg{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:6px;margin-top:6px}
+.ach{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px;border:1px solid rgba(74,46,18,.18);opacity:.5;filter:grayscale(1)}
+.ach svg{flex:none;width:26px;height:26px;fill:none;stroke:#4a2e12;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.ach b{display:block;font-size:13.5px}
+.ach small{display:block;font-size:11.5px;color:var(--muted);line-height:1.3}
+.ach.on{opacity:1;filter:none;background:linear-gradient(#fbf0cf,#f0dcaa);border-color:#b8862c}
+.ach.on svg{stroke:#8e1f14}
+.ach.past{opacity:.75;filter:grayscale(.5)}

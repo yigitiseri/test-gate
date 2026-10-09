@@ -36,9 +36,10 @@ function showEnd(){const pl=S.player;if(!S.over)return;SND.play(S.over==='lose'?
  const t=S.over==='win'?lng('Cihan Hâkimiyeti','Dominion of the World'):S.over==='lose'?lng('Devletin Sonu','The End of the Realm'):lng('1531: Bir Devrin Sonu','1531: The End of an Era');
  const d=S.over==='win'?lng(`${FAC[pl].n} haritanın yarısından fazlasına hükmediyor. Hanedanın tarihe adını altın harflerle yazdırdı.`,`${FAC[pl].n} rules more than half the map. Your dynasty has written its name into history in letters of gold.`):S.over==='lose'?lng(`${FAC[pl].n} son toprağını da kaybetti. Tarih kitapları seni bir dipnot olarak anacak.`,`${FAC[pl].n} has lost its last land. The history books will remember you as a footnote.`):lng(`Seksen yıllık hükümranlık sona erdi. Devletin güçler arasında ${rank}. sırada.`,`Eighty years of rule have come to an end. Your realm ranks ${ordEn(rank)} among the powers.`);
  openModal(`<div class="eyebrow endm">${dateStr(S.turn)}</div><h2>${t}</h2><p class="lead">${d}</p>
- <div class="rows">${sc.slice(0,8).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} ${lng('eyalet',facProvs(x.f).length===1?'province':'provinces')}</small></div><b>${x.s}</b></div>`).join('')}</div>
+ ${lgcEndHtml(pl)}
+ <div class="sec"><h3>${lng('Güçler','The powers')}</h3></div><div class="rows">${sc.slice(0,6).map((x,k)=>`<div class="row" style="${x.f===pl?'background:rgba(142,31,20,.12)':''}">${shield(x.f)}<div class="nm">${k+1}. ${esc(FAC[x.f].n)}<small>${facProvs(x.f).length} ${lng('eyalet',facProvs(x.f).length===1?'province':'provinces')}</small></div><b>${x.s}</b></div>`).join('')}</div>
  <p class="hint">${lng('Oyun sona erdi. Haritaya bakabilirsin; üst çubuktaki <b>Oyun bitti</b> düğmesi bu ekranı yeniden açar.','The game is over. You can still look at the map; the <b>Game over</b> button in the top bar opens this screen again.')}</p>
- <div class="foot"><button class="btn" data-act="mclose">${lng('Haritaya bak','View the map')}</button><button class="btn primary" data-act="newgame">${lng('Yeni oyun','New game')}</button></div>`);}
+ <div class="foot"><button class="btn" data-act="mclose">${lng('Haritaya bak','View the map')}</button><button class="btn primary" data-act="newgame">${lng('Yeni oyun','New game')}</button></div>`);lgcChartBind($('#modal .card'));}
 /** English ordinal: 1st, 2nd, 3rd, 11th … */
 function ordEn(n){const v=n%100;return n+(v>=11&&v<=13?'th':['th','st','nd','rd'][n%10]||'th');}
 

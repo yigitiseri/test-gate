@@ -78,6 +78,8 @@ function guideBody(t){
  return `<p>Yıl 1451. Balkanlar'dan Kafkasya'ya, Tuna'dan Nil'e kadar 28 hanedan güç için yarışıyor. Birini seç ve devletini 1531 yılına kadar yönet.</p>
  <h3>Amaç</h3>
  <p>Haritadaki eyaletlerin yarısına (${half} eyalet) hükmedersen oyunu hemen kazanırsın. Buna ulaşamazsan oyun 1531'de biter ve en güçlü hanedan belirlenir. Puanın ne kadar çok ve ne kadar gelişmiş şehrin olduğuna, tamamladığın hedeflere ve hazinene göre hesaplanır. Son şehrini de kaybedersen oyun biter.</p>
+ <h3>Başarımlar ve oyun sonu</h3>
+ <p>Oyun boyunca 22 başarım kazanabilirsin: Konstantiniyye'yi 1454'ten önce almak, Roma'yı, Viyana'yı ya da Kahire'yi fethetmek, üç kıtada toprak sahibi olmak, büyük bir hazine ya da ordu toplamak gibi. Kazandıklarını ve kalanları <b>Devlet defteri</b>nde görürsün; önceki oyunlarda kazandıkların soluk görünür. Oyun bitince hükümdarın bir lakapla anılır (Fatih, Kanuni, Muhteşem…); ekranda toprağının yıllar içindeki grafiği, büyük fetihlerin, puanının dökümü ve başarımların çıkar.</p>
  <h3>Bir mevsim nasıl geçer?</h3>
  <ol><li>Asker topla, yapı kur, ordularını yürüt, saldır, komşularınla diplomasi yap.</li>
  <li>Hazır olunca <b>Turu Bitir</b>'e bas.</li>
@@ -173,6 +175,8 @@ function guideBodyEn(t,half){
  return `<p>The year is 1451. From the Balkans to the Caucasus, from the Danube to the Nile, 28 dynasties are vying for power. Choose one and rule your realm until the year 1531.</p>
  <h3>The goal</h3>
  <p>Rule half of the provinces on the map (${half} provinces) and you win at once. If you do not get there, the game ends in 1531 and the mightiest dynasty is named. Your score depends on how many cities you hold and how developed they are, on the goals you have completed and on your treasury. If you lose your last city, the game is over.</p>
+ <h3>Achievements and the end of the game</h3>
+ <p>There are 22 achievements to earn along the way: take Constantinople before 1454, conquer Rome, Vienna or Cairo, hold lands on three continents, gather a great treasury or army, and more. The <b>State Ledger</b> shows the ones you have and the ones still to win; those from earlier games appear faded. When the game ends your ruler is remembered by an epithet (the Conqueror, the Lawgiver, the Magnificent…), with a chart of your lands over the years, your great conquests, your score broken down and your achievements.</p>
  <h3>How a season passes</h3>
  <ol><li>Raise troops, put up buildings, march your armies, attack, and deal with your neighbours.</li>
  <li>When you are ready, press <b>End Turn</b>.</li>

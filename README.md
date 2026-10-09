@@ -34,6 +34,8 @@ The game is available in **English and Turkish** (switch on the start screen or 
   can each season, on its own at the end of every turn, and besieges an enemy town when it arrives.
 - **Troop types.** Armies mix foot, horse and guns, with each realm's own troops (Janissaries, Sipahis,
   Mamluk horse, Tatar riders...). Horse wins in the open, foot in the mountains and on the walls, guns shorten sieges.
+- **Achievements and the end of the reign.** 22 achievements (take Constantinople before 1454, Rome, Vienna...);
+  at the end your ruler gets an epithet, with a chart of your lands, your great conquests and your score.
 - **Shortcuts.** Tap **Army** or **Provinces** in the top bar to jump through your armies or provinces one
   by one, so a forgotten island or a lost army is always one tap away.
 - **Vassals.** Instead of annexing a beaten realm, make it a tributary at the Peace Table: it keeps its land,
