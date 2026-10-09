@@ -112,7 +112,7 @@ function aiDiplo(f){
   if(gain>0&&!aiLandBorder(f,g))gain*=BAL_D.seaMul;
   if(gain>0)gain*=over;
   gain*=calm;
-  if(g===S.player&&S.turn<BAL_D.gracePlayer)gain=Math.min(gain,0);
+  if(g===S.player){if(S.turn<BAL_D.gracePlayer*difV('grace'))gain=Math.min(gain,0);else if(gain>0)gain*=difV('agg');}   // difficulty (03h)
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
  if(S.turn<BAL_D.graceTurns){aiOps(f);return;}
@@ -124,7 +124,7 @@ function aiDiplo(f){
  const busy=warsOf(f).reduce((s,e)=>s+strength(e)*BAL_D.warLoad,0);
  for(const g of cands){const nudged=nud.some(n=>n.war===g);if(nw0>=cap+(nudged?1:0)){KE.aiWhy.cap++;continue;}if(occ&&!nudged){KE.aiWhy.occ=(KE.aiWhy.occ||0)+1;break;}if(R()>BAL_D.declP){KE.aiWhy.rng++;break;}
   let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*BAL_D.allyW;});const ratio=Math.max(my-busy,0)/Math.max(th,1);
-  if(ratio<(nudged?BAL_D.minRatioNudge:g===S.player?BAL_D.minRatioPl:BAL_D.minRatio-BAL_D.rivalRatio*clamp((D[g]-BAL_D.thresh)/(BAL_D.desireMax-BAL_D.thresh),0,1))){KE.aiWhy.ratio++;continue;}
+  if(ratio<(nudged?BAL_D.minRatioNudge:g===S.player?BAL_D.minRatioPl+difV('ratio'):BAL_D.minRatio-BAL_D.rivalRatio*clamp((D[g]-BAL_D.thresh)/(BAL_D.desireMax-BAL_D.thresh),0,1))){KE.aiWhy.ratio++;continue;}
   const r=aiReach(f,g,nudged?BAL_D.reachPNudge:BAL_D.reachP);if(!r.ok){KE.aiWhy.reach++;continue;}KE.aiWhy.decl++;
   KE.aiDecl.push({t:S.turn,f,g,p:+r.p.toFixed(2),j:r.j,nudged});if(KE.aiDecl.length>200)KE.aiDecl.shift();
   declareWar(f,g);D[g]=0;break;}

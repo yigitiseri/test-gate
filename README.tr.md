@@ -33,7 +33,12 @@ Oyun **Türkçe ve İngilizce** oynanabilir (açılış ekranından ya da menüd
   gidebildiği kadar yürür, varınca düşman şehrini kuşatır.
 - **Asker türleri.** Ordular piyade, süvari ve topçudan oluşur; her devletin kendi askeri vardır (Yeniçeri,
   Sipahi, Memlük süvarisi, Tatar atlıları...). Süvari açık arazide, piyade dağda ve surlarda üstün, toplar kuşatmayı kısaltır.
-- **Başarımlar ve oyun sonu.** 22 başarım (Konstantiniyye'yi 1454'ten önce al, Roma, Viyana...); oyun bitince
+- **Geri al.** ↶ düğmesi (ya da Ctrl+Z) bu mevsimin son emirlerini geri alır; bir savaş ya da olay olana kadar.
+- **Gelişmeler.** Altınla alınan sekiz kalıcı yenilik (barut dökümhanesi, tahrir defterleri, kervansaraylar,
+  tımar düzeni, kapıkulu ocakları, tüfekli piyade, tabyalı surlar...); yapay zekâ da bunları benimser.
+- **Zorluk.** Başlangıç ekranında Kolay, Normal ya da Zor: başlangıç altını, vergiler, savaş gücü ve yapay
+  zekânın sana ne kadar erken saldırdığı değişir.
+- **Başarımlar ve oyun sonu.** 24 başarım (Konstantiniyye'yi 1454'ten önce al, Roma, Viyana...); oyun bitince
   hükümdarın bir lakap alır, toprağının grafiği, büyük fetihlerin ve puan dökümü gösterilir.
 - **Kısayollar.** Üst çubukta **Ordu**'ya ya da **Eyalet**'e dokununca ordularını ya da eyaletlerini sırayla
   gösterir; unuttuğun bir ada ya da kaybolan bir ordu hep bir dokunuş uzağındadır.

@@ -110,12 +110,12 @@ function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localSto
  new MutationObserver(()=>{if(pn.hidden){uiLastSel=-1;}uiSheetVar();}).observe(pn,{attributes:true,attributeFilter:['hidden']});
  addEventListener('resize',()=>{uiSheetFit();});})();
 
-/** Click dispatcher: OVERBLOCK check, then the ACTS registry. */
+/** Click dispatcher: OVERBLOCK check, then the ACTS registry (between the preAct and postAct hooks). */
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
  if(f&&S.over&&OVERBLOCK.has(a)){toast(lng('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.','The game is over. Press "Game over" to start a new game.'));return;}
  if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
- const h=ACTS[a];if(h)h(t,f,F);
+ const h=ACTS[a];if(h){runHooks('preAct',a,t);h(t,f,F);runHooks('postAct',a,t);}   // undo (11k) keeps the state around orders
 }
 
 /* end turn: a second tap is needed when the treasury would run dry within uiCfg.endWarnTurns turns */

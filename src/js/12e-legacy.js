@@ -49,7 +49,9 @@ const ACH=[
  {id:'metbu',ic:'shield',n:['Metbu','The Overlord'],d:['Aynı anda 3 vasalın olsun.','Have 3 vassals at once.'],ok:f=>typeof vasList==='function'&&vasList(f).length>=3},
  {id:'mimar',ic:'column',n:['Mimar','The Builder'],d:['2 büyük eser bitir.','Complete 2 great works.'],ok:()=>lgc().works>=2},
  {id:'hedef',ic:'scroll',n:['Hedef Avcısı','The Achiever'],d:['10 hedef tamamla.','Complete 10 goals.'],ok:()=>Object.keys(S.misDone||{}).length>=10},
+ {id:'yenilik',ic:'scroll',n:['Yenilikçi','The Reformer'],d:['5 gelişme benimse.','Adopt 5 reforms.'],ok:f=>typeof rfCount==='function'&&rfCount(f)>=5},
  {id:'diren',ic:'shield',n:['Direniş','Defiance'],d:['En fazla 3 eyaletle başlayıp 1531\'e kadar ayakta kal.','Start with 3 provinces or fewer and survive to 1531.'],end:true,ok:f=>lgc().p0<=3&&alive(f)},
+ {id:'zor',ic:'sword',n:['Zor Yoldan','The Hard Way'],d:['Zor oyunda 1531\'e kadar ayakta kal.','Survive to 1531 on hard.'],end:true,ok:f=>difKey()==='hard'&&alive(f)},
  {id:'yikilmaz',ic:'shield',n:['Yıkılmaz','Unbroken'],d:['1531\'e kadar tek bir eyaletini kaybetme.','Reach 1531 without losing a single province for good.'],end:true,ok:f=>alive(f)&&!lgc().lost}];
 const ACH_BY={};ACH.forEach(a=>ACH_BY[a.id]=a);
 const achName=a=>lng(a.n[0],a.n[1]),achHow=a=>lng(a.d[0],a.d[1]);
@@ -107,7 +109,7 @@ function lgcEndHtml(f){const L=lgc();achCheck(true);const ep=lgcEpithet(f),rn=ru
  const gains=L.gains.filter(([,i])=>S.prov[i].o===f).sort((a,b)=>a[0]-b[0]),big=gains.slice().sort((a,b)=>S.prov[b[1]].dev-S.prov[a[1]].dev).slice(0,10).sort((a,b)=>a[0]-b[0]);
  const got=ACH.filter(a=>L.ach[a.id]!=null),sc=lgcScoreRows(f),tot=sc.reduce((s,r)=>s+r[1],0);
  return `<div class="lgc-epi">${lng(`Tarih seni <b>${esc(rn)}</b> olarak değil, <b>${esc(ep[0])} ${esc(rn)}</b> olarak anacak.`,`History will remember you not as <b>${esc(rn)}</b> but as <b>${esc(rn)} ${esc(ep[1])}</b>.`)}</div>
- <div class="meta lgc-meta"><span>${lng('Eyalet','Provinces')} <b>${L.p0} → ${ps}</b></span><span>${lng('En geniş','At most')} <b>${Math.max(L.pk,ps,...L.hist.map(h=>h[1]))}</b></span><span>${lng('Fetih','Conquests')} <b>${L.gains.length}</b></span><span>${lng('Kayıp','Lost')} <b>${L.lost}</b></span><span>${lng('Savaş','Battles')} <b>${S.stats.won}–${S.stats.lost}</b></span><span>${lng('Barış','Treaties')} <b>${L.peace}</b></span></div>
+ <div class="meta lgc-meta"><span>${lng('Eyalet','Provinces')} <b>${L.p0} → ${ps}</b></span><span>${lng('En geniş','At most')} <b>${Math.max(L.pk,ps,...L.hist.map(h=>h[1]))}</b></span><span>${lng('Fetih','Conquests')} <b>${L.gains.length}</b></span><span>${lng('Kayıp','Lost')} <b>${L.lost}</b></span><span>${lng('Savaş','Battles')} <b>${S.stats.won}–${S.stats.lost}</b></span><span>${lng('Barış','Treaties')} <b>${L.peace}</b></span><span>${lng('Zorluk','Difficulty')} <b>${difName(difKey())}</b></span></div>
  ${lgcChart(f)}
  ${big.length?`<div class="sec"><h3>${lng('Büyük fetihler','Great conquests')}</h3><div class="lgc-tl">${big.map(([t,i])=>`<div><time>${dateStr(t)}</time><span>${esc(PD[i].name)}</span></div>`).join('')}</div></div>`:''}
  <div class="sec"><h3>${lng('Puan','Score')} <span class="cap">${tot}</span></h3><div class="lgc-sc">${sc.map(([l,v])=>`<div><span>${l}</span><b>${v}</b></div>`).join('')}</div></div>

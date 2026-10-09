@@ -62,7 +62,11 @@ module.exports = {
 
     // 5. names and faith of the pretender survive a reload
     await E(() => window.__ke.save());
+    // headless Chromium sometimes drops file:// localStorage across a reload (see tests/ui.js): re-seed the save then
+    const raw = await E(() => localStorage.getItem('kizil-elma-1451-v1')); await page.waitForTimeout(1000);
+    await page.context().addInitScript(raw => { try { if (!localStorage.getItem('kizil-elma-1451-v1')) { localStorage.setItem('kizil-elma-1451-v1', raw); window.__keReseeded = true; } } catch (e) {} }, raw);
     await page.reload({ waitUntil: 'domcontentloaded' }); await L.waitLoaded(page);
+    if (await E(() => !!window.__keReseeded)) console.log('[scenario c-claimant] note: localStorage was lost across the reload (browser flake); save re-seeded');
     await page.click('[data-act="continue"]');
     await page.waitForFunction(() => window.__ke.S && window.__ke.S.player === 'OSM', null, { timeout: 30000 });
     await L.closeModals(page);

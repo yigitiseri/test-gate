@@ -17,7 +17,7 @@ function armyAt(i,f){return S.armies.filter(a=>a.loc===i&&(f==null||a.f===f));}
 function armySetLoc(id,i){const a=armyById(id);if(a)a.loc=i;return a;}
 
 /** Most field armies faction f may keep: 1 + 1 per 12 provinces (at most 4), +1 for "Zorlu" realms. */
-function armyCap(f){return clamp(1+Math.floor(facProvs(f).length/BAL_B.capDiv),1,BAL_B.capMax)+(FAC[f]&&FAC[f].dif===3?BAL_B.capHard:0);}
+function armyCap(f){return clamp(1+Math.floor(facProvs(f).length/BAL_B.capDiv),1,BAL_B.capMax)+(FAC[f]&&FAC[f].dif===3?BAL_B.capHard:0)+(typeof rfHas==='function'&&rfHas(f,'ocak')?1:0);}   // standing corps (12f)
 /** Largest garrison province i can hold (rounded to 100). */
 function garrisonMax(i){const p=S.prov[i];return Math.round((BAL_B.garBase+p.dev*BAL_B.garDev+p.fort*BAL_B.garFort)/100)*100;}
 /** Smallest garrison "Garnizonu azalt" leaves behind. */

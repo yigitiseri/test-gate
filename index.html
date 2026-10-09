@@ -991,6 +991,29 @@ img.trg{width:18px;height:18px;flex:none;vertical-align:-3px;margin-right:2px}
 .ach.on{opacity:1;filter:none;background:linear-gradient(#fbf0cf,#f0dcaa);border-color:#b8862c}
 .ach.on svg{stroke:#8e1f14}
 .ach.past{opacity:.75;filter:grayscale(.5)}
+/* difficulty (03h): the choice on the start screen */
+.difrow{display:flex;align-items:center;gap:6px;margin:12px 0 4px;flex-wrap:wrap}
+.difl{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.difb{flex:1;min-width:70px;padding:7px 10px;border-radius:6px;border:1px solid rgba(184,134,44,.55);background:rgba(255,248,225,.08);color:inherit;font:inherit;font-size:14px;cursor:pointer}
+.difb.on{background:linear-gradient(#b8862c,#8a6420);color:#fff6dc;border-color:#e2b857;font-weight:700}
+.difd{font-size:12.5px;line-height:1.4;color:var(--muted);margin:2px 0 8px}
+/* reforms (12f): the reforms window */
+.rfg{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.rf{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;border:1px solid rgba(74,46,18,.2);background:rgba(255,250,235,.35)}
+.rf svg{flex:none;width:28px;height:28px;fill:none;stroke:#6b5236;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.rf.on{background:linear-gradient(#fbf0cf,#f0dcaa);border-color:#b8862c}
+.rf.on svg{stroke:#8e1f14}
+.rf-b{flex:1;min-width:0}
+.rf-b b{display:block;font-size:14.5px}
+.rf-b small{display:block;font-size:12.5px;color:var(--muted);line-height:1.35}
+.rf-b .rf-o{font-style:italic;margin-top:2px}
+.rf-a{flex:none;text-align:right}
+.rf-a .btn{white-space:nowrap;font-size:13px;padding:6px 10px}
+.rf-st{font-size:12px;color:var(--muted);white-space:nowrap}
+.rf-st.ok{color:#2f6b36;font-weight:700}
+@media (max-width:520px){.rf{flex-wrap:wrap}.rf-a{width:100%;text-align:left;padding-left:38px}}
+/* undo (11k): the ↶ button above the zoom buttons */
+#zoom #undoBtn{box-shadow:0 0 0 2px rgba(226,184,87,.65),0 2px 8px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -3346,6 +3369,43 @@ hook('newGame',s=>{s.works=[];for(const [k,key,f] of WK_START){const i=PK[key];i
 hook('migrate',s=>{if(!Array.isArray(s.works))s.works=[];},30);
 KE.works={list:()=>wkList().map(w=>({...w,name:wkName(w)})),can:(f,i,k)=>wkCan(f,i,k),start:(f,i,k)=>wkStart(f,i,k),done:(i,k)=>wkDone(i,k),realmHas:(f,k)=>wkRealmHas(f,k),
  finish:w=>wkFinish(w),tick:()=>wkTick(),coast:i=>wkIsCoast(i),types:WK_TYPES,BAL:BAL_W,shipMul:f=>wkShipMul(f),seam:()=>wkShipSeam()};
+/* =====================================================================
+   DIFFICULTY: easy, normal or hard, picked on the start screen (kept as the next game's default) and stored
+   in the save as S.dif (old saves: normal). Every effect is visible where it applies:
+    - the treasury at the start;
+    - a ledger row: on easy the player's taxes +15%, on hard every other realm's taxes +12%;
+    - battles the player fights: on easy its side +10%, on hard the other side +10% (shown on the odds card);
+    - how soon and how readily the AI turns on the player (05b reads difV: grace, ratio, agg).
+   ===================================================================== */
+const DIF_STORE='aod-dif-v1';
+const DIF={
+ easy:{n:['Kolay','Easy'],d:['Daha çok altınla başlarsın, vergilerin %15 fazladır, savaşlarda +%10 güçlüsün ve komşuların sana daha geç ve daha isteksiz saldırır.','You start with more gold, your taxes are 15% higher, you fight 10% stronger and your neighbours turn on you later and less readily.'],
+  gold:1.6,tax:.15,aiTax:0,bat:1.1,aiBat:1,grace:2,ratio:.35,agg:.6},
+ normal:{n:['Normal','Normal'],d:['Tarihin kendisi kadar zor: kimseye ayrıcalık yok.','As hard as history itself: no favours for anyone.'],
+  gold:1,tax:0,aiTax:0,bat:1,aiBat:1,grace:1,ratio:0,agg:1},
+ hard:{n:['Zor','Hard'],d:['Daha az altınla başlarsın, öteki devletlerin vergileri %12 fazladır, karşına çıkan ordular +%10 güçlüdür ve komşuların sana daha erken saldırır.','You start with less gold, every other realm\'s taxes are 12% higher, the armies you face fight 10% stronger and your neighbours turn on you sooner.'],
+  gold:.6,tax:0,aiTax:.12,bat:1,aiBat:1.1,grace:.5,ratio:-.15,agg:1.35}};
+const DIF_K=['easy','normal','hard'];
+let startDif=(()=>{try{const v=localStorage.getItem(DIF_STORE);return DIF[v]?v:'normal';}catch(e){return 'normal';}})();
+function difKey(){return S&&DIF[S.dif]?S.dif:'normal';}
+/** A difficulty knob of the current game (grace, ratio, agg ...). */
+function difV(k){return DIF[difKey()][k];}
+const difName=k=>lng(DIF[k].n[0],DIF[k].n[1]);
+hook('newGame',(s,f)=>{s.dif=startDif;if(f&&s.fac[f])s.fac[f].gold=Math.round(s.fac[f].gold*DIF[startDif].gold);});
+hook('migrate',s=>{if(!DIF[s.dif])s.dif='normal';});
+ECON_ROWS.push(f=>{if(!S||!S.player)return null;const D=DIF[difKey()],r=f===S.player?D.tax:D.aiTax;if(!r)return null;
+ let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=provIncome(i);
+ return [{id:'dif',l:lng(`Zorluk: ${DIF[difKey()].n[0]}`,`Difficulty: ${DIF[difKey()].n[1]}`),v:s*r,k:'inc',
+  tip:f===S.player?lng('Kolay oyunda vergilerin %15 fazla gelir.','On easy your taxes bring in 15% more.'):lng('Zor oyunda öteki devletlerin vergileri %12 fazla gelir.','On hard every other realm\'s taxes bring in 12% more.')}];});
+BATTLE_MODS.push(ctx=>{if(!S||!S.player||!ctx.att)return null;const D=DIF[difKey()];if(D.bat===1&&D.aiBat===1)return null;
+ const pl=ctx.att===S.player?'att':ctx.def===S.player||(ctx.defFs||[]).includes(S.player)?'def':null;if(!pl)return null;
+ if(D.bat!==1)return [{l:lng('Kolay oyun','Easy game'),m:D.bat,side:pl,k:'dif'}];
+ return [{l:lng('Zor oyun','Hard game'),m:D.aiBat,side:pl==='att'?'def':'att',k:'dif'}];});
+/** The difficulty choice on the start screen. */
+function difPickHtml(){return `<div class="difrow" role="radiogroup" aria-label="${lng('Zorluk','Difficulty')}"><span class="difl">${lng('Zorluk','Difficulty')}</span>${DIF_K.map(k=>`<button class="difb${k===startDif?' on':''}" role="radio" aria-checked="${k===startDif}" data-act="sdif" data-d="${k}">${difName(k)}</button>`).join('')}</div>
+ <div class="difd">${esc(lng(DIF[startDif].d[0],DIF[startDif].d[1]))}</div>`;}
+ACTS.sdif=t=>{const k=t.dataset.d;if(!DIF[k])return;startDif=k;try{localStorage.setItem(DIF_STORE,k);}catch(e){}SND.play('click');renderStart();};
+KE.dif={get:()=>difKey(),set:k=>{if(DIF[k])startDif=k;},v:k=>difV(k)};
 /* ---------------- war & peace ---------------- */
 /** a declares war on b. goal (optional casus belli): {k:'claim',prov:i} (that province costs half at the peace
  table); without one the most valuable province of b on a's border is claimed. */
@@ -3541,7 +3601,7 @@ function armyAt(i,f){return S.armies.filter(a=>a.loc===i&&(f==null||a.f===f));}
 function armySetLoc(id,i){const a=armyById(id);if(a)a.loc=i;return a;}
 
 /** Most field armies faction f may keep: 1 + 1 per 12 provinces (at most 4), +1 for "Zorlu" realms. */
-function armyCap(f){return clamp(1+Math.floor(facProvs(f).length/BAL_B.capDiv),1,BAL_B.capMax)+(FAC[f]&&FAC[f].dif===3?BAL_B.capHard:0);}
+function armyCap(f){return clamp(1+Math.floor(facProvs(f).length/BAL_B.capDiv),1,BAL_B.capMax)+(FAC[f]&&FAC[f].dif===3?BAL_B.capHard:0)+(typeof rfHas==='function'&&rfHas(f,'ocak')?1:0);}   // standing corps (12f)
 /** Largest garrison province i can hold (rounded to 100). */
 function garrisonMax(i){const p=S.prov[i];return Math.round((BAL_B.garBase+p.dev*BAL_B.garDev+p.fort*BAL_B.garFort)/100)*100;}
 /** Smallest garrison "Garnizonu azalt" leaves behind. */
@@ -4642,7 +4702,7 @@ function aiDiplo(f){
   if(gain>0&&!aiLandBorder(f,g))gain*=BAL_D.seaMul;
   if(gain>0)gain*=over;
   gain*=calm;
-  if(g===S.player&&S.turn<BAL_D.gracePlayer)gain=Math.min(gain,0);
+  if(g===S.player){if(S.turn<BAL_D.gracePlayer*difV('grace'))gain=Math.min(gain,0);else if(gain>0)gain*=difV('agg');}   // difficulty (03h)
   gain+=nw*BAL_D.gainNudge;
   D[g]=clamp((D[g]||0)*BAL_D.decay+gain,0,BAL_D.desireMax);if(D[g]<1)delete D[g];}
  if(S.turn<BAL_D.graceTurns){aiOps(f);return;}
@@ -4654,7 +4714,7 @@ function aiDiplo(f){
  const busy=warsOf(f).reduce((s,e)=>s+strength(e)*BAL_D.warLoad,0);
  for(const g of cands){const nudged=nud.some(n=>n.war===g);if(nw0>=cap+(nudged?1:0)){KE.aiWhy.cap++;continue;}if(occ&&!nudged){KE.aiWhy.occ=(KE.aiWhy.occ||0)+1;break;}if(R()>BAL_D.declP){KE.aiWhy.rng++;break;}
   let th=strength(g);alliesOf(g).forEach(a=>{if(a!==f)th+=strength(a)*BAL_D.allyW;});const ratio=Math.max(my-busy,0)/Math.max(th,1);
-  if(ratio<(nudged?BAL_D.minRatioNudge:g===S.player?BAL_D.minRatioPl:BAL_D.minRatio-BAL_D.rivalRatio*clamp((D[g]-BAL_D.thresh)/(BAL_D.desireMax-BAL_D.thresh),0,1))){KE.aiWhy.ratio++;continue;}
+  if(ratio<(nudged?BAL_D.minRatioNudge:g===S.player?BAL_D.minRatioPl+difV('ratio'):BAL_D.minRatio-BAL_D.rivalRatio*clamp((D[g]-BAL_D.thresh)/(BAL_D.desireMax-BAL_D.thresh),0,1))){KE.aiWhy.ratio++;continue;}
   const r=aiReach(f,g,nudged?BAL_D.reachPNudge:BAL_D.reachP);if(!r.ok){KE.aiWhy.reach++;continue;}KE.aiWhy.decl++;
   KE.aiDecl.push({t:S.turn,f,g,p:+r.p.toFixed(2),j:r.j,nudged});if(KE.aiDecl.length>200)KE.aiDecl.shift();
   declareWar(f,g);D[g]=0;break;}
@@ -7654,12 +7714,12 @@ function uiSheetSet(m,remember){uiSheetCur=m;if(remember){uiSheet=m;try{localSto
  new MutationObserver(()=>{if(pn.hidden){uiLastSel=-1;}uiSheetVar();}).observe(pn,{attributes:true,attributeFilter:['hidden']});
  addEventListener('resize',()=>{uiSheetFit();});})();
 
-/** Click dispatcher: OVERBLOCK check, then the ACTS registry. */
+/** Click dispatcher: OVERBLOCK check, then the ACTS registry (between the preAct and postAct hooks). */
 function act(a,t){
  const f=S&&S.player,F=f&&S.fac[f];
  if(f&&S.over&&OVERBLOCK.has(a)){toast(lng('Oyun sona erdi. Yeni bir oyun başlatmak için "Oyun bitti" düğmesine bas.','The game is over. Press "Game over" to start a new game.'));return;}
  if(f&&S.over&&a==='end'){queueModal(showEnd);return;}
- const h=ACTS[a];if(h)h(t,f,F);
+ const h=ACTS[a];if(h){runHooks('preAct',a,t);h(t,f,F);runHooks('postAct',a,t);}   // undo (11k) keeps the state around orders
 }
 
 /* end turn: a second tap is needed when the treasury would run dry within uiCfg.endWarnTurns turns */
@@ -8334,6 +8394,48 @@ ACTS.adestno=()=>{farTgt=-1;renderPanel();req();};
 ACTS.adestx=()=>{const a=armyById(selArmy);if(a){a.dest=null;a.path=[];toast(lng(`${armName(a)} seferi durdurdu.`,`${armName(a)} has stopped its march.`));}renderAll();};
 ['adest','adestx'].forEach(k=>OVERBLOCK.add(k));
 KE.farTgt=()=>farTgt;
+/* =====================================================================
+   UNDO: the player's last orders this season can be taken back (up to UNDO_MAX), as long as nothing left to chance
+   has happened since. Before an undoable order (UNDO_OK: marches, merges, splits, recruiting, building, reforms ...)
+   the whole state is kept as JSON; the ↶ button (above the zoom buttons) or Ctrl+Z puts it back.
+   Anything else that changes the world (a battle, a capture, an event choice, diplomacy, peace, the end of the
+   season, loading a game) clears the list, so a battle or an event can never be replayed for a better roll.
+   act() (11-ui-core) runs the preAct/postAct hooks around every click.
+   ===================================================================== */
+const UNDO_MAX=8,UNDO=[];
+const UNDO_OK=new Set(['amove','amerge','asplit','adisband','gdisband','grec','rec1','rec5','recc','reca','bdev','bmkt','bbrk','bfort','adest','adestx','wkbuild','rfbuy','cmd-set']);
+/* clicks that only look or select (they neither keep nor clear the list) */
+const UNDO_UI=new Set(['undo','zin','zout','fit','v3d','mode','tmode','snd','close','cancel','asel','go','help','guide','state','chron','diplo','ledger','lg-met','lg-sort','lg-all','lg-riv',
+ 'missions','menu','adv','adv-go','adv-mute','adv-toggle','tut-skip','tut-restart','cyc-prov','cyc-army','ui-idle','ui-inbox','trades','trmap','reforms','sgrp','bcard','bcard-x','scard',
+ 'a-replay','a-speed','a-q3d','a-skip','adestno','mclose','sv-open','sv-tab','sv-exp','sv-exp-cur','sv-exp-auto','sv-ren','sv-ren-x','sv-ren-ok','lang','cmd-open','pt-prov','pt-rel','pt-gold','pt-auto','pt-clear','snd-music','snd-sfx','sdif','pick']);
+const UNDO_L={amove:['Ordu yürüdü','The march'],amerge:['Ordular birleşti','The merge'],asplit:['Ordu bölündü','The split'],adisband:['Ordu dağıtıldı','The disbanding'],gdisband:['Garnizon azaltıldı','The garrison cut'],
+ grec:['Garnizon toplandı','The garrison levy'],rec1:['Asker toplandı','The levy'],rec5:['Asker toplandı','The levy'],recc:['Süvari toplandı','The horse levy'],reca:['Topçu toplandı','The gun levy'],
+ bdev:['İmar','The building'],bmkt:['Pazar kuruldu','The market'],bbrk:['Kışla kuruldu','The barracks'],bfort:['Kale yükseltildi','The walls'],adest:['Sefere çıkıldı','The long march'],adestx:['Sefer durdu','The halt'],
+ wkbuild:['Eser başladı','The great work'],rfbuy:['Gelişme alındı','The reform'],'cmd-set':['Komutan atandı','The new commander']};
+let undoTok=null;
+const undoLabel=a=>{const l=UNDO_L[a];return l?lng(l[0],l[1]):lng('Son hamle','The last order');};
+function undoClear(){if(UNDO.length){UNDO.length=0;undoUi();}}
+function undoUi(){const b=document.getElementById('undoBtn');if(!b)return;const u=UNDO[UNDO.length-1],on=!!u&&!!S&&!!S.player&&!S.over&&!busy;b.hidden=!on;
+ if(on){const t=lng(`Geri al: ${undoLabel(u.a)} (Ctrl+Z)`,`Undo: ${undoLabel(u.a)} (Ctrl+Z)`);b.title=t;b.setAttribute('aria-label',t);b.dataset.n=UNDO.length>1?UNDO.length:'';}}
+hook('preAct',(a)=>{if(!S||!S.player||S.over||busy)return;if(UNDO_OK.has(a)){undoTok={a,s:JSON.stringify(S),t:S.turn};UNDO.push(undoTok);if(UNDO.length>UNDO_MAX)UNDO.shift();return;}
+ if(!UNDO_UI.has(a))undoClear();});
+hook('postAct',(a)=>{const k=undoTok;undoTok=null;if(!k)return;const i=UNDO.indexOf(k);if(i<0){undoUi();return;}
+ if(JSON.stringify(S)===k.s)UNDO.splice(i,1);   // the order changed nothing (not enough gold, a closed road ...)
+ undoUi();});
+/* chance or the world moved on: nothing before it can be undone */
+for(const h of ['turnStart','newGame','enterGame','capture','siegeFell','peace','eliminate','warDeclared','succession','events'])hook(h,()=>{UNDO.length=0;undoUi();});
+hook('battleResolved',rep=>{if(rep&&(rep.att===S.player||rep.def===S.player||(rep.defFs||[]).includes(S.player))){UNDO.length=0;undoUi();}});
+hook('renderAll',()=>undoUi());
+/** Put the state back as it was before the last undoable order. */
+function undoLast(){const u=UNDO.pop();if(!u||!S||S.turn!==u.t||busy){UNDO.length=0;undoUi();return false;}
+ S=migrate(JSON.parse(u.s));farTgt=-1;clearSel();polDirty=true;renderAll();
+ toast(lng(`Geri alındı: ${undoLabel(u.a)}`,`Undone: ${undoLabel(u.a)}`));runHooks('undo',u.a);undoUi();return true;}
+ACTS.undo=()=>{undoLast();};
+hook('boot',()=>{const z=document.getElementById('zoom');if(!z||document.getElementById('undoBtn'))return;const b=document.createElement('button');
+ b.id='undoBtn';b.dataset.act='undo';b.hidden=true;b.textContent='↶';b.style.fontSize='20px';z.insertBefore(b,z.firstChild);});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){const tag=e.target&&e.target.tagName;if(/INPUT|TEXTAREA/.test(tag||''))return;
+ if(!S||!S.player||!$('#modal').hidden||!UNDO.length)return;e.preventDefault();SND.play('click');undoLast();}});
+KE.undo={n:()=>UNDO.length,last:()=>undoLast(),labels:()=>UNDO.map(u=>u.a)};
 /* ---------------- modals ---------------- */
 const modalQ=[];let evChoices=[],evTitle='',evPend=false;
 function openModal(html){$('#modal .card').innerHTML='<div class="band"></div><div class="in">'+html+'</div>';$('#modal').hidden=false;$('#modal .card').scrollTop=0;}
@@ -8784,7 +8886,9 @@ const ACH=[
  {id:'metbu',ic:'shield',n:['Metbu','The Overlord'],d:['Aynı anda 3 vasalın olsun.','Have 3 vassals at once.'],ok:f=>typeof vasList==='function'&&vasList(f).length>=3},
  {id:'mimar',ic:'column',n:['Mimar','The Builder'],d:['2 büyük eser bitir.','Complete 2 great works.'],ok:()=>lgc().works>=2},
  {id:'hedef',ic:'scroll',n:['Hedef Avcısı','The Achiever'],d:['10 hedef tamamla.','Complete 10 goals.'],ok:()=>Object.keys(S.misDone||{}).length>=10},
+ {id:'yenilik',ic:'scroll',n:['Yenilikçi','The Reformer'],d:['5 gelişme benimse.','Adopt 5 reforms.'],ok:f=>typeof rfCount==='function'&&rfCount(f)>=5},
  {id:'diren',ic:'shield',n:['Direniş','Defiance'],d:['En fazla 3 eyaletle başlayıp 1531\'e kadar ayakta kal.','Start with 3 provinces or fewer and survive to 1531.'],end:true,ok:f=>lgc().p0<=3&&alive(f)},
+ {id:'zor',ic:'sword',n:['Zor Yoldan','The Hard Way'],d:['Zor oyunda 1531\'e kadar ayakta kal.','Survive to 1531 on hard.'],end:true,ok:f=>difKey()==='hard'&&alive(f)},
  {id:'yikilmaz',ic:'shield',n:['Yıkılmaz','Unbroken'],d:['1531\'e kadar tek bir eyaletini kaybetme.','Reach 1531 without losing a single province for good.'],end:true,ok:f=>alive(f)&&!lgc().lost}];
 const ACH_BY={};ACH.forEach(a=>ACH_BY[a.id]=a);
 const achName=a=>lng(a.n[0],a.n[1]),achHow=a=>lng(a.d[0],a.d[1]);
@@ -8842,7 +8946,7 @@ function lgcEndHtml(f){const L=lgc();achCheck(true);const ep=lgcEpithet(f),rn=ru
  const gains=L.gains.filter(([,i])=>S.prov[i].o===f).sort((a,b)=>a[0]-b[0]),big=gains.slice().sort((a,b)=>S.prov[b[1]].dev-S.prov[a[1]].dev).slice(0,10).sort((a,b)=>a[0]-b[0]);
  const got=ACH.filter(a=>L.ach[a.id]!=null),sc=lgcScoreRows(f),tot=sc.reduce((s,r)=>s+r[1],0);
  return `<div class="lgc-epi">${lng(`Tarih seni <b>${esc(rn)}</b> olarak değil, <b>${esc(ep[0])} ${esc(rn)}</b> olarak anacak.`,`History will remember you not as <b>${esc(rn)}</b> but as <b>${esc(rn)} ${esc(ep[1])}</b>.`)}</div>
- <div class="meta lgc-meta"><span>${lng('Eyalet','Provinces')} <b>${L.p0} → ${ps}</b></span><span>${lng('En geniş','At most')} <b>${Math.max(L.pk,ps,...L.hist.map(h=>h[1]))}</b></span><span>${lng('Fetih','Conquests')} <b>${L.gains.length}</b></span><span>${lng('Kayıp','Lost')} <b>${L.lost}</b></span><span>${lng('Savaş','Battles')} <b>${S.stats.won}–${S.stats.lost}</b></span><span>${lng('Barış','Treaties')} <b>${L.peace}</b></span></div>
+ <div class="meta lgc-meta"><span>${lng('Eyalet','Provinces')} <b>${L.p0} → ${ps}</b></span><span>${lng('En geniş','At most')} <b>${Math.max(L.pk,ps,...L.hist.map(h=>h[1]))}</b></span><span>${lng('Fetih','Conquests')} <b>${L.gains.length}</b></span><span>${lng('Kayıp','Lost')} <b>${L.lost}</b></span><span>${lng('Savaş','Battles')} <b>${S.stats.won}–${S.stats.lost}</b></span><span>${lng('Barış','Treaties')} <b>${L.peace}</b></span><span>${lng('Zorluk','Difficulty')} <b>${difName(difKey())}</b></span></div>
  ${lgcChart(f)}
  ${big.length?`<div class="sec"><h3>${lng('Büyük fetihler','Great conquests')}</h3><div class="lgc-tl">${big.map(([t,i])=>`<div><time>${dateStr(t)}</time><span>${esc(PD[i].name)}</span></div>`).join('')}</div></div>`:''}
  <div class="sec"><h3>${lng('Puan','Score')} <span class="cap">${tot}</span></h3><div class="lgc-sc">${sc.map(([l,v])=>`<div><span>${l}</span><b>${v}</b></div>`).join('')}</div></div>
@@ -8861,6 +8965,85 @@ STATE_SECTIONS.push({id:'ach',order:45,html(f){if(f!==S.player)return '';const L
   <div class="hint">${lng('Parlayanlar bu oyunda kazanıldı; soluk olanlar önceki oyunlarında.','The bright ones were earned in this game; the faded ones in earlier games.')}</div>
   <div class="achg">${ACH.map(a=>achBadge(a,L.ach[a.id]!=null?'on':past[a.id]?'past':'')).join('')}</div></div>`;}});
 KE.lgc={get:()=>lgc(),check:e=>achCheck(e).map(a=>a.id),ach:()=>ACH.map(a=>a.id),epithet:f=>lgcEpithet(f||S.player),cont:i=>lgcCont(i),past:()=>achPast()};
+/* =====================================================================
+   REFORMS ("Gelişmeler"): lasting advances a realm buys with gold, some only from a given year or after another.
+   S.ref = {faction: {id: turn adopted}}. Every effect shows where it applies:
+    - ledger rows: tahrir (taxes +8%), kervan (trade +25%), timar (army pay -15%);
+    - battle cards: tufek (foot in the field), tabya (walls against sieges and assaults);
+    - barut gives cannon (the realm can raise guns and batter walls), ocak one more army, sancak faster manpower.
+   The AI adopts reforms too when its treasury is full (never gunpowder: that comes with history, 06b).
+   The reforms window opens from the top bar; the advisor points at a reform the treasury can afford.
+   ===================================================================== */
+const BAL_RF={tax:.08,trade:.25,pay:.15,tufek:.15,tabyaSiege:1.25,tabyaAssault:1.2,mp:.25,aiP:.12,aiFrom:12,aiGold:2.5};
+const RF=[
+ {id:'barut',ic:'sword',c:150,y:1451,n:['Barut Dökümhanesi','Gun Foundry'],d:['Top dökmeyi öğrenirsin: topçu toplayabilir, surları toplarla döversin.','You learn to cast cannon: you can raise gunners and batter walls with guns.']},
+ {id:'tahrir',ic:'scroll',c:160,y:1451,n:['Tahrir Defterleri','Land Surveys'],d:['Toprak ve hane sayımı: eyalet vergileri %8 artar.','Counting land and households: provincial taxes +8%.']},
+ {id:'kervan',ic:'coin',c:140,y:1451,n:['Kervansaraylar','Caravanserais'],d:['Yollara hanlar: ticaret yollarından gelen gelir %25 artar.','Inns along the roads: income from trade routes +25%.']},
+ {id:'timar',ic:'shield',c:180,y:1451,n:['Tımar Düzeni','The Timar System'],d:['Askerler topraktan geçinir: ordu maaşları %15 azalır.','Soldiers live off the land: army pay −15%.']},
+ {id:'sancak',ic:'tower',c:170,y:1460,n:['Sancak Teşkilatı','Sanjak Administration'],d:['Eyaletler beylere bağlanır: insan gücü her mevsim %25 daha hızlı dolar.','Provinces answer to governors: manpower refills 25% faster every season.']},
+ {id:'ocak',ic:'crown',c:300,y:1470,n:['Kapıkulu Ocakları','Standing Corps'],d:['Daimî ordu: bir sahra ordusu daha kurabilirsin.','A standing army: you may field one more army.']},
+ {id:'tufek',ic:'sword',c:220,y:1475,req:'barut',n:['Tüfekli Piyade','Arquebusiers'],d:['Piyadeye tüfek: açık savaşta ordunun piyade payı kadar +%15 güç.','Firearms for the foot: up to +15% in field battles, by the army\'s share of foot soldiers.']},
+ {id:'tabya',ic:'tower',c:240,y:1480,req:'barut',n:['Tabyalı Surlar','Bastion Forts'],d:['Topa dayanıklı alçak surlar: kalelerin kuşatmaya %25, hücuma %20 daha dayanıklı olur.','Low walls that withstand cannon: your forts resist sieges 25% and assaults 20% better.']}];
+const RF_BY={};RF.forEach(r=>RF_BY[r.id]=r);
+const rfName=r=>lng(r.n[0],r.n[1]),rfHow=r=>lng(r.d[0],r.d[1]);
+function rfS(){if(!S.ref)S.ref={};return S.ref;}
+/** Has realm f adopted reform id? (Gunpowder: any realm that already has cannon.) */
+function rfHas(f,id){if(!S||!f)return false;if(id==='barut'&&S.fac[f]&&S.fac[f].cannon)return true;const m=S.ref&&S.ref[f];return !!(m&&m[id]!=null);}
+const rfYear=()=>START_YEAR+Math.floor(S.turn/4);
+/** Can f adopt r now? -> {ok, why} */
+function rfCan(f,r){if(rfHas(f,r.id))return {ok:false,why:'has'};if(rfYear()<r.y)return {ok:false,why:'year'};if(r.req&&!rfHas(f,r.req))return {ok:false,why:'req'};
+ if(S.fac[f].gold<r.c)return {ok:false,why:'gold'};return {ok:true};}
+function rfAdopt(f,id){const r=RF_BY[id];if(!r||!rfCan(f,r).ok)return false;S.fac[f].gold-=r.c;const m=rfS();(m[f]||(m[f]={}))[id]=S.turn;
+ if(id==='barut')S.fac[f].cannon=1;
+ if(f===S.player){addLog(lng(`Yeni gelişme: ${rfName(r)}. ${rfHow(r)}`,`New reform: ${rfName(r)}. ${rfHow(r)}`),'good');}
+ else if(typeof nbrs==='function'&&nbrs(S.player).includes(f))addLog(lng(`${fname(f)} ${rfName(r)} gelişmesini benimsedi.`,`${fname(f)} has adopted ${rfName(r)}.`),'info');
+ runHooks('reform',f,id);return true;}
+const rfCount=f=>RF.filter(r=>rfHas(f,r.id)).length;
+hook('migrate',s=>{if(!s.ref||typeof s.ref!=='object')s.ref={};});
+hook('newGame',s=>{s.ref={};});
+
+/* --- effects --- */
+function rfArmyPay(f){let v=0;for(const x of armyList(f))v+=x.n/1000*UPK*mixCost(armMix(x),BAL_U.upk);return v;}
+ECON_ROWS.push(f=>{if(!S||!S.ref)return null;const out=[];
+ if(rfHas(f,'tahrir')){let s=0;for(let i=0;i<NP;i++)if(S.prov[i].o===f&&!S.prov[i].ctl)s+=provIncome(i);if(s>0)out.push({id:'rf-tahrir',l:rfName(RF_BY.tahrir),v:s*BAL_RF.tax,k:'inc',tip:rfHow(RF_BY.tahrir)});}
+ if(rfHas(f,'kervan')){const v=trdIncome(f)*BAL_RF.trade;if(v>.05)out.push({id:'rf-kervan',l:rfName(RF_BY.kervan),v,k:'inc',tip:rfHow(RF_BY.kervan)});}
+ if(rfHas(f,'timar')){const v=rfArmyPay(f)*BAL_RF.pay;if(v>.05)out.push({id:'rf-timar',l:rfName(RF_BY.timar),v,k:'inc',tip:rfHow(RF_BY.timar)});}
+ return out.length?out:null;});
+BATTLE_MODS.push(ctx=>{if(!S||!S.ref||ctx.to==null)return null;const out=[],kind=ctx.kind,def=ctx.def;
+ if(kind==='field'){
+  if(ctx.att&&rfHas(ctx.att,'tufek')){const own=ctx.uA||(ctx.army!=null?[typeof ctx.army==='object'?ctx.army:armyById(ctx.army)].filter(Boolean):null);const m=own&&own.length?mixOf(own):null;
+   if(m&&m[0]>=.1)out.push({l:rfName(RF_BY.tufek),m:1+BAL_RF.tufek*m[0],side:'att',k:'rf-tufek'});}
+  if(def&&rfHas(def,'tufek')){const L=ctx.uD||armyAt(ctx.to).filter(x=>x.f===def);const m=L.length?mixOf(L):null;
+   if(m&&m[0]>=.1)out.push({l:rfName(RF_BY.tufek),m:1+BAL_RF.tufek*m[0],side:'def',k:'rf-tufek'});}}
+ if((kind==='siege'||kind==='assault')&&def&&rfHas(def,'tabya')&&S.prov[ctx.to].fort>=1)
+  out.push({l:rfName(RF_BY.tabya),m:kind==='siege'?BAL_RF.tabyaSiege:BAL_RF.tabyaAssault,side:'def',k:'rf-tabya'});
+ return out.length?out:null;});
+hook('newTurn',()=>{if(!S.ref)return;for(const f of FK){if(!alive(f)||!rfHas(f,'sancak'))continue;const F=S.fac[f],ds=devSum(f);if(F.mp<ds*800)F.mp=Math.min(ds*800,F.mp+ds*110*BAL_RF.mp);}});
+/* --- the AI adopts a reform now and then when its treasury overflows --- */
+hook('preAI',f=>{if(S.turn<BAL_RF.aiFrom||R()>BAL_RF.aiP)return;const F=S.fac[f];
+ const c=RF.filter(r=>r.id!=='barut'&&rfCan(f,r).ok&&F.gold>=r.c*BAL_RF.aiGold).sort((a,b)=>a.c-b.c)[0];if(c)rfAdopt(f,c.id);});
+
+/* --- the reforms window --- */
+function showReforms(){const f=S.player;if(!f)return;const n=rfCount(f);
+ openModal(`<div class="eyebrow">${lng('Devletin gelişimi','The growth of the realm')}</div><h2>${lng('Gelişmeler','Reforms')}</h2>
+ <p class="lead">${lng(`Hazinedeki altınla devletine kalıcı yenilikler kazandır. Benimsediğin: <b>${n}/${RF.length}</b>. Hazine: <b>${Math.floor(S.fac[f].gold)}</b> altın.`,`Spend treasury gold on lasting advances for your realm. Adopted: <b>${n}/${RF.length}</b>. Treasury: <b>${Math.floor(S.fac[f].gold)}</b> gold.`)}</p>
+ <div class="rfg">${RF.map(r=>{const has=rfHas(f,r.id),c=rfCan(f,r),others=FK.filter(g=>g!==f&&alive(g)&&rfHas(g,r.id)).length;
+  const st=has?`<span class="rf-st ok">${S.ref[f]&&S.ref[f][r.id]!=null?lng(`Benimsendi · ${dateStr(S.ref[f][r.id])}`,`Adopted · ${dateStr(S.ref[f][r.id])}`):lng('Benimsendi','Adopted')}</span>`
+   :c.why==='year'?`<span class="rf-st">${lng(`${r.y} yılından sonra`,`From ${r.y}`)}</span>`
+   :c.why==='req'?`<span class="rf-st">${lng(`Önce: ${rfName(RF_BY[r.req])}`,`First: ${rfName(RF_BY[r.req])}`)}</span>`
+   :`<button class="btn${c.ok?' primary':''}" data-act="rfbuy" data-r="${r.id}"${c.ok?'':' disabled'}>${lng(`Benimse · ${r.c} altın`,`Adopt · ${r.c} gold`)}</button>`;
+  return `<div class="rf ${has?'on':''}">${typeof achIcon==='function'?achIcon(r):''}<div class="rf-b"><b>${esc(rfName(r))}</b><small>${esc(rfHow(r))}</small>
+   ${others?`<small class="rf-o">${lng(`${others} devlet benimsedi`,`${others} ${others===1?'realm has':'realms have'} it`)}</small>`:''}</div><div class="rf-a">${st}</div></div>`;}).join('')}</div>
+ <div class="foot"><button class="btn primary" data-act="mclose">${lng('Kapat','Close')}</button></div>`);}
+ACTS.reforms=()=>showReforms();
+ACTS.rfbuy=t=>{const id=t.dataset.r;if(rfAdopt(S.player,id)){SND.play('build');toast(lng(`Yeni gelişme: ${rfName(RF_BY[id])}`,`New reform: ${rfName(RF_BY[id])}`),'good');renderAll();showReforms();}};
+OVERBLOCK.add('rfbuy');
+TOP_BUTTONS.push({act:'reforms',icon:'❖',label:lng('Gelişmeler','Reforms'),title:lng('Gelişmeler','Reforms'),order:35});
+ADVICE.push({id:'reform',prio:25,when:(S,f)=>{if(S.turn<4)return null;const r=RF.filter(r=>rfCan(f,r).ok&&S.fac[f].gold>=r.c+120).sort((a,b)=>a.c-b.c)[0];return r||null;},
+ t:(S,f,r)=>lng(`Yeni gelişme: ${rfName(r)}`,`A new reform: ${rfName(r)}`),
+ d:(S,f,r)=>lng(`Paşam, hazine dolu. ${r.c} altına ${rfName(r)} gelişmesini benimseyebiliriz: ${rfHow(r)}`,`My lord, the treasury is full. For ${r.c} gold we could adopt ${rfName(r)}: ${rfHow(r)}`),
+ go:()=>showReforms(),goL:lng('Gelişmeler','Reforms')});
+KE.ref={has:(f,id)=>rfHas(f,id),adopt:(f,id)=>rfAdopt(f,id),list:()=>RF.map(r=>r.id),count:f=>rfCount(f)};
 /* ---------------- guide ---------------- */
 const GUIDE_TABS=[['genel',lng('Genel','Basics')],['para',lng('Para','Money')],['savas',lng('Ordular','Armies')],['kusatma',lng('Kuşatma','Sieges')],['antlasma',lng('Antlaşmalar','Treaties')],
  ['diplo',lng('Diplomasi','Diplomacy')],['koalisyon',lng('Koalisyonlar','Coalitions')],['hanedan',lng('Hanedan','Dynasty')],['bina',lng('Binalar','Buildings')],['vasal',lng('Vasallar','Vassals')],['ticaret',lng('Ticaret ve Eserler','Trade & Great Works')],['olay',lng('Olaylar','Events')]];
@@ -8941,8 +9124,14 @@ function guideBody(t){
  return `<p>Yıl 1451. Balkanlar'dan Kafkasya'ya, Tuna'dan Nil'e kadar 28 hanedan güç için yarışıyor. Birini seç ve devletini 1531 yılına kadar yönet.</p>
  <h3>Amaç</h3>
  <p>Haritadaki eyaletlerin yarısına (${half} eyalet) hükmedersen oyunu hemen kazanırsın. Buna ulaşamazsan oyun 1531'de biter ve en güçlü hanedan belirlenir. Puanın ne kadar çok ve ne kadar gelişmiş şehrin olduğuna, tamamladığın hedeflere ve hazinene göre hesaplanır. Son şehrini de kaybedersen oyun biter.</p>
+ <h3>Geri al</h3>
+ <p>Bu mevsim verdiğin son emirleri geri alabilirsin: yürüyüş, ordu birleştirme ya da bölme, asker toplama, bina, gelişme. Haritanın solundaki <b>↶</b> düğmesine bas ya da Ctrl+Z kullan. Bir savaş, bir olay, bir diplomasi adımı ya da mevsimin bitmesi geri alma listesini siler: talihin verdiği sonuç geri alınamaz.</p>
+ <h3>Gelişmeler</h3>
+ <p>Üst çubuktaki <b>❖ Gelişmeler</b> düğmesi devletine kalıcı yenilikler kazandırdığın pencereyi açar. Barut dökümhanesi top dökmeyi öğretir, tahrir defterleri vergileri, kervansaraylar ticareti artırır, tımar düzeni ordu maaşlarını düşürür, sancak teşkilatı insan gücünü daha hızlı doldurur, kapıkulu ocakları bir ordu daha kurdurur, tüfekli piyade açık savaşta, tabyalı surlar kuşatmada güç verir. Her biri altınla alınır; bazıları belli bir yıldan sonra ya da önce başka bir gelişmeyi gerektirir. Öteki devletler de zengin oldukça bunları benimser.</p>
+ <h3>Zorluk</h3>
+ <p>Başlangıç ekranında devletini seçtikten sonra <b>Kolay</b>, <b>Normal</b> ya da <b>Zor</b> oynamayı seçersin; seçimin sonraki oyunlar için hatırlanır. Kolayda daha çok altınla başlarsın, vergilerin %15 fazladır, savaşlarda +%10 güçlüsün ve komşuların sana daha geç saldırır. Zorda daha az altınla başlarsın, öteki devletlerin vergileri %12 fazladır, karşına çıkan ordular +%10 güçlüdür ve komşuların daha erken saldırır. Bu etkiler Devlet defterinde ve savaş kartında ayrı bir satır olarak görünür.</p>
  <h3>Başarımlar ve oyun sonu</h3>
- <p>Oyun boyunca 22 başarım kazanabilirsin: Konstantiniyye'yi 1454'ten önce almak, Roma'yı, Viyana'yı ya da Kahire'yi fethetmek, üç kıtada toprak sahibi olmak, büyük bir hazine ya da ordu toplamak gibi. Kazandıklarını ve kalanları <b>Devlet defteri</b>nde görürsün; önceki oyunlarda kazandıkların soluk görünür. Oyun bitince hükümdarın bir lakapla anılır (Fatih, Kanuni, Muhteşem…); ekranda toprağının yıllar içindeki grafiği, büyük fetihlerin, puanının dökümü ve başarımların çıkar.</p>
+ <p>Oyun boyunca 24 başarım kazanabilirsin: Konstantiniyye'yi 1454'ten önce almak, Roma'yı, Viyana'yı ya da Kahire'yi fethetmek, üç kıtada toprak sahibi olmak, büyük bir hazine ya da ordu toplamak gibi. Kazandıklarını ve kalanları <b>Devlet defteri</b>nde görürsün; önceki oyunlarda kazandıkların soluk görünür. Oyun bitince hükümdarın bir lakapla anılır (Fatih, Kanuni, Muhteşem…); ekranda toprağının yıllar içindeki grafiği, büyük fetihlerin, puanının dökümü ve başarımların çıkar.</p>
  <h3>Bir mevsim nasıl geçer?</h3>
  <ol><li>Asker topla, yapı kur, ordularını yürüt, saldır, komşularınla diplomasi yap.</li>
  <li>Hazır olunca <b>Turu Bitir</b>'e bas.</li>
@@ -9038,8 +9227,14 @@ function guideBodyEn(t,half){
  return `<p>The year is 1451. From the Balkans to the Caucasus, from the Danube to the Nile, 28 dynasties are vying for power. Choose one and rule your realm until the year 1531.</p>
  <h3>The goal</h3>
  <p>Rule half of the provinces on the map (${half} provinces) and you win at once. If you do not get there, the game ends in 1531 and the mightiest dynasty is named. Your score depends on how many cities you hold and how developed they are, on the goals you have completed and on your treasury. If you lose your last city, the game is over.</p>
+ <h3>Undo</h3>
+ <p>You can take back your last orders this season: a march, merging or splitting an army, a levy, a building, a reform. Press the <b>↶</b> button on the left of the map or use Ctrl+Z. A battle, an event, a diplomatic step or the end of the season clears the list: what fortune decided cannot be taken back.</p>
+ <h3>Reforms</h3>
+ <p>The <b>❖ Reforms</b> button in the top bar opens the window where you buy lasting advances for your realm. A gun foundry teaches you to cast cannon, land surveys raise taxes, caravanserais raise trade, the timar system cuts army pay, sanjak administration refills manpower faster, standing corps let you field one more army, arquebusiers strengthen your foot in the field and bastion forts strengthen your walls. Each costs gold; some open only from a given year or after another reform. Other realms adopt them too as they grow rich.</p>
+ <h3>Difficulty</h3>
+ <p>After picking your realm on the start screen, choose to play on <b>Easy</b>, <b>Normal</b> or <b>Hard</b>; the choice is remembered for later games. On easy you start with more gold, your taxes are 15% higher, you fight 10% stronger and your neighbours turn on you later. On hard you start with less gold, every other realm's taxes are 12% higher, the armies you face fight 10% stronger and your neighbours turn on you sooner. These effects show as their own line in the State Ledger and on the battle card.</p>
  <h3>Achievements and the end of the game</h3>
- <p>There are 22 achievements to earn along the way: take Constantinople before 1454, conquer Rome, Vienna or Cairo, hold lands on three continents, gather a great treasury or army, and more. The <b>State Ledger</b> shows the ones you have and the ones still to win; those from earlier games appear faded. When the game ends your ruler is remembered by an epithet (the Conqueror, the Lawgiver, the Magnificent…), with a chart of your lands over the years, your great conquests, your score broken down and your achievements.</p>
+ <p>There are 24 achievements to earn along the way: take Constantinople before 1454, conquer Rome, Vienna or Cairo, hold lands on three continents, gather a great treasury or army, and more. The <b>State Ledger</b> shows the ones you have and the ones still to win; those from earlier games appear faded. When the game ends your ruler is remembered by an epithet (the Conqueror, the Lawgiver, the Magnificent…), with a chart of your lands over the years, your great conquests, your score broken down and your achievements.</p>
  <h3>How a season passes</h3>
  <ol><li>Raise troops, put up buildings, march your armies, attack, and deal with your neighbours.</li>
  <li>When you are ready, press <b>End Turn</b>.</li>
@@ -9246,7 +9441,7 @@ function renderStart(){
  fl.scrollTop=top;uiStartScroll();
  const f=startPick;let has=false;try{has=!!localStorage.getItem(SAVE);}catch(e){}
  $('#pick').innerHTML=f?`<div class="ph">${shield(f,true)}<div><h2>${esc(FAC[f].n)}</h2><div class="sub">${esc(rulerName(f))} · ${esc(relName(f))} · ${lng('başkent','capital')} ${esc(PD[S.fac[f].cap].name)}</div></div></div><p>${esc(FAC[f].d)}</p>
-  ${svStartRow(has,false)}<div class="row2"><button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
+  ${difPickHtml()}${svStartRow(has,false)}<div class="row2"><button class="btn primary" data-act="begin">${lng('Sefere başla','Begin the campaign')}</button></div>`
   :`<p>${lng('Soldan bir devlet seç. Haritada toprakları parlayacak.','Pick a realm on the left. Its lands will light up on the map.')}</p>${svStartRow(has,true)}`;
 }
 /** Start screen: "Continue" (the autosave, with its realm and date) and "Load game" (save slots and file import). */
